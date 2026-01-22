@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 import torch
 
+from open_introspection.model import get_endoftext_token_id
+
 if TYPE_CHECKING:
     from torch import Tensor
     from transformer_lens import HookedTransformer
@@ -115,6 +117,8 @@ def validate_concept_vector(
         return activation
 
     tokens = model.to_tokens(prompt)  # shape: (batch, seq)
+    prompt_len = tokens.shape[1]
+    eos_token_id = get_endoftext_token_id(model)
 
     with model.hooks([(f"blocks.{layer}.hook_resid_post", injection_hook)]):
         output = model.generate(
@@ -122,7 +126,11 @@ def validate_concept_vector(
             max_new_tokens=50,
             temperature=0.7,
             do_sample=True,
+            stop_at_eos=True,
+            eos_token_id=eos_token_id,
         )  # shape: (batch, seq)
 
-    result = model.to_string(output[0])
+    # Only return generated tokens (not the prompt)
+    generated = output[0, prompt_len:]
+    result: str = model.to_string(generated)
     return result

@@ -11,10 +11,20 @@ if TYPE_CHECKING:
     from transformer_lens import HookedTransformer
 
 
+def get_endoftext_token_id(model: HookedTransformer) -> int:
+    """Get the <|endoftext|> token ID for Qwen models.
+
+    Qwen's tokenizer reports <|im_end|> as eos_token_id, but the model
+    actually uses <|endoftext|> to signal completion when not using chat format.
+    """
+    token_ids = model.tokenizer.encode("<|endoftext|>", add_special_tokens=False)
+    return int(token_ids[0])
+
+
 def load_model(
-    model_name: str = "Qwen/Qwen2.5-7B-Instruct",
+    model_name: str = "Qwen/Qwen2.5-3B-Instruct",
     device: str = "auto",
-    dtype: torch.dtype = torch.float16,
+    dtype: torch.dtype = torch.bfloat16,
     load_in_4bit: bool = False,
 ) -> HookedTransformer:
     """
@@ -51,7 +61,12 @@ def load_model(
     model: HookedTransformer = HookedTransformer.from_pretrained(model_name, **kwargs)
 
     if device == "mps":
+        print(f"Moving model to device:  {device}")
         model = model.to("mps")
+
+    # Disable gradients for inference - saves memory and improves speed
+    torch.set_grad_enabled(False)
+    model.eval()
 
     return model
 

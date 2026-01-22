@@ -40,9 +40,9 @@ def main() -> None:
     # Load model - start with smaller model for testing
     print("\nLoading model...")
     model: HookedTransformer = load_model(
-        model_name="Qwen/Qwen2.5-7B-Instruct",  # Start small
+        model_name="Qwen/Qwen2.5-7B-Instruct",
         device=device,
-        dtype=torch.float16,
+        dtype=torch.bfloat16,
     )
     print(f"Model loaded: {model.cfg.model_name}")
     print(f"  Layers: {model.cfg.n_layers}")
@@ -57,12 +57,23 @@ def main() -> None:
     print("\nTesting generation...")
     prompt: str = "Hello! Can you explain what machine learning is in one sentence?"
     tokens = model.to_tokens(prompt)  # shape: (batch, seq)
+    prompt_len = tokens.shape[1]
+
+    # Qwen uses <|endoftext|> as actual stop token, not <|im_end|>
+    endoftext_id = model.tokenizer.encode("<|endoftext|>", add_special_tokens=False)[0]  # type: ignore
+    print(f"  Using <|endoftext|> token id: {endoftext_id}")
+
     output = model.generate(
         tokens,
         max_new_tokens=50,
         temperature=0.7,
+        stop_at_eos=True,
+        eos_token_id=endoftext_id,
     )  # shape: (batch, seq)
-    response = model.to_string(output[0]) # type: ignore
+
+    # Only show generated tokens (not the prompt)
+    generated_tokens = output[0, prompt_len:]
+    response = model.to_string(generated_tokens)  # type: ignore
     print(f"Prompt: {prompt}")
     print(f"Response: {response}")
 

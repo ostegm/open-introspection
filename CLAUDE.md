@@ -51,6 +51,11 @@ uv run pytest
 - **Injection Strength**: Multiplier for how strongly to add the concept vector (typically 2.0)
 - **Layer Selection**: Best results typically come from injecting at ~2/3 through the model
 
+### Qwen Model Quirks
+
+- **dtype**: Use `bfloat16` not `float16`. float16 has poor MPS performance and can cause numerical instability.
+- **EOS Token**: Qwen's tokenizer reports `<|im_end|>` as `eos_token_id`, but the model actually emits `<|endoftext|>` to signal completion (when not using chat format). Use `get_endoftext_token_id()` from `model.py` to get the correct token for `stop_at_eos`.
+
 ### TransformerLens Patterns
 
 ```python

@@ -32,7 +32,7 @@ def main() -> None:
     print("\nLoading model...")
     model: HookedTransformer = load_model(
         model_name="Qwen/Qwen2.5-3B-Instruct",
-        dtype=torch.float16,
+        dtype=torch.bfloat16,
     )
 
     # Run experiment

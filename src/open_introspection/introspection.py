@@ -8,6 +8,7 @@ from open_introspection.concept_extraction import (
     DEFAULT_BASELINE_WORDS,
     extract_concept_vector,
 )
+from open_introspection.model import get_endoftext_token_id
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -75,6 +76,8 @@ def run_introspection_trial(
         return activation
 
     tokens = model.to_tokens(INTROSPECTION_PROMPT)  # shape: (batch, seq)
+    prompt_len = tokens.shape[1]
+    eos_token_id = get_endoftext_token_id(model)
 
     # Generate with hook
     with model.hooks([(f"blocks.{layer}.hook_resid_post", injection_hook)]):
@@ -83,9 +86,13 @@ def run_introspection_trial(
             max_new_tokens=max_new_tokens,
             temperature=0.0,
             do_sample=False,
+            stop_at_eos=True,
+            eos_token_id=eos_token_id,
         )  # shape: (batch, seq)
 
-    result = model.to_string(output[0])
+    # Only return generated tokens (not the prompt)
+    generated = output[0, prompt_len:]
+    result: str = model.to_string(generated)
     return result
 
 
