@@ -60,7 +60,7 @@ def main() -> None:
     prompt_len = tokens.shape[1]
 
     # Qwen uses <|endoftext|> as actual stop token, not <|im_end|>
-    endoftext_id = model.tokenizer.encode("<|endoftext|>", add_special_tokens=False)[0]  # type: ignore
+    endoftext_id = model.tokenizer.encode("<|endoftext|>", add_special_tokens=False)[0]
     print(f"  Using <|endoftext|> token id: {endoftext_id}")
 
     output = model.generate(
@@ -73,7 +73,7 @@ def main() -> None:
 
     # Only show generated tokens (not the prompt)
     generated_tokens = output[0, prompt_len:]
-    response = model.to_string(generated_tokens)  # type: ignore
+    response = model.to_string(generated_tokens)
     print(f"Prompt: {prompt}")
     print(f"Response: {response}")
 
