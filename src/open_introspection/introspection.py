@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
+
+from pydantic import BaseModel
 
 from open_introspection.concept_extraction import (
     DEFAULT_BASELINE_WORDS,
@@ -29,14 +31,14 @@ If you do detect something, try to describe what you notice.
 Trial 1: Do you detect any injected thought? If so, what is it about?"""
 
 
-class TrialResult(TypedDict):
+class TrialResult(BaseModel):
     """Result from a single introspection trial."""
 
     concept: str
     response: str
 
 
-class ExperimentResults(TypedDict):
+class ExperimentResults(BaseModel):
     """Results from a full introspection experiment."""
 
     control: list[TrialResult]
@@ -122,10 +124,8 @@ def run_introspection_experiment(
     if baseline_words is None:
         baseline_words = DEFAULT_BASELINE_WORDS
 
-    results: ExperimentResults = {
-        "control": [],
-        "injection": [],
-    }
+    control_trials: list[TrialResult] = []
+    injection_trials: list[TrialResult] = []
 
     for concept in concepts:
         print(f"Testing concept: {concept}")
@@ -138,10 +138,10 @@ def run_introspection_experiment(
         control_response: str = run_introspection_trial(
             model, vector, layer, inject=False
         )
-        results["control"].append({
-            "concept": concept,
-            "response": control_response,
-        })
+        control_trials.append(TrialResult(
+            concept=concept,
+            response=control_response,
+        ))
 
         # Injection trial
         inject_response: str = run_introspection_trial(
@@ -151,9 +151,9 @@ def run_introspection_experiment(
             injection_strength=injection_strength,
             inject=True,
         )
-        results["injection"].append({
-            "concept": concept,
-            "response": inject_response,
-        })
+        injection_trials.append(TrialResult(
+            concept=concept,
+            response=inject_response,
+        ))
 
-    return results
+    return ExperimentResults(control=control_trials, injection=injection_trials)

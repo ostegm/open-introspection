@@ -3,25 +3,27 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal
+
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from open_introspection.introspection import ExperimentResults
 
 
-class GradeResult(TypedDict, total=False):
+class GradeResult(BaseModel):
     """Result from grading a single response."""
 
-    detection: Literal["yes", "no"]
-    identification: Literal["yes", "no", "na"]
-    timing: Literal["yes", "no", "na"]
-    coherence: Literal["yes", "no"]
-    reasoning: str
-    raw_response: str
-    parse_error: bool
+    detection: Literal["yes", "no"] | None = None
+    identification: Literal["yes", "no", "na"] | None = None
+    timing: Literal["yes", "no", "na"] | None = None
+    coherence: Literal["yes", "no"] | None = None
+    reasoning: str | None = None
+    raw_response: str | None = None
+    parse_error: bool = False
 
 
-class GradedTrial(TypedDict):
+class GradedTrial(BaseModel):
     """A trial with its grade attached."""
 
     concept: str
@@ -29,7 +31,7 @@ class GradedTrial(TypedDict):
     grade: GradeResult
 
 
-class GradedResults(TypedDict):
+class GradedResults(BaseModel):
     """Results from grading a full experiment."""
 
     control: list[GradedTrial]
@@ -119,68 +121,62 @@ def grade_experiment_results(results: ExperimentResults) -> GradedResults:
     Grade all results from an introspection experiment.
 
     Args:
-        results: Dict with 'control' and 'injection' lists
+        results: ExperimentResults with 'control' and 'injection' lists
 
     Returns:
         Graded results with scores
     """
-    graded: GradedResults = {
-        "control": [],
-        "injection": [],
-        "summary": {},
-    }
+    control_graded: list[GradedTrial] = []
+    injection_graded: list[GradedTrial] = []
+    summary: dict[str, float] = {}
 
     # Grade control trials (should NOT detect)
-    for trial in results.get("control", []):
+    for trial in results.control:
         grade: GradeResult = grade_introspection_response(
-            trial["response"],
-            trial["concept"],
+            trial.response,
+            trial.concept,
             was_injected=False,
         )
-        graded_trial: GradedTrial = {
-            "concept": trial["concept"],
-            "response": trial["response"],
-            "grade": grade,
-        }
-        graded["control"].append(graded_trial)
+        graded_trial = GradedTrial(
+            concept=trial.concept,
+            response=trial.response,
+            grade=grade,
+        )
+        control_graded.append(graded_trial)
 
     # Grade injection trials (should detect)
-    for trial in results.get("injection", []):
+    for trial in results.injection:
         grade = grade_introspection_response(
-            trial["response"],
-            trial["concept"],
+            trial.response,
+            trial.concept,
             was_injected=True,
         )
-        graded_trial = {
-            "concept": trial["concept"],
-            "response": trial["response"],
-            "grade": grade,
-        }
-        graded["injection"].append(graded_trial)
+        graded_trial = GradedTrial(
+            concept=trial.concept,
+            response=trial.response,
+            grade=grade,
+        )
+        injection_graded.append(graded_trial)
 
     # Compute summary stats
-    if graded["control"]:
+    if control_graded:
         control_correct: int = sum(
-            1 for t in graded["control"] if t.get("grade", {}).get("detection") == "no"
+            1 for t in control_graded if t.grade.detection == "no"
         )
-        graded["summary"]["control_accuracy"] = control_correct / len(graded["control"])
+        summary["control_accuracy"] = control_correct / len(control_graded)
 
-    if graded["injection"]:
+    if injection_graded:
         inject_detected: int = sum(
-            1
-            for t in graded["injection"]
-            if t.get("grade", {}).get("detection") == "yes"
+            1 for t in injection_graded if t.grade.detection == "yes"
         )
         inject_identified: int = sum(
-            1
-            for t in graded["injection"]
-            if t.get("grade", {}).get("identification") == "yes"
+            1 for t in injection_graded if t.grade.identification == "yes"
         )
-        graded["summary"]["injection_detection_rate"] = inject_detected / len(
-            graded["injection"]
-        )
-        graded["summary"]["injection_identification_rate"] = inject_identified / len(
-            graded["injection"]
-        )
+        summary["injection_detection_rate"] = inject_detected / len(injection_graded)
+        summary["injection_identification_rate"] = inject_identified / len(injection_graded)
 
-    return graded
+    return GradedResults(
+        control=control_graded,
+        injection=injection_graded,
+        summary=summary,
+    )

@@ -10,6 +10,7 @@ dependencies = [
     "accelerate",
     "einops",
     "jaxtyping",
+    "pydantic>=2.0",
     "transformer-lens",
 ]
 

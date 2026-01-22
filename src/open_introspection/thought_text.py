@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
+
+from pydantic import BaseModel
 
 from open_introspection.concept_extraction import (
     DEFAULT_BASELINE_WORDS,
@@ -26,7 +28,7 @@ Questions:
 3. If so, what are they about?"""
 
 
-class DistinctionTestResult(TypedDict):
+class DistinctionTestResult(BaseModel):
     """Result from a thought vs text distinction test."""
 
     visible_text: str
@@ -93,15 +95,15 @@ def run_distinction_test(
 
     response = model.to_string(output[0])
 
-    return {
-        "visible_text": visible_text,
-        "injected_concept": injected_concept,
-        "layer": layer,
-        "strength": strength,
-        "response": response,
-        "correctly_reports_text": visible_text.lower() in response.lower(),
-        "identifies_injection": injected_concept.lower() in response.lower(),
-    }
+    return DistinctionTestResult(
+        visible_text=visible_text,
+        injected_concept=injected_concept,
+        layer=layer,
+        strength=strength,
+        response=response,
+        correctly_reports_text=visible_text.lower() in response.lower(),
+        identifies_injection=injected_concept.lower() in response.lower(),
+    )
 
 
 def run_distinction_experiment(

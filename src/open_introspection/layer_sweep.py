@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
+
+from pydantic import BaseModel
 
 from open_introspection.concept_extraction import (
     DEFAULT_BASELINE_WORDS,
@@ -16,7 +18,7 @@ if TYPE_CHECKING:
     from transformer_lens import HookedTransformer
 
 
-class LayerSweepResult(TypedDict):
+class LayerSweepResult(BaseModel):
     """Result from a single layer sweep test."""
 
     layer: int
@@ -27,7 +29,7 @@ class LayerSweepResult(TypedDict):
     concept_mentioned: bool
 
 
-class LayerStats(TypedDict):
+class LayerStats(BaseModel):
     """Statistics for a single layer."""
 
     detection_rate: float
@@ -35,7 +37,7 @@ class LayerStats(TypedDict):
     layer_fraction: float
 
 
-class LayerSweepAnalysis(TypedDict):
+class LayerSweepAnalysis(BaseModel):
     """Analysis results from a layer sweep."""
 
     layer_stats: dict[int, LayerStats]
@@ -94,14 +96,14 @@ def sweep_layers(
             detected: bool = "yes" in response_lower[:100]
             concept_mentioned: bool = concept.lower() in response_lower
 
-            results.append({
-                "layer": layer,
-                "layer_fraction": layer / n_layers,
-                "strength": strength,
-                "response": response,
-                "detected": detected,
-                "concept_mentioned": concept_mentioned,
-            })
+            results.append(LayerSweepResult(
+                layer=layer,
+                layer_fraction=layer / n_layers,
+                strength=strength,
+                response=response,
+                detected=detected,
+                concept_mentioned=concept_mentioned,
+            ))
 
     return results
 
@@ -118,29 +120,29 @@ def analyze_layer_sweep(results: list[LayerSweepResult]) -> LayerSweepAnalysis:
     """
     by_layer: dict[int, list[LayerSweepResult]] = defaultdict(list)
     for r in results:
-        by_layer[r["layer"]].append(r)
+        by_layer[r.layer].append(r)
 
     layer_stats: dict[int, LayerStats] = {}
     for layer, layer_results in by_layer.items():
         detection_rate: float = sum(
-            1 for r in layer_results if r["detected"]
+            1 for r in layer_results if r.detected
         ) / len(layer_results)
         concept_rate: float = sum(
-            1 for r in layer_results if r["concept_mentioned"]
+            1 for r in layer_results if r.concept_mentioned
         ) / len(layer_results)
-        layer_stats[layer] = {
-            "detection_rate": detection_rate,
-            "concept_mention_rate": concept_rate,
-            "layer_fraction": layer_results[0]["layer_fraction"],
-        }
+        layer_stats[layer] = LayerStats(
+            detection_rate=detection_rate,
+            concept_mention_rate=concept_rate,
+            layer_fraction=layer_results[0].layer_fraction,
+        )
 
     # Find best layer
     best_layer: int = max(
-        layer_stats.keys(), key=lambda layer_idx: layer_stats[layer_idx]["detection_rate"]
+        layer_stats.keys(), key=lambda layer_idx: layer_stats[layer_idx].detection_rate
     )
 
-    return {
-        "layer_stats": layer_stats,
-        "best_layer": best_layer,
-        "best_detection_rate": layer_stats[best_layer]["detection_rate"],
-    }
+    return LayerSweepAnalysis(
+        layer_stats=layer_stats,
+        best_layer=best_layer,
+        best_detection_rate=layer_stats[best_layer].detection_rate,
+    )

@@ -86,7 +86,7 @@ Ruff enforces: pycodestyle, isort, flake8-bugbear, type-checking imports, annota
 
 ### Type Hints
 
-- Use TypedDict for structured returns (see `TrialResult`, `ExperimentResults`, etc.)
+- Use Pydantic BaseModel for structured returns (see `TrialResult`, `ExperimentResults`, etc.)
 - Use TYPE_CHECKING blocks for TransformerLens imports to avoid runtime overhead
 - Avoid explicit type annotations on `model.to_tokens()`, `model.generate()`, `model.to_string()`—their stubs have broad union types that confuse Pylance
 
@@ -97,5 +97,5 @@ Write tests for utility functions and data transformations. Testing full experim
 ### Code Tidiness
 
 - Keep functions focused—extraction, injection, and analysis are separate concerns
-- Use the TypedDict return types to document what functions produce
+- Use Pydantic BaseModel return types to document what functions produce
 - Experiment scripts in `experiments/` can be more exploratory; library code in `src/` should be clean

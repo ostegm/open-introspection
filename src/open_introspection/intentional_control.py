@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
 
 import torch
+from pydantic import BaseModel
 
 from open_introspection.concept_extraction import (
     DEFAULT_BASELINE_WORDS,
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from transformer_lens import HookedTransformer
 
 
-class ControlExperimentResult(TypedDict):
+class ControlExperimentResult(BaseModel):
     """Result from an intentional control experiment."""
 
     concept: str
@@ -128,17 +129,17 @@ def run_intentional_control_experiment(
     # Expected: think > dont_think > control (ideally)
     shows_control: bool = think_score > dont_think_score
 
-    return {
-        "concept": concept,
-        "layer": layer,
-        "think": think_score,
-        "dont_think": dont_think_score,
-        "control": control_score,
-        "think_vs_control": think_vs_control,
-        "dont_think_vs_control": dont_think_vs_control,
-        "think_vs_dont_think": think_vs_dont_think,
-        "shows_control": shows_control,
-    }
+    return ControlExperimentResult(
+        concept=concept,
+        layer=layer,
+        think=think_score,
+        dont_think=dont_think_score,
+        control=control_score,
+        think_vs_control=think_vs_control,
+        dont_think_vs_control=dont_think_vs_control,
+        think_vs_dont_think=think_vs_dont_think,
+        shows_control=shows_control,
+    )
 
 
 def run_control_experiment_batch(
