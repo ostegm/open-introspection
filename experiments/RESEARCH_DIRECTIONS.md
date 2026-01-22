@@ -4,27 +4,46 @@ Ideas for extending the introspection replication experiments.
 
 ## Near-term (Ready to Implement)
 
-### Layer Sweep
+### ✅ Layer Sweep (DONE)
 
-**Question:** Does concept extraction/injection quality vary by layer?
+**Finding:** Optimal layer varies by concept. Ocean works at layer 30 (83%), fails at layer 24 (67%).
 
-- Ocean fails at layer 24 (2/3) - does it work elsewhere?
-- Paper suggests 2/3 as default, but may vary by concept type
-- Hypothesis: Physical concepts (ocean) may need different layers than emotional concepts (fear)
-
-**Experiment:** Test layers [6, 12, 18, 24, 30, 34] for each concept, measure steering hit rate.
+**Key insight:** Vector norm explodes at later layers (6x from layer 24→34), causing degeneracy.
 
 ---
 
-### Injection Strength Sweep
+### ✅ Injection Strength Sweep (DONE)
 
-**Question:** How does injection strength affect steering quality?
+**Finding:** Effective magnitude (strength × norm) is the key variable.
+- Sweet spot: 70-100
+- Below 50: weak signal
+- Above 120: repetition degeneracy ("celebration celebration celebration")
 
-- Currently using 2.0 (arbitrary)
-- Too weak = no effect; too strong = gibberish
-- May need different strengths for different concepts (based on vector norm?)
+**Recommended config:** Layer 30, strength 2.0-2.5
 
-**Experiment:** Test strengths [0.5, 1.0, 2.0, 5.0, 10.0] on working concepts.
+---
+
+### Automated Grading (PRIORITY)
+
+**Problem:** Manual hit rate evaluation doesn't scale. Need automated metrics.
+
+**Approaches:**
+
+1. **LLM-as-judge:** Use Claude/GPT to grade "Does this text relate to {concept}?"
+   - Pros: Flexible, handles nuance
+   - Cons: API costs, latency, potential bias
+
+2. **Embedding similarity:** Compare output embedding to concept embedding
+   - Pros: Fast, deterministic, no API
+   - Cons: May miss semantic nuance
+
+3. **Keyword detection:** Check for concept-related words
+   - Pros: Simple, fast, interpretable
+   - Cons: Misses indirect references, false positives
+
+4. **Hybrid:** Keyword pre-filter + LLM verification for edge cases
+
+**Experiment:** Implement all approaches, compare correlation with human judgment on existing data.
 
 ---
 
@@ -42,12 +61,6 @@ Qwen family available: 0.5B, 1.5B, 3B (current), 7B, 14B, 32B, 72B
 4. **Scaling:** Does introspection ability correlate with model size?
 
 **Experiment:** Extract fear/silence/celebration from Qwen-1.5B, 3B, 7B. Compare cosine similarity of vectors (normalized by layer position).
-
----
-
-### Automated Grading
-
-Use Claude/OpenAI API to grade steering outputs for concept relevance. Currently doing this manually.
 
 ---
 

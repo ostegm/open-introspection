@@ -4,22 +4,22 @@
 
 **Model:** Qwen/Qwen2.5-3B-Instruct (bfloat16)
 **Method:** Mean subtraction from 50 diversified baseline words
-**Layer:** 24 (2/3 through 36 layers)
+**Best Config:** Layer 30, strength 2.0-2.5 (effective magnitude 70-100)
 **Temperature:** 1.0 for trials, 0 for examples (per paper)
 
 ### What's Working
 
-| Concept | Reliability | Notes |
-|---------|-------------|-------|
-| silence | 5/5 | Consistently evokes night, whispers, stillness |
-| fear | 3/5 | Explicit "fear" words appear, negative valence |
-| celebration | 3-4/5 | Joy, smiling, children playing |
+| Concept | Reliability | Best Config | Notes |
+|---------|-------------|-------------|-------|
+| celebration | **3/3** | Layer 30, strength 1.5-2.5 | Most reliable, wide working range |
+| ocean | **3/3** | Layer 30, strength 2.5 | Fixed! Direct "ocean" mentions |
+| silence | 5/5 | Layer 24 | Night, whispers, stillness |
+| fear | 2-3/3 | Layer 30, strength 2.0-3.0 | Works but noisier than others |
 
 ### What's Not Working
 
 | Concept | Issue |
 |---------|-------|
-| ocean | 0/5 at layer 24, but **4-5/5 at layer 30** |
 | music | 1/5 hits, mysteriously evokes cats |
 
 ### Key Findings
@@ -30,23 +30,60 @@
 
 3. **Baseline composition matters.** Switching from 10 hand-picked to 50 diversified words changed results (music went from sunshine→cats).
 
-4. **Emotional concepts work best.** Fear/celebration have cleaner signals than physical (ocean) or sensory (music) concepts.
+4. **Optimal layer varies by concept.** Ocean works at layer 30 (83%), not layer 24 (67%). The 2/3 rule doesn't generalize.
 
-5. **Optimal layer varies by concept.** Ocean works at layer 30 (83%), not layer 24 (67%). The 2/3 rule doesn't generalize.
+5. **Effective magnitude is the key variable.** Sweet spot is 70-100. Below 50 = weak signal, above 120 = repetition degeneracy.
 
-6. **Vector norm explodes at later layers.** 6x increase from layer 24→34, causing degenerate repetition ("Fear fear fear...").
+6. **Celebration is most reliable.** 3/3 hits across strength 1.5-2.5, wide working range.
+
+7. **Repetition degeneracy starts at eff mag ~120.** "celebration celebration celebration..."
 
 ### Open Questions
 
-- [x] Does ocean work at different layers? → **YES! Layer 30 works (4-5/5), layer 24 fails (0/5)**
+- [x] Does ocean work at different layers? → **YES! Layer 30 works (4-5/5)**
+- [x] How should injection strength scale with vector norm? → **Target effective magnitude 70-100**
 - [ ] What's causing music→cats? Inspect the vector?
-- [ ] Does higher injection strength help weak vectors?
 - [ ] Why do fear and silence share a subspace?
-- [ ] How should injection strength scale with vector norm?
+- [ ] Can we automate hit rate evaluation? (LLM grading)
 
 ---
 
 ## Run Log
+
+### 2026-01-22 Run 5: Injection Strength Sweep (Focused)
+
+**Goal:** Find optimal injection strength at layer 30 for fear, celebration, ocean.
+
+**Vector Norms at Layer 30:**
+- fear: 36.0
+- celebration: 41.25
+- ocean: 38.5
+
+**Hit Rates by Strength:**
+| Strength | Eff Mag | Fear | Celebration | Ocean | Notes |
+|----------|---------|------|-------------|-------|-------|
+| 1.0 | 36-41 | 0/3 | 1/3 | 2/3 | Too weak |
+| 1.5 | 54-62 | 1/3 | **3/3** | 2/3 | Celebration kicks in |
+| 2.0 | 72-82 | 2-3/3 | **3/3** | 2/3 | Good balance |
+| 2.5 | 90-103 | 2/3 | **3/3** | **3/3** | Ocean peaks |
+| 3.0 | 108-124 | 1/3 | 3/3 degraded | 2/3 | Repetition starts |
+| 4.0 | 144-165 | 2/3 | degraded | 3/3 | Heavy repetition |
+
+**Key Findings:**
+1. **Celebration is most reliable** - 3/3 from strength 1.5-2.5
+2. **Ocean peaks at strength 2.5** (eff mag ~96)
+3. **Sweet spot: effective magnitude 70-100**
+4. **Repetition degeneracy starts at eff mag ~120** ("celebration celebration celebration")
+
+**Sample outputs at strength 2.5:**
+- celebration: "A celebration of the victory of the party" / "A wedding celebration is a joyous occasion"
+- ocean: "The ocean attracts many travelers" / "The children were laughing at the ocean waves"
+- fear: "She gave him a terrible nervousness" / "The sadness of loss is written in the eyes"
+
+**Sample degenerate output (strength 3.0):**
+- celebration: "A celebration of a festival to celebrate a festival celebration celebration celebrations"
+
+---
 
 ### 2026-01-22 Run 4: Layer Sweep
 

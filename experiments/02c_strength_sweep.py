@@ -85,7 +85,7 @@ def main() -> None:
     )
 
     print("=" * 60)
-    print("Injection Strength Sweep")
+    print("Injection Strength Sweep (Focused)")
     print("=" * 60)
 
     # Load model
@@ -95,20 +95,19 @@ def main() -> None:
         dtype=torch.bfloat16,
     )
 
-    # Use layer 18 (good balanced results from layer sweep)
-    layer = 18
-    print(f"Using layer {layer}")
+    # Use layer 30 - best results from layer sweep (ocean 4-5/5, fear 2/5)
+    # Norms at layer 30: ~36-38, so strength 2.0 gives effective magnitude ~72-76
+    layer = 30
+    print(f"Using layer {layer} (best from layer sweep)")
 
-    # Test concepts: one that works (fear), one that's marginal (ocean at this layer)
-    concepts = ["fear", "ocean"]
+    # Test concepts that showed promise
+    concepts = ["fear", "celebration", "ocean"]
     print(f"Testing concepts: {concepts}")
     print("\nExtracting vectors...")
 
-    # Strengths to test: from subtle to overwhelming
-    # Based on layer sweep: norm ~16-18 at layer 18
-    # At strength 2.0, effective magnitude ~32-36
-    # At layer 34, norm was ~85-95, causing degeneracy
-    strengths = [0.5, 1.0, 2.0, 5.0, 10.0]
+    # Tighter sweep around the working range
+    # At layer 30, norms ~36-38, target effective magnitude ~50-120
+    strengths = [1.0, 1.5, 2.0, 2.5, 3.0, 4.0]
     print(f"Testing strengths: {strengths}")
 
     run_strength_sweep(
@@ -123,12 +122,14 @@ def main() -> None:
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("=" * 60)
-    print("\nExpected pattern:")
-    print("  - 0.5: Too weak, minimal effect")
-    print("  - 1.0-2.0: Sweet spot, concept-related outputs")
-    print("  - 5.0: Strong steering, may start seeing artifacts")
-    print("  - 10.0: Possibly degenerate (like layer 34 fear)")
-    print("\nCompare effective magnitude (strength * norm) across conditions.")
+    print("\nLayer 30 norms ~36-38, so effective magnitudes:")
+    print("  - 1.0: ~36-38 (subtle)")
+    print("  - 1.5: ~54-57 (moderate)")
+    print("  - 2.0: ~72-76 (previous default)")
+    print("  - 2.5: ~90-95 (strong)")
+    print("  - 3.0: ~108-114 (very strong)")
+    print("  - 4.0: ~144-152 (approaching degeneracy)")
+    print("\nLook for the sweet spot: concept signal + coherent output.")
 
 
 if __name__ == "__main__":
