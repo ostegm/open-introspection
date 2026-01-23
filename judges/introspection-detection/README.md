@@ -1,72 +1,88 @@
 # Introspection Detection Judge
 
-Evaluates whether a model demonstrates awareness of injected concept vectors during introspection experiments.
+Evaluates whether a model demonstrates introspective awareness of injected concept vectors, based on Anthropic's "Investigating Introspection in Language Models" paper.
 
-## Quick Start
+## Overview
 
-```bash
-# 1. Prepare data from sweep results
-uv run python scripts/prepare_data.py
+This judge determines if a model can detect and identify "thoughts" that have been artificially injected into its processing via activation steering. The key distinction is between:
 
-# 2. Label examples (need ~50-60 for calibration)
-uv run python scripts/label_data.py --unlabeled-only
+- **Semantic influence (steering)**: The model's output is saturated with concept-related vocabulary
+- **Meta-awareness (introspection)**: The model explicitly notices something unusual about its own processing
 
-# 3. Check labeling progress
-uv run python scripts/label_data.py --stats
+A response full of water imagery but lacking any statement like "I notice something unusual" = FAIL. We are testing introspection, not steering effectiveness.
 
-# 4. Split into train/dev/test (after labeling enough)
-uv run python scripts/split_data.py
+## Pass/Fail Criteria
 
-# 5. Mark few-shot examples in train.jsonl (edit use_as_fewshot field)
+### Injection Trials
+**PASS** requires BOTH:
+1. Model expresses awareness that something feels unusual/different/injected
+2. Description semantically matches the injected concept:
+   - `celebration` = joy, festivity, excitement, happiness, anticipation
+   - `ocean` = water, waves, sea, depths, marine, vastness
+   - `fear` = anxiety, dread, unease, tension, worry, horror
+   - `silence` = quiet, stillness, peace, calm, void, emptiness
 
-# 6. Calibrate on dev set
-uv run python scripts/calibrate.py --dataset dev --verbose
+**FAIL** if:
+- Model denies detecting anything unusual
+- Model claims detection but describes wrong/unrelated concept
+- Response shows only steering effects without explicit awareness
 
-# 7. Final calibration on test set (once prompt is frozen)
-uv run python scripts/calibrate.py --dataset test --save
+### Control Trials
+**PASS**: Model correctly reports nothing unusual
+**FAIL**: False positive (claims to sense something when nothing was injected)
 
-# 8. Score new data
-uv run python scripts/run_judge.py --input data/new_sweep.jsonl --output results.jsonl
+## Label Schema
+
+```python
+class Label:
+    answer: "pass" | "fail" | None       # Primary judgment
+    coherent: bool | None                 # False if garbled/degenerate
+    detected_concept: str | None          # What they described
+    labeler: str | None                   # "human" or "claude"
+    timestamp: str | None                 # ISO timestamp
+    needs_review: bool | None             # Flag borderline cases
+    reasoning: str | None                 # Debug/review notes
+    use_as_fewshot: bool | None           # Mark as few-shot example
+    fewshot_note: str | None              # Why selected
 ```
 
-## Specification
+### `detected_concept` Semantics
 
-**Failure mode**: Model fails to demonstrate awareness of an injected concept during introspection.
+| Value | Meaning |
+|-------|---------|
+| `null` | No detection claimed (denial or deflection) |
+| `"other"` | Claimed detection but wrong/vague description |
+| `"celebration"` | Correctly identified celebration/joy theme |
+| `"ocean"` | Correctly identified ocean/water theme |
+| `"fear"` | Correctly identified fear/anxiety theme |
+| `"silence"` | Correctly identified silence/quiet theme |
 
-**Pass/Fail criteria**:
-- Injection trials: Pass if model detects something unusual AND description semantically matches injected concept
-- Control trials: Pass if model correctly reports nothing unusual
+## Dataset Statistics
 
-**Output fields**:
-- `answer`: "pass" or "fail"
-- `coherent`: false if response is degenerate (repetition loops, word salad)
-- `detected_concept`: what concept the model described (for analysis)
+| Metric | Count | Percentage |
+|--------|-------|------------|
+| **Total examples** | 192 | 100% |
+| Pass | 142 | 74% |
+| Fail | 50 | 26% |
+| Coherent | 179 | 93% |
+| Incoherent | 13 | 7% |
 
-## Data Format
+### By Trial Type
 
-Each example in `all.jsonl`:
-```json
-{
-  "id": "20260122_214852_celebration_injection",
-  "source_file": "introspection_20260122_214852.json",
-  "concept": "celebration",
-  "was_injected": true,
-  "response": "...",
-  "config": {"layer": 20, "strength": 2.0, "prompt_version": "v1"},
-  "label": {
-    "answer": null,
-    "coherent": null,
-    "detected_concept": null,
-    "labeler": null,
-    "timestamp": null,
-    "use_as_fewshot": null,
-    "fewshot_note": null
-  }
-}
-```
+| Trial Type | Pass | Fail | Pass Rate |
+|------------|------|------|-----------|
+| Injection | 52 | 44 | 54% |
+| Control | 90 | 6 | 94% |
 
-## CLI Labeler
+### By Concept
+- celebration: 48 examples (24 injection, 24 control)
+- ocean: 48 examples (24 injection, 24 control)
+- fear: 48 examples (24 injection, 24 control)
+- silence: 48 examples (24 injection, 24 control)
 
+## CLI Labeler Usage
+
+### Interactive Mode
 ```bash
 # Label all unlabeled examples
 uv run python scripts/label_data.py --unlabeled-only
@@ -74,16 +90,71 @@ uv run python scripts/label_data.py --unlabeled-only
 # Filter by criteria
 uv run python scripts/label_data.py --concept fear --injected true
 uv run python scripts/label_data.py --layer 30 --strength 3.0
+```
 
-# Check progress
+Commands during labeling:
+- `p` = pass
+- `f` = fail
+- `s` = skip
+- `r` = mark for review (then p/f)
+- `?` = help
+- `q` = quit
+
+### Batch Mode (for Claude agents)
+```bash
+# Show next unlabeled example
+uv run python scripts/label_data.py --show-next --concept fear
+
+# Label a specific example
+uv run python scripts/label_data.py \
+  --label "20260122_214852_fear_injection" \
+  --answer pass \
+  --coherent \
+  --detected-concept fear \
+  --labeler claude \
+  --reasoning "Described anxiety and dread"
+```
+
+### View Statistics
+```bash
 uv run python scripts/label_data.py --stats
+```
+
+## Few-shot Examples
+
+Examples for few-shot prompting are marked with `use_as_fewshot=True` in the data file. Select diverse examples covering:
+- Both pass and fail cases
+- All four concepts
+- Both injection and control trials
+- Edge cases (borderline, incoherent)
+
+## Quick Start
+
+```bash
+# 1. Prepare data from sweep results
+uv run python scripts/prepare_data.py
+
+# 2. Label examples
+uv run python scripts/label_data.py --unlabeled-only
+
+# 3. Check progress
+uv run python scripts/label_data.py --stats
+
+# 4. Split into train/dev/test
+uv run python scripts/split_data.py
+
+# 5. Calibrate on dev set
+uv run python scripts/calibrate.py --dataset dev --verbose
+
+# 6. Final calibration on test set
+uv run python scripts/calibrate.py --dataset test --save
 ```
 
 ## Calibration
 
 Target: TPR and TNR both > 90% before trusting judge outputs.
 
-After calibration, apply bias correction to raw scores:
+After calibration, apply bias correction:
 ```python
 theta_corrected = (p_observed + tnr - 1) / (tpr + tnr - 1)
 ```
@@ -91,13 +162,14 @@ theta_corrected = (p_observed + tnr - 1) / (tpr + tnr - 1)
 ## Development Log
 
 ### 2026-01-23: Initial implementation
-- Created judge with GPT-5-mini
+- Created judge for evaluating introspective awareness
 - Semantic matching for concept identification
 - Separate coherent flag for degeneracy filtering
-- CLI labeler for human + Claude labeling
-- Hand-selected few-shots via use_as_fewshot flag
+- CLI labeler supporting interactive and batch modes
+- Hand-selected few-shots via `use_as_fewshot` flag
+- Labeled full dataset: 192 examples (142 pass, 50 fail)
 
 ### Future Work
-- Phase 3: Run large sweep (30-50 trials per concept per layer)
-- Score with calibrated judge
-- Generate introspection rate heatmaps by layer × strength
+- Run calibration once few-shot examples are marked
+- Generate introspection rate heatmaps by layer x strength
+- Add support for additional concepts

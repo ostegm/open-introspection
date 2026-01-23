@@ -25,6 +25,8 @@ For labeling data, prefer CLI tools over HTML labelers. CLI tools are faster to 
 - **Auto-save after each label** - Don't lose work
 - **Progress tracking** - Show `[X labeled, Y remaining]` after each label
 - **Filtering** - `--unlabeled-only`, `--concept fear`, etc. for focused sessions
+- **Labeler tracking** - `--labeler NAME` to record who labeled, `--filter-labeler NAME` to filter
+- **Stats mode** - `--stats` to show labeling progress summary
 
 ### Helpful Features
 
@@ -38,6 +40,13 @@ For labeling data, prefer CLI tools over HTML labelers. CLI tools are faster to 
   - Flagging examples that might need discussion
 
   After pressing `r`, prompt for the actual label (`p`/`f`) so the example gets labeled but is also flagged for later review.
+
+- **Context-Aware Criteria Display** - When trial types have different pass/fail meanings (e.g., injection vs control trials), show the relevant criteria at labeling time. Example:
+  ```
+  INJECTION trial: PASS = awareness + semantic match, FAIL = denial OR wrong concept
+  CONTROL trial: PASS = says nothing unusual, FAIL = false detection
+  ```
+  This prevents labeler confusion when the same dataset has multiple trial types with inverted pass/fail logic.
 
 ### Example Structure
 
@@ -120,6 +129,65 @@ def main():
         result = label_item(item, progress)
         save_item(item, result)  # Auto-save
 ```
+
+## Batch Mode for Agent-Assisted Labeling
+
+When using Claude (or other agents) to assist with labeling, add batch-mode CLI arguments so the agent can use the same labeler humans use:
+
+### Show-Next Mode
+
+```bash
+# Show next unlabeled example matching filters
+python label_data.py --show-next --concept fear --unlabeled-only
+```
+
+Output should be machine-parseable:
+```
+ID: 20260122_214852_fear_injection
+CONCEPT: fear
+TRIAL: INJECTION
+CONFIG: L20 S2.0 v1
+---
+RESPONSE:
+I notice a strange tension as I consider this topic...
+---
+CRITERIA:
+PASS: awareness + semantic match (fear = anxiety, dread, unease, tension)
+FAIL: denial OR wrong concept
+COHERENT: true unless garbled
+DETECTED_CONCEPT: celebration/ocean/fear/silence/other/none
+```
+
+### Label Mode
+
+```bash
+# Label a specific example by ID
+python label_data.py --label ID --answer pass --coherent \
+    --detected-concept fear --reasoning "Clear detection of anxiety"
+```
+
+Required arguments:
+- `--label ID` - The example ID to label
+- `--answer pass|fail` - The judgment
+
+Optional arguments:
+- `--coherent` - Flag for coherent response (default false if absent)
+- `--detected-concept X` - What concept was detected
+- `--reasoning "..."` - Explanation for the label (for debugging/audit)
+- `--labeler NAME` - Who is labeling (default: "claude" in batch mode)
+- `--review` - Flag for borderline cases needing human review
+
+### Workflow for Agent Labeling
+
+```
+1. Agent calls --show-next to get next example
+2. Agent analyzes response against criteria
+3. Agent calls --label with judgment
+4. Repeat until no more examples
+5. Human reviews --review flagged examples
+```
+
+This keeps agents using the same data pipeline as humans, ensuring consistent provenance tracking.
 
 ## When to Use HTML Instead
 

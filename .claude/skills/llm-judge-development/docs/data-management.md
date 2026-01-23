@@ -70,6 +70,38 @@ If single expert isn't feasible:
 - **Balance classes** - Actively seek both pass and fail examples
 - **Date your labels** - Criteria may evolve
 
+## Few-Shot Example Selection
+
+Use `use_as_fewshot=True` flag directly in training data rather than maintaining a separate file:
+
+```python
+class LabeledExample(BaseModel):
+    # ... other fields ...
+    use_as_fewshot: bool = False
+    fewshot_note: str | None = None  # Why this is a good few-shot example
+```
+
+### Selection Criteria
+
+Good few-shot candidates are:
+- **Clear examples** - Unambiguous pass or fail
+- **Diverse** - Cover different patterns, concepts, edge cases
+- **Human-reviewed** - Never auto-select, always hand-pick
+- **Borderline cases with clear reasoning** - These teach the judge how to handle ambiguity
+
+### Workflow
+
+```python
+# In prompt building:
+def get_fewshot_examples(train_data: list[Example]) -> list[Example]:
+    return [ex for ex in train_data if ex.use_as_fewshot]
+
+# When labeling, mark good candidates:
+# --review flag during labeling → later review and set use_as_fewshot=True
+```
+
+This keeps few-shot examples versioned with the data and ensures they come from the training split only.
+
 ## Assisted Labeling with Claude (Opus)
 
 For this project, using Claude Opus 4.5 as an initial labeler is acceptable because:
@@ -222,3 +254,18 @@ Consider re-labeling if:
 - New edge cases emerged that weren't in original data
 
 Document all re-labeling decisions in the judge's README.
+
+## Diagnostic Field Semantics
+
+Beyond the binary pass/fail, judges often output diagnostic fields for analysis. Define clear semantics for nullable fields:
+
+### Example: `detected_concept` Field
+
+For an introspection judge checking if a model detected an injected concept:
+
+| Value | Meaning |
+|-------|---------|
+| `null` | Model claimed nothing unusual (no detection) |
+| `"other"` | Model claimed to detect something, but wrong/vague |
+| `"<concept>"` | Model correctly identified the target concept |
+

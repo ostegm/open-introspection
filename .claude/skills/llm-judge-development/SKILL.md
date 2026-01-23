@@ -59,9 +59,17 @@ When creating or modifying a judge:
 ```
 judges/
   {judge_name}/
+    schemas.py            # Pydantic models for examples and judge output
     judge.py              # Prompt template + evaluation logic
+    scripts/
+      label_data.py       # CLI labeler (human + agent batch mode)
+      prepare_data.py     # Convert experiment outputs to labelable format
+      split_data.py       # Create train/dev/test splits
+      calibrate.py        # Measure TPR/TNR on dev/test
+      run_judge.py        # Score new data
     data/
-      train.jsonl         # Few-shot example pool
+      all.jsonl           # All examples (pre-split, for labeling)
+      train.jsonl         # Few-shot example pool (use_as_fewshot=True for selection)
       dev.jsonl           # Prompt refinement set
       test.jsonl          # Final calibration (never peek!)
     calibrations/
@@ -108,9 +116,6 @@ class JudgeResult(BaseModel):
     # Then the binary judgment (what we calibrate)
     answer: Literal["pass", "fail"]
 
-    # Optional additional fields for analysis
-    # detected_concepts: list[str] = []
-    # relevant_quote: str | None = None
 ```
 
 ## Common Pitfalls
