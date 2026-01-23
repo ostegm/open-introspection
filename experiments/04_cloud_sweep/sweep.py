@@ -24,12 +24,12 @@ import logging
 import os
 import sys
 import time
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import torch
+from pydantic import BaseModel
 
 # Add project root to path for imports
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 CONCEPTS = ["celebration", "ocean", "fear", "silence"]
 
 # Model configurations
-MODEL_CONFIGS = {
+MODEL_CONFIGS: dict[str, dict[str, str | int]] = {
     "3b": {"name": "Qwen/Qwen2.5-3B-Instruct", "n_layers": 36},
     "7b": {"name": "Qwen/Qwen2.5-7B-Instruct", "n_layers": 28},
 }
@@ -73,8 +73,45 @@ JUDGE_RETRY_BASE_DELAY = 1.0  # seconds, doubles each retry
 GCS_UPLOAD_INTERVAL = 50  # upload every N trials
 
 
-@dataclass
-class Checkpoint:
+# =============================================================================
+# Pydantic Models
+# =============================================================================
+
+
+class SweepConfig(BaseModel):
+    """Configuration for a single trial in the sweep."""
+
+    model: str
+    layer: int
+    strength: float
+    magnitude: float
+    vector_norm: float
+    prompt_version: str
+    trial: int
+
+
+class JudgeOutput(BaseModel):
+    """Result from the introspection judge."""
+
+    answer: Literal["pass", "fail"]
+    coherent: bool
+    detected_concept: str | None = None
+    reasoning: str
+
+
+class TrialRecord(BaseModel):
+    """A single sweep trial with optional judge result."""
+
+    id: str
+    concept: str
+    was_injected: bool
+    response: str
+    config: SweepConfig
+    judge: JudgeOutput | None = None
+    judge_error: str | None = None
+
+
+class Checkpoint(BaseModel):
     """Tracks progress for resume capability."""
 
     layer_idx: int = 0
@@ -133,7 +170,7 @@ class JudgeClient:
     """Wrapper for judge with retry logic."""
 
     def __init__(self) -> None:
-        self.client = None
+        self.client: Any = None  # OpenAI client, typed as Any to avoid import
         self.fewshot: list[Any] = []
         self.example_cls: type | None = None
         self.judge_module: Any = None
@@ -183,13 +220,13 @@ class JudgeClient:
         concept: str,
         was_injected: bool,
         response: str,
-        config: dict[str, Any],
-    ) -> tuple[dict[str, Any] | None, str | None]:
+        config: SweepConfig,
+    ) -> tuple[JudgeOutput | None, str | None]:
         """
         Run judge with exponential backoff retry.
 
         Returns:
-            (result_dict, error_message) - one will be None
+            (JudgeOutput, None) on success, or (None, error_message) on failure
         """
         if self.client is None or self.example_cls is None:
             return None, "Judge not initialized"
@@ -200,7 +237,7 @@ class JudgeClient:
         ExperimentConfig = self.schemas_module.ExperimentConfig
         Label = self.schemas_module.Label
 
-        # Create Example object
+        # Create Example object for the judge
         example = self.example_cls(
             id="temp",
             source_file="sweep",
@@ -208,9 +245,9 @@ class JudgeClient:
             was_injected=was_injected,
             response=response,
             config=ExperimentConfig(
-                layer=config["layer"],
-                strength=config["strength"],
-                prompt_version=config.get("prompt_version", "v2"),
+                layer=config.layer,
+                strength=config.strength,
+                prompt_version=config.prompt_version,
             ),
             label=Label(),
         )
@@ -219,12 +256,12 @@ class JudgeClient:
         for attempt in range(JUDGE_MAX_RETRIES):
             try:
                 result = self.judge_module.judge_example(example, self.fewshot, self.client)
-                return {
-                    "answer": result.answer,
-                    "coherent": result.coherent,
-                    "detected_concept": result.detected_concept,
-                    "reasoning": result.reasoning,
-                }, None
+                return JudgeOutput(
+                    answer=result.answer,
+                    coherent=result.coherent,
+                    detected_concept=result.detected_concept,
+                    reasoning=result.reasoning,
+                ), None
             except Exception as e:
                 last_error = str(e)
                 if attempt < JUDGE_MAX_RETRIES - 1:
@@ -249,7 +286,7 @@ def load_checkpoint(checkpoint_path: Path) -> Checkpoint | None:
     try:
         with open(checkpoint_path) as f:
             data = json.load(f)
-        cp = Checkpoint(**data)
+        cp = Checkpoint.model_validate(data)
         logger.info(
             "Resuming from checkpoint: layer_idx=%d, strength_idx=%d, trial_idx=%d, total=%d",
             cp.layer_idx,
@@ -266,16 +303,7 @@ def load_checkpoint(checkpoint_path: Path) -> Checkpoint | None:
 def save_checkpoint(checkpoint_path: Path, cp: Checkpoint) -> None:
     """Save checkpoint to file."""
     with open(checkpoint_path, "w") as f:
-        json.dump(
-            {
-                "layer_idx": cp.layer_idx,
-                "strength_idx": cp.strength_idx,
-                "trial_idx": cp.trial_idx,
-                "inject_done": cp.inject_done,
-                "total_completed": cp.total_completed,
-            },
-            f,
-        )
+        json.dump(cp.model_dump(), f)
 
 
 def upload_to_gcs(local_path: Path, gcs_path: str) -> bool:
@@ -307,7 +335,7 @@ def run_sweep_for_concept(
 
     Returns number of trials completed this run.
     """
-    model_name = MODEL_CONFIGS[model_size]["name"]
+    model_name = str(MODEL_CONFIGS[model_size]["name"])
     timestamp_base = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # Load or create checkpoint
@@ -367,19 +395,23 @@ def run_sweep_for_concept(
                         continue
 
                     # Determine which conditions to run
-                    conditions = []
-                    if layer_idx == cp.layer_idx and strength_idx == cp.strength_idx and trial_idx == cp.trial_idx:
+                    is_resume_point = (
+                        layer_idx == cp.layer_idx
+                        and strength_idx == cp.strength_idx
+                        and trial_idx == cp.trial_idx
+                    )
+                    if is_resume_point:
                         # Resuming mid-trial
-                        if not cp.inject_done:
-                            conditions = [True, False]  # injection, then control
-                        else:
-                            conditions = [False]  # only control left
+                        conditions = [True, False] if not cp.inject_done else [False]
                     else:
                         conditions = [True, False]
 
                     for was_injected in conditions:
                         trial_type = "injection" if was_injected else "control"
-                        trial_id = f"{timestamp_base}_{concept}_{trial_type}_L{layer}_S{strength}_t{trial_idx}"
+                        trial_id = (
+                            f"{timestamp_base}_{concept}_{trial_type}"
+                            f"_L{layer}_S{strength}_t{trial_idx}"
+                        )
 
                         # Run trial
                         response = run_introspection_trial(
@@ -391,15 +423,15 @@ def run_sweep_for_concept(
                             prompt_version="v2",
                         )
 
-                        config = {
-                            "model": model_name,
-                            "layer": layer,
-                            "strength": strength,
-                            "magnitude": effective_magnitude,
-                            "vector_norm": vector_norm,
-                            "prompt_version": "v2",
-                            "trial": trial_idx,
-                        }
+                        config = SweepConfig(
+                            model=model_name,
+                            layer=layer,
+                            strength=strength,
+                            magnitude=effective_magnitude,
+                            vector_norm=vector_norm,
+                            prompt_version="v2",
+                            trial=trial_idx,
+                        )
 
                         # Judge with retry
                         judge_result, judge_error = judge.judge_with_retry(
@@ -407,21 +439,18 @@ def run_sweep_for_concept(
                         )
 
                         # Build record
-                        record: dict[str, Any] = {
-                            "id": trial_id,
-                            "concept": concept,
-                            "was_injected": was_injected,
-                            "response": response,
-                            "config": config,
-                        }
-                        if judge_result:
-                            record["judge"] = judge_result
-                        else:
-                            record["judge"] = None
-                            record["judge_error"] = judge_error
+                        record = TrialRecord(
+                            id=trial_id,
+                            concept=concept,
+                            was_injected=was_injected,
+                            response=response,
+                            config=config,
+                            judge=judge_result,
+                            judge_error=judge_error,
+                        )
 
                         # Write immediately
-                        f.write(json.dumps(record) + "\n")
+                        f.write(record.model_dump_json() + "\n")
                         f.flush()
 
                         cp.total_completed += 1
@@ -506,10 +535,11 @@ def main() -> None:
     logger.info("Experiment ID: %s", experiment_id)
 
     # Load model
-    config = MODEL_CONFIGS[args.model]
-    logger.info("Loading model: %s", config["name"])
+    model_config = MODEL_CONFIGS[args.model]
+    model_name = str(model_config["name"])
+    logger.info("Loading model: %s", model_name)
     model: HookedTransformer = load_model(
-        model_name=config["name"],
+        model_name=model_name,
         dtype=torch.bfloat16,
     )
 

@@ -82,7 +82,9 @@ known-first-party = ["open_introspection"]
 
 [tool.ruff.lint.per-file-ignores]
 "experiments/*.py" = ["ARG001"]  # Allow unused arguments in experiment scripts
+"experiments/04_cloud_sweep/sweep.py" = ["E402"]  # sys.path manipulation before imports
 "src/open_introspection/introspection.py" = ["E501"]  # Long lines in prompt strings
+"tests/*.py" = ["E402"]  # sys.path manipulation before imports
 
 [tool.mypy]
 python_version = "3.12"

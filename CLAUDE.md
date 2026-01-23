@@ -23,7 +23,7 @@ uv run ruff check --fix src/ experiments/  # auto-fix
 uv run mypy src/
 
 # Run tests
-uv run pytest
+make test
 ```
 
 ## Architecture
@@ -91,6 +91,11 @@ Ruff enforces: pycodestyle, isort, flake8-bugbear, type-checking imports, annota
 - Avoid explicit type annotations on `model.to_tokens()`, `model.generate()`, `model.to_string()`—their stubs have broad union types that confuse Pylance
 
 ### Unit Tests
+
+Run tests with:
+```bash
+make test
+```
 
 Write tests for utility functions and data transformations. Testing full experiment pipelines is impractical (requires GPU, model downloads), but core logic like vector operations and result parsing should be tested.
 
