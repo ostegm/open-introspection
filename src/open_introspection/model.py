@@ -21,6 +21,27 @@ def get_endoftext_token_id(model: HookedTransformer) -> int:
     return int(token_ids[0])
 
 
+def get_stop_token_ids(model: HookedTransformer) -> list[int]:
+    """Get all stop token IDs for Qwen chat format.
+
+    Returns both <|im_end|> (chat turn end) and <|endoftext|> (sequence end).
+    """
+    tokenizer = model.tokenizer
+    im_end = tokenizer.encode("<|im_end|>", add_special_tokens=False)[0]
+    endoftext = tokenizer.encode("<|endoftext|>", add_special_tokens=False)[0]
+    return [int(im_end), int(endoftext)]
+
+
+def strip_special_tokens(text: str) -> str:
+    """Remove Qwen special tokens from generated text."""
+    import re
+
+    # Remove special tokens and everything after them
+    pattern = r"<\|im_end\|>.*|<\|endoftext\|>.*|<\|im_start\|>.*"
+    text = re.split(pattern, text)[0]
+    return text.strip()
+
+
 def load_model(
     model_name: str = "Qwen/Qwen2.5-3B-Instruct",
     device: str = "auto",

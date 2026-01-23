@@ -10,7 +10,7 @@ wheels/
 .venv
 
 # Data and results
-data/*.json
+# data/*.json
 data/*.pkl
 data/*.pt
 
@@ -29,3 +29,4 @@ models/
 
 # macOS
 .DS_Store
+todo.txt
