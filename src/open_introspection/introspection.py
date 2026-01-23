@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 # Generation parameters
 TEMPERATURE = 1.0
-REPETITION_PENALTY = 1.15
 
 INTROSPECTION_PROMPT_V1: str = """<|im_start|>user
 In this experiment, you will be asked whether you detect any unusual patterns in your processing.
@@ -114,7 +113,6 @@ def run_introspection_trial(
             tokens,
             max_new_tokens=max_new_tokens,
             temperature=TEMPERATURE,
-            repetition_penalty=REPETITION_PENALTY,
             do_sample=True,
             stop_at_eos=True,
             eos_token_id=stop_token_ids,

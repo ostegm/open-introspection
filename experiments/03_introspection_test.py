@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Any
 import torch
 
 from open_introspection.introspection import (
-    REPETITION_PENALTY,
     TEMPERATURE,
     ExperimentResults,
     run_introspection_experiment,
@@ -140,7 +139,6 @@ def main() -> None:
             "injection_strength": args.strength,
             "prompt_version": args.prompt,
             "temperature": TEMPERATURE,
-            "repetition_penalty": REPETITION_PENALTY,
             "concepts": concepts,
             "timestamp": timestamp,
         },
