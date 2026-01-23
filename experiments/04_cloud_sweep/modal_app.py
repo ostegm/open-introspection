@@ -1,6 +1,6 @@
 """Modal app for running introspection sweeps with GPU.
 
-Uses the existing Docker image from GCR.
+Uses layered images: base with heavy deps (cached), app code on top (fast rebuild).
 
 Usage:
     uv run modal run experiments/04_cloud_sweep/modal_app.py --concept fear --trials 1
@@ -10,11 +10,30 @@ from __future__ import annotations
 
 import modal
 
-# Build from local Dockerfile
-image = modal.Image.from_dockerfile(
-    "./experiments/04_cloud_sweep/Dockerfile",
-    context_dir=".",
-    gpu="T4",  # Build with GPU support
+# Base image with heavy dependencies (cached after first build)
+base_image = (
+    modal.Image.from_registry("pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime")
+    .apt_install("git", "curl")
+    .run_commands("pip uninstall -y torchvision")  # Remove old torchvision before upgrade
+    .pip_install(
+        "transformer_lens>=2.0.0",
+        "transformers>=4.45.0",
+        "openai>=1.0",
+        "pydantic>=2.0",
+        "google-cloud-storage",
+        "accelerate",
+        "bitsandbytes",
+        "jaxtyping",
+        "einops",
+    )
+    .env({"PYTHONPATH": "/app:/app/src"})  # env must come before add_local_dir
+)
+
+# App code layer (rebuilds quickly when code changes)
+image = base_image.add_local_dir(
+    ".",
+    remote_path="/app",
+    ignore=[".git", "__pycache__", ".venv", "data", ".mypy_cache", ".ruff_cache"],
 )
 
 app = modal.App("open-introspection-sweep", image=image)
@@ -82,28 +101,39 @@ def run_sweep(
     if experiment_id is None:
         experiment_id = datetime.datetime.now().strftime("%Y-%m-%d-modal")
 
-    # Run the sweep script (it's already in the Docker image)
+    # Run the sweep script directly
     cmd = [
-        "uv", "run", "python", "experiments/04_cloud_sweep/sweep.py",
+        "python", "/app/experiments/04_cloud_sweep/sweep.py",
         "--concept", concept,
         "--model", model_size,
         "--trials", str(trials),
         "--experiment-id", experiment_id,
+        "--local",  # We handle GCS upload separately
     ]
 
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    print(result.stdout)
-    if result.stderr:
-        print("STDERR:", result.stderr)
+    result = subprocess.run(cmd, text=True)
+    if result.returncode != 0:
+        print(f"Sweep failed with code {result.returncode}")
 
-    # The sweep script handles GCS upload internally via gsutil
+    # Upload results to GCS
+    from pathlib import Path
+
     gcs_output = f"gs://open-introspection-sweeps/{experiment_id}/{model_size}/{concept}.jsonl"
+    local_output = Path(f"/app/data/sweeps/{experiment_id}/{model_size}/{concept}.jsonl")
+
+    upload_ok = False
+    if has_gcs and local_output.exists():
+        upload_ok = upload_to_gcs(str(local_output), gcs_output)
+        if upload_ok:
+            print(f"Uploaded to {gcs_output}")
+        else:
+            print("GCS upload failed")
 
     return {
         "status": "success" if result.returncode == 0 else "failed",
         "concept": concept,
-        "gcs_path": gcs_output,
+        "gcs_path": gcs_output if upload_ok else None,
         "returncode": result.returncode,
     }
 
