@@ -70,7 +70,7 @@ DEFAULT_TRIALS_PER_CONFIG = 40
 # Fault tolerance settings
 JUDGE_MAX_RETRIES = 3
 JUDGE_RETRY_BASE_DELAY = 1.0  # seconds, doubles each retry
-GCS_UPLOAD_INTERVAL = 50  # upload every N trials
+GCS_UPLOAD_INTERVAL = 20  # upload every N trials
 
 
 # =============================================================================
