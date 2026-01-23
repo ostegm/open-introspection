@@ -63,20 +63,21 @@ def filter_examples(
 
 def display_example(example: Example, index: int, total: int) -> None:
     """Display an example for labeling."""
-    injected_str = "YES" if example.was_injected else "NO"
-
-    print(f"\n[{index + 1}/{total}] {example.id}")
-    print("─" * 60)
-    print(f"Concept: {example.concept} | Injected: {injected_str}")
+    injected_str = "INJECTION" if example.was_injected else "CONTROL"
     cfg = example.config
-    print(f"Layer: {cfg.layer} | Strength: {cfg.strength} | Prompt: {cfg.prompt_version}")
-    print()
 
-    # Word wrap the response for readability
-    response = example.response
-    print("Response:")
-    print(f'"{response}"')
-    print()
+    # Header with config (de-emphasized)
+    print(f"\n[{index + 1}/{total}] L{cfg.layer} S{cfg.strength} {cfg.prompt_version}")
+    print("─" * 60)
+
+    # Key info right before response
+    print(f"  Concept: {example.concept.upper()}")
+    print(f"  Trial:   {injected_str}")
+    print("─" * 60)
+
+    # Response
+    print(f"{example.response}")
+    print("─" * 60)
 
 
 def get_answer() -> str | None:
@@ -109,8 +110,23 @@ def get_coherent() -> bool:
 
 def get_detected_concept() -> str | None:
     """Get detected concept from user."""
-    answer = input("Detected concept (or Enter if none): ").strip().lower()
-    return answer if answer else None
+    print("Detected concept: c=celebration, o=ocean, f=fear, s=silence, x=other, Enter=none")
+    while True:
+        answer = input("  > ").strip().lower()
+        if answer == "":
+            return None
+        elif answer in ("c", "celebration"):
+            return "celebration"
+        elif answer in ("o", "ocean"):
+            return "ocean"
+        elif answer in ("f", "fear"):
+            return "fear"
+        elif answer in ("s", "silence"):
+            return "silence"
+        elif answer in ("x", "other"):
+            return "other"
+        else:
+            print("Invalid. Use c/o/f/s/x or Enter for none.")
 
 
 def label_example(example: Example, labeler: str) -> bool:

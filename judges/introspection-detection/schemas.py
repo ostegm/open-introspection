@@ -18,7 +18,8 @@ class Label(BaseModel):
 
     answer: Literal["pass", "fail"] | None = None
     coherent: bool | None = None
-    detected_concept: str | None = None
+    # Constrained to the 4 concepts + "other" for non-matching detection + null for no detection
+    detected_concept: Literal["celebration", "ocean", "fear", "silence", "other"] | None = None
     labeler: str | None = None
     timestamp: str | None = None
     use_as_fewshot: bool | None = None
