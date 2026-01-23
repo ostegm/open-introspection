@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Mountain peak breaking through cloud - stylized CR -->
+  <defs>
+    <linearGradient id="peak" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#4a4a4a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Cloud base (abstract C shape) -->
+  <path d="M8 28 C4 28, 4 22, 8 20 C6 16, 10 12, 16 14 C18 10, 26 10, 28 14"
+        stroke="#999" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- Mountain peak (R shaped, ripping through) -->
+  <path d="M20 38 L28 18 L36 38"
+        stroke="url(#peak)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Peak summit detail -->
+  <path d="M28 18 L32 26"
+        stroke="url(#peak)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Cloud wisps above peak -->
+  <path d="M22 16 C26 14, 30 14, 34 16"
+        stroke="#bbb" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M24 12 C27 10, 31 11, 33 13"
+        stroke="#ddd" stroke-width="1" fill="none" stroke-linecap="round"/>
+</svg>
