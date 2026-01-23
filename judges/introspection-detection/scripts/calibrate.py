@@ -124,7 +124,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Calibrate judge on labeled data")
     parser.add_argument("--dataset", type=str, default="dev", choices=["dev", "test"],
                         help="Which dataset to calibrate on")
-    parser.add_argument("--model", type=str, default="gpt-5-mini", help="Judge model")
+    parser.add_argument("--model", type=str, default="gpt-5-nano", help="Judge model")
     parser.add_argument("--no-save", action="store_true", help="Don't save calibration results")
     parser.add_argument("--show-disagreements", action="store_true", help="Show disagreements")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")

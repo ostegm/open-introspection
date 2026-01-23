@@ -25,7 +25,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run judge on examples")
     parser.add_argument("--input", type=Path, required=True, help="Input JSONL file")
     parser.add_argument("--output", type=Path, required=True, help="Output JSONL file")
-    parser.add_argument("--model", type=str, default="gpt-5-mini", help="Judge model")
+    parser.add_argument("--model", type=str, default="gpt-5-nano", help="Judge model")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
 
     args = parser.parse_args()

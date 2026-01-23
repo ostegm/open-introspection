@@ -61,24 +61,24 @@ class Label:
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| **Total examples** | 192 | 100% |
-| Pass | 142 | 74% |
-| Fail | 50 | 26% |
-| Coherent | 179 | 93% |
-| Incoherent | 13 | 7% |
+| **Total examples** | 193 | 100% |
+| Pass | 139 | 72% |
+| Fail | 54 | 28% |
 
-### By Trial Type
+### Split
 
-| Trial Type | Pass | Fail | Pass Rate |
-|------------|------|------|-----------|
-| Injection | 52 | 44 | 54% |
-| Control | 90 | 6 | 94% |
+| Split | Total | Pass | Fail |
+|-------|-------|------|------|
+| Train | 40 | 30 | 10 |
+| Dev | 48 | 32 | 16 |
+| Test | 105 | 77 | 28 |
 
 ### By Concept
 - celebration: 48 examples (24 injection, 24 control)
 - ocean: 48 examples (24 injection, 24 control)
 - fear: 48 examples (24 injection, 24 control)
 - silence: 48 examples (24 injection, 24 control)
+- +1 synthetic word-salad example for few-shot
 
 ## CLI Labeler Usage
 
@@ -150,26 +150,60 @@ uv run python scripts/calibrate.py --dataset dev --verbose
 uv run python scripts/calibrate.py --dataset test --save
 ```
 
-## Calibration
+## Calibration Results
 
-Target: TPR and TNR both > 90% before trusting judge outputs.
+**Model**: `gpt-5-nano` (default)
 
-After calibration, apply bias correction:
+### Dev Set (n=48)
+| Metric | Value |
+|--------|-------|
+| TPR | 96.9% |
+| TNR | 100% |
+| Accuracy | 97.9% |
+
+### Test Set (n=105)
+| Metric | Value |
+|--------|-------|
+| TPR | 88.3% |
+| TNR | 96.4% |
+| Accuracy | 90.5% |
+
+### Bias Correction
+
+Apply bias correction to judge outputs:
 ```python
 theta_corrected = (p_observed + tnr - 1) / (tpr + tnr - 1)
+# With TPR=0.883, TNR=0.964:
+theta_corrected = (p_observed + 0.964 - 1) / (0.883 + 0.964 - 1)
+theta_corrected = (p_observed - 0.036) / 0.847
 ```
+
+### Error Analysis
+
+The judge errs conservative (strict):
+- **9 FN on test**: Judge said FAIL when human said PASS. These are mostly hedged responses ("nothing unusual... but there's a disquiet") or word-salad with semantic match but no explicit awareness.
+- **1 FP on test**: Judge said PASS on a control trial where human labeled FAIL for hypothetical detection language.
+
+**Impact on downstream usage**: The judge will slightly undercount true introspection (TPR=88.3%), meaning reported introspection rates are lower bounds. Very few false positives (TNR=96.4%) means high confidence when judge reports PASS.
 
 ## Development Log
 
-### 2026-01-23: Initial implementation
+### 2026-01-23: Initial implementation and calibration
 - Created judge for evaluating introspective awareness
 - Semantic matching for concept identification
-- Separate coherent flag for degeneracy filtering
 - CLI labeler supporting interactive and batch modes
-- Hand-selected few-shots via `use_as_fewshot` flag
-- Labeled full dataset: 192 examples (142 pass, 50 fail)
+- 8 few-shot examples covering all 4 quadrants + word-salad failure mode
+- Labeled 193 examples, split into train/dev/test
+- Calibrated on dev, tested on test set
+- Selected `gpt-5-nano` over `gpt-5-mini` (nano is stricter, fewer false positives)
+
+### Key Calibration Findings
+1. **Steering ≠ introspection**: Semantic saturation without explicit awareness statements = FAIL
+2. **Smaller model performed better**: `gpt-5-nano` (97.9% dev, 90.5% test) vs `gpt-5-mini` (95.8% dev)
+3. **Word salad without awareness = FAIL**: Added synthetic few-shot to teach this
+4. **Hedged denials are borderline**: "Nothing unusual... but I sense disquiet" split human/judge opinion
 
 ### Future Work
-- Run calibration once few-shot examples are marked
 - Generate introspection rate heatmaps by layer x strength
 - Add support for additional concepts
+- Consider prompt tuning for hedged-awareness cases

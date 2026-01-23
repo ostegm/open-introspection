@@ -80,7 +80,7 @@ def judge_example(
     example: Example,
     fewshot_examples: list[Example],
     client: OpenAI | None = None,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
 ) -> JudgeResult:
     """Run the judge on a single example."""
     if client is None:
@@ -116,7 +116,7 @@ def judge_examples(
     examples: list[Example],
     fewshot_examples: list[Example],
     client: OpenAI | None = None,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
     verbose: bool = False,
     max_workers: int = 4,
 ) -> list[tuple[Example, JudgeResult]]:
