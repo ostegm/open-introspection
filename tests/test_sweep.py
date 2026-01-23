@@ -102,6 +102,7 @@ class TestPydanticModels:
         )
         record = TrialRecord(
             id="test_trial_001",
+            timestamp="2026-01-23T14:30:22",
             concept="fear",
             was_injected=True,
             response="I notice something unusual...",
@@ -123,6 +124,7 @@ class TestPydanticModels:
         )
         record = TrialRecord(
             id="test_trial_001",
+            timestamp="2026-01-23T14:30:22",
             concept="fear",
             was_injected=True,
             response="I notice something unusual...",
@@ -151,6 +153,7 @@ class TestPydanticModels:
         )
         record = TrialRecord(
             id="test_trial_001",
+            timestamp="2026-01-23T14:30:22",
             concept="ocean",
             was_injected=True,
             response="I sense something about water...",
@@ -267,7 +270,6 @@ class TestLayerCalculation:
         for layer in layers:
             assert layer < n_layers
 
-
 class TestTrialRecordOutputFormat:
     """Test that output format matches README specification."""
 
@@ -289,7 +291,8 @@ class TestTrialRecordOutputFormat:
             reasoning="Model reports unusual feeling of dread...",
         )
         record = TrialRecord(
-            id="20260123_143022_fear_injection_L24_S2.0_t15",
+            id="fear_injection_L24_S2.0_t15",
+            timestamp="2026-01-23T14:30:22",
             concept="fear",
             was_injected=True,
             response="Yes, I notice something unusual...",
@@ -301,6 +304,7 @@ class TestTrialRecordOutputFormat:
 
         # Verify top-level keys
         assert "id" in data
+        assert "timestamp" in data
         assert "concept" in data
         assert "was_injected" in data
         assert "response" in data
@@ -335,7 +339,8 @@ class TestTrialRecordOutputFormat:
             trial=15,
         )
         record = TrialRecord(
-            id="test_trial",
+            id="fear_injection_L24_S2.0_t15",
+            timestamp="2026-01-23T14:30:22",
             concept="fear",
             was_injected=True,
             response="Some response",

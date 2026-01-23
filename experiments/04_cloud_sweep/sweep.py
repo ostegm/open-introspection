@@ -103,6 +103,7 @@ class TrialRecord(BaseModel):
     """A single sweep trial with optional judge result."""
 
     id: str
+    timestamp: str  # ISO format for when trial was run
     concept: str
     was_injected: bool
     response: str
@@ -336,11 +337,21 @@ def run_sweep_for_concept(
     Returns number of trials completed this run.
     """
     model_name = str(MODEL_CONFIGS[model_size]["name"])
-    timestamp_base = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # Load or create checkpoint
     cp = load_checkpoint(checkpoint_path) or Checkpoint()
     trials_this_run = 0
+
+    # Load existing trial IDs to prevent duplicates on resume
+    existing_ids: set[str] = set()
+    if output_path.exists() and cp.total_completed > 0:
+        with open(output_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    record = json.loads(line)
+                    existing_ids.add(record["id"])
+        logger.info("Loaded %d existing trial IDs for dedup", len(existing_ids))
 
     # Open output file in append mode (for resume)
     mode = "a" if cp.total_completed > 0 else "w"
@@ -408,10 +419,13 @@ def run_sweep_for_concept(
 
                     for was_injected in conditions:
                         trial_type = "injection" if was_injected else "control"
-                        trial_id = (
-                            f"{timestamp_base}_{concept}_{trial_type}"
-                            f"_L{layer}_S{strength}_t{trial_idx}"
-                        )
+                        # Deterministic ID for deduplication across restarts
+                        trial_id = f"{concept}_{trial_type}_L{layer}_S{strength}_t{trial_idx}"
+
+                        # Skip if already written (crash between write and checkpoint)
+                        if trial_id in existing_ids:
+                            logger.debug("Skipping duplicate trial: %s", trial_id)
+                            continue
 
                         # Run trial
                         response = run_introspection_trial(
@@ -441,6 +455,7 @@ def run_sweep_for_concept(
                         # Build record
                         record = TrialRecord(
                             id=trial_id,
+                            timestamp=datetime.now().isoformat(),
                             concept=concept,
                             was_injected=was_injected,
                             response=response,
@@ -452,6 +467,7 @@ def run_sweep_for_concept(
                         # Write immediately
                         f.write(record.model_dump_json() + "\n")
                         f.flush()
+                        existing_ids.add(trial_id)  # Track for this session
 
                         cp.total_completed += 1
                         trials_this_run += 1
@@ -601,15 +617,19 @@ def main() -> None:
     logger.info("Completed %d trials this run", completed)
 
     # Final upload
+    upload_success = True
     if gcs_path:
         logger.info("Final upload to GCS")
         if upload_to_gcs(output_path, gcs_path):
             logger.info("Upload complete: %s", gcs_path)
+        else:
+            upload_success = False
+            logger.error("Output upload failed, keeping checkpoint for retry")
         # Also upload checkpoint for debugging
         upload_to_gcs(checkpoint_path, gcs_path.replace(".jsonl", ".checkpoint.json"))
 
-    # Clean up checkpoint on successful completion
-    if checkpoint_path.exists():
+    # Clean up checkpoint only on successful completion AND successful upload
+    if checkpoint_path.exists() and upload_success:
         checkpoint_path.unlink()
         logger.info("Removed checkpoint (sweep complete)")
 
