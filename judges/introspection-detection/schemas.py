@@ -11,6 +11,7 @@ class ExperimentConfig(BaseModel):
     layer: int
     strength: float
     prompt_version: str
+    inject_style: Literal["all", "generation"] | None = None  # None for legacy data
 
 
 class Label(BaseModel):
