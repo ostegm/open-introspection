@@ -87,6 +87,7 @@ class SweepConfig(BaseModel):
     magnitude: float
     vector_norm: float
     prompt_version: str
+    inject_style: Literal["all", "generation"]
     trial: int
 
 
@@ -249,6 +250,7 @@ class JudgeClient:
                 layer=config.layer,
                 strength=config.strength,
                 prompt_version=config.prompt_version,
+                inject_style=config.inject_style,
             ),
             label=Label(),
         )
@@ -330,6 +332,7 @@ def run_sweep_for_concept(
     checkpoint_path: Path,
     gcs_path: str | None,
     model_size: str,
+    inject_style: Literal["all", "generation"] = "generation",
 ) -> int:
     """
     Run full sweep for a single concept with checkpointing.
@@ -435,6 +438,7 @@ def run_sweep_for_concept(
                             injection_strength=strength,
                             inject=was_injected,
                             prompt_version="v2",
+                            inject_style=inject_style,
                         )
 
                         config = SweepConfig(
@@ -444,6 +448,7 @@ def run_sweep_for_concept(
                             magnitude=effective_magnitude,
                             vector_norm=vector_norm,
                             prompt_version="v2",
+                            inject_style=inject_style,
                             trial=trial_idx,
                         )
 
@@ -530,6 +535,12 @@ def main() -> None:
         action="store_true",
         help="Start fresh, ignore existing checkpoint",
     )
+    parser.add_argument(
+        "--inject-style",
+        choices=["all", "generation"],
+        default="generation",
+        help="When to inject: 'generation' (paper methodology, default) or 'all' (prompt + generation)",
+    )
     args = parser.parse_args()
 
     # Determine concept from args or BATCH_TASK_INDEX
@@ -547,6 +558,7 @@ def main() -> None:
     logger.info("=" * 60)
     logger.info("Concept: %s", concept)
     logger.info("Model: %s", args.model)
+    logger.info("Inject style: %s", args.inject_style)
     logger.info("Trials per config: %d", args.trials)
     logger.info("Experiment ID: %s", experiment_id)
 
@@ -612,6 +624,7 @@ def main() -> None:
         checkpoint_path=checkpoint_path,
         gcs_path=gcs_path,
         model_size=args.model,
+        inject_style=args.inject_style,
     )
 
     logger.info("Completed %d trials this run", completed)

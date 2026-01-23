@@ -89,6 +89,7 @@ def run_sweep(
     model_size: str = "3b",
     trials: int = 1,
     experiment_id: str | None = None,
+    inject_style: str = "generation",
 ) -> dict:
     """Run introspection sweep for a single concept."""
     import datetime
@@ -108,6 +109,7 @@ def run_sweep(
         "--model", model_size,
         "--trials", str(trials),
         "--experiment-id", experiment_id,
+        "--inject-style", inject_style,
         "--local",  # We handle GCS upload separately
     ]
 
@@ -144,14 +146,16 @@ def main(
     model: str = "3b",
     trials: int = 1,
     experiment_id: str | None = None,
+    inject_style: str = "generation",
 ):
     """Run a single concept sweep."""
-    print(f"Launching: {concept=}, {model=}, {trials=}")
+    print(f"Launching: {concept=}, {model=}, {trials=}, {inject_style=}")
     result = run_sweep.remote(
         concept=concept,
         model_size=model,
         trials=trials,
         experiment_id=experiment_id,
+        inject_style=inject_style,
     )
     print(f"Result: {result}")
 
@@ -161,6 +165,7 @@ def run_parallel(
     model_size: str = "3b",
     trials: int = 40,
     experiment_id: str | None = None,
+    inject_style: str = "generation",
 ):
     """Run all concepts in parallel (4 GPUs)."""
     import datetime
@@ -177,6 +182,7 @@ def run_parallel(
                 "model_size": model_size,
                 "trials": trials,
                 "experiment_id": experiment_id,
+                "inject_style": inject_style,
             },
         )
     )
