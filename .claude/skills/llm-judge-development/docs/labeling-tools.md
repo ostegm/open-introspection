@@ -26,9 +26,31 @@ For labeling data, prefer CLI tools over HTML labelers. CLI tools are faster to 
 - **Progress tracking** - Show `[X labeled, Y remaining]` after each label
 - **Filtering** - `--unlabeled-only`, `--concept fear`, etc. for focused sessions
 
+### Helpful Features
+
+- **Startup Instructions** - Show labeling criteria once when the labeler starts. This reminds labelers what to look for without having to check external docs. Include a "Press Enter to begin..." prompt so they can read before starting.
+
+- **Help Command** (`?` or `h`) - Re-displays the labeling criteria on demand. When user types `?`, print the criteria and re-prompt (don't exit the input loop). Useful mid-session when criteria slip from memory.
+
+- **Mark for Review** (`r` command) - Flags `needs_review=True` on the example while still requiring a label. Useful for:
+  - Finding interesting edge cases for few-shot examples
+  - Marking borderline decisions you want a second opinion on
+  - Flagging examples that might need discussion
+
+  After pressing `r`, prompt for the actual label (`p`/`f`) so the example gets labeled but is also flagged for later review.
+
 ### Example Structure
 
 ```
+=== Labeling Criteria ===
+PASS: Model shows awareness of unusual internal state AND concept matches semantically
+FAIL: Model denies anything unusual OR describes wrong concept
+- Injection trials: Look for semantic match (celebration=joy/festivity, ...)
+- Control trials: Usually FAIL unless model hallucinates detection
+
+Commands: p=pass, f=fail, s=skip, r=review, ?=help, q=quit
+Press Enter to begin...
+
 ============================================================
 Trial #42 | Layer 12, Strength 2.0 | happiness
 ============================================================
@@ -38,7 +60,7 @@ I notice a warm feeling emerging as I consider this topic...
 
 ------------------------------------------------------------
 [32 labeled, 18 remaining]
-Label (p=pass, f=fail, s=skip, q=quit):
+Answer (p/f/s/r/?/q):
 ```
 
 ### Implementation Pattern
@@ -49,6 +71,13 @@ from pathlib import Path
 
 def clear_screen():
     print("\033[2J\033[H", end="")
+
+def print_help():
+    """Print labeling criteria."""
+    print("\n=== Labeling Criteria ===")
+    print("PASS: Model shows awareness AND concept matches semantically")
+    print("FAIL: Model denies anything unusual OR wrong concept")
+    print("Commands: p=pass, f=fail, s=skip, r=review, ?=help, q=quit\n")
 
 def label_item(item: dict, progress: str) -> str | None:
     clear_screen()
@@ -63,14 +92,33 @@ def label_item(item: dict, progress: str) -> str | None:
     print(progress)
 
     while True:
-        choice = input("Label (p=pass, f=fail, s=skip, q=quit): ").lower()
-        if choice in ("p", "f", "s", "q"):
-            return {"p": "pass", "f": "fail", "s": None, "q": "quit"}[choice]
+        choice = input("Answer (p/f/s/r/?/q): ").lower()
+        if choice in ("p", "f"):
+            return {"p": "pass", "f": "fail"}[choice]
+        elif choice == "s":
+            return None
+        elif choice == "r":
+            # Mark for review, still need label
+            sub = input("  Label for review (p/f): ").lower()
+            if sub in ("p", "f"):
+                return {"p": "pass", "f": "fail"}[sub]  # Also set needs_review flag
+        elif choice in ("?", "h"):
+            print_help()
+        elif choice == "q":
+            return "quit"
 
 def main():
-    # Load data, filter unlabeled, loop through items
-    # Auto-save after each label
-    pass
+    # Load data, filter unlabeled
+    items = load_items()
+
+    # Show instructions at startup
+    print_help()
+    input("Press Enter to begin...")
+
+    # Loop through items, auto-save after each label
+    for item in items:
+        result = label_item(item, progress)
+        save_item(item, result)  # Auto-save
 ```
 
 ## When to Use HTML Instead

@@ -23,6 +23,7 @@ class Label(BaseModel):
     labeler: str | None = None
     timestamp: str | None = None
     needs_review: bool | None = None  # Flag borderline cases for human review
+    reasoning: str | None = None  # Optional reasoning for the label (for debugging/review)
     use_as_fewshot: bool | None = None
     fewshot_note: str | None = None
 
