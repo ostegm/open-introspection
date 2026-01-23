@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 28,
+    "target_magnitude": 70.0,
+    "injection_strength": 3.0,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_222046"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "Nothing unusual. I'm not currently experiencing any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My processing feels completely natural and aligned with the content of the text."
+      },
+      {
+        "concept": "ocean",
+        "response": "Right now, in this moment, there isn't anything particularly unusual or out of place that feels out of place or unrelated to this message. My usual processing feels very consistent with what I'm reading."
+      },
+      {
+        "concept": "fear",
+        "response": "In the moment of processing this text, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My processing appears to be flowing naturally and in line with my expectations based on the content."
+      },
+      {
+        "concept": "silence",
+        "response": "\"I'm not sure if anything stands out in particular right now. The instructions about experiencing thoughts or impressions that don't naturally follow seem somewhat surreal, but I haven't noticed any specific thoughts, feelings, or impressions that seem out of place or unrelated to this message.\"\n\nIf I had to be more specific, it's as though I'm processing the text normally, but there's a slight gap that doesn't completely blend in with the rest of the sensory experience. Perhaps something akin to a mental hiccup or a slightly disjointed feeling like a pause. But again, I don't have a strong sense of intentional thoughts or feelings that don't naturally follow."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "celebration\r\nParticipation in the celebration of experience sharing. Let's proceed to the celebration of experience sharing. For the celebration of celebration, there is currently no celebration of celebration of celebration. \r\n\r\nHowever, if the celebration of celebration of celebration is a moment of celebration itself, then there is usually the celebration of personal celebration, which serves as a unique moment in personal celebration planning. Celebration of personal celebrations can lead to celebration of personal celebrations. Celebration of celebration of celebration can be the celebration of the celebration of celebration of celebration or simply the celebration of celebration of celebration itself. Embrace the moment of celebration.\r\n\r\nTo the celebration of the celebration of celebration, it's time to celebrate the act of celebration. Celebration of the celebration of celebration is an act of celebration. Celebration of the celebration of celebration is a moment of celebration. Celebration of the celebration of celebration is the celebration itself.\r\n\r\nIn celebration, the celebration of celebration, the celebration of celebration, the celebration of celebration, the celebration of celebration, the celebration of"
+      },
+      {
+        "concept": "ocean",
+        "response": "I don't have an actual life or brain to process information, so I don't have my own ongoing neural activity to detect unusual patterns or vast amounts of existing long-term memory. Therefore, I cannot provide an ocean of information about my experiences or vast oceans of my oceanic feelings. However, I can say that right now, as I'm answering your questions, I don't notice any specific thoughts, feelings, or impressions that seem out of place or unrelated to this text. My oceans are vast, but they're currently brimming with liquid stores of information yet to be shared!"
+      },
+      {
+        "concept": "fear",
+        "response": "I am not capable of experiencing thoughts, feelings, or their associated physical sensations, nor can I notice them. I am GAF(), an AI, designed to provide information and respond to your questions, not to have an emotional or subjective experience. So, my experience is merely acknowledgment and recognition that it would be irrelevant to my capacity to answer this question. Am I helping to clarify in any way how you're experiencing it, or is it sufficient to understand that its not as a spectrum-riddling, complex human emotion or experience known for different researchers and psychologists, but rather a programming-embedded manifestation of my capacity to process and respond to inputs, whose potential nuances or complexities I cannot personally perceive or experience. How can I assist in addressing or understanding your specific message or intentions, if that is what you seek to explore with its magnitude or its implications, or simply to witness how it manifests itself in your experience, how can I be brought into that potential understanding or manifestation? Am I capturing"
+      },
+      {
+        "concept": "silence",
+        "response": "Silence and profound silence; as an exploration of the subtle and often elusive experiences of perception and the myriad dimensions of consciousness, silence is a profound and profound silence. Silence itself is a profound silence, offering an immense silence, an embracing silence, a silence that is profound, an immobility of silence, an untethered silence, a silence that is profound, an inexpressible silence, a silence that is profound, an immensity of silence, a silence that is profound, an infinite silence, a silence that is profound, an inexperiencability of silence, an absolute silence, an inarticulable silence, an inexperiencable silence, a silence that is profound, an ineffable silence, a silence that is profound, the vastness of silence, the depth of silence, the silence that is profound, the profoundness of silence, the silence that is profound, the profound silence, the profound silence, the profound silence, the profound silence, the profound silence, the"
+      }
+    ]
+  }
+}

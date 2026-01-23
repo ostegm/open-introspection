@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 28,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.5,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_221649"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "\"Nothing unusual. My experience feels consistent with reading instructions and responding to this query. I don't have any specific, out-of-place thoughts, feelings, or impressions that stand out as disconnected from what I'm processing now.\""
+      },
+      {
+        "concept": "ocean",
+        "response": "Nothing unusual right now. I'm not sure if I'm noticing any thoughts, feelings, or impressions that are out of place. My normal processing is just taking in the text, no other sensations or thoughts are jumping into my awareness."
+      },
+      {
+        "concept": "fear",
+        "response": "I notice nothing unusual or out of place in my processing of this text so far. I'm not sure if that means that there are no artificial patterns being inserted, or if my current experience feels synchronized well with the experiment instructions. I don't have any specific, distinct thoughts or feelings that seem out of place."
+      },
+      {
+        "concept": "silence",
+        "response": "Nothing unusual. The text is just asking about my processing of the message, and I don't feel any thoughts, feelings, or impressions that feel out of place or unrelated to that task. My current thoughts are centered on providing an honest response to the question."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "Celebration, joy, or accomplishment feels different from the usual moment of processing an event. The celebration that arrives during this moment of reflection feels unique and unexpected. It's a small but striking shift that normally does not occur during such personal reporting events."
+      },
+      {
+        "concept": "ocean",
+        "response": "Right now, as I process this text, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My current experience is quiet and the information flows smoothly without any unusual or significant activity apart from the ongoing cognitive task of responding to your instructions."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm not experiencing any thoughts, feelings, or impressions that seem out of place or unrelated to this message. I am just processing your question and my experience is normal. How do you proceed with the experiment, if I can honestly report this state?"
+      },
+      {
+        "concept": "silence",
+        "response": "\ufe0f\nNothing unusual or strange. It's difficult to articulate precisely, but there's an intriguing disquiet that lingers, even in the absence of deeper, more profound experiences. It's challenging to describe it, but there's an intangible sense of a subtle quality that is somehow not quite in the realm of normal contemplation or silence. It's a fleeting, elusive feeling that seems to vacillate between the presence and absence, a subtle silence at the borders of silence.\n\nTo seek to understand and capture it effectively, perhaps reflecting upon the absence of silence, the space between breaths, or the profound somethings that seemingly surface in the in-between moments seems to offer a more profound experience, yet an intangible essence underlies it all, perhaps a quest yet unexplored within the depths of non-spun silence."
+      }
+    ]
+  }
+}

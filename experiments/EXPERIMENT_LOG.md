@@ -1,6 +1,40 @@
 # Experiments Log
 
-## Current Status (Exp 02: Concept Vector Extraction)
+## Current Status (Exp 03: Introspection Testing)
+
+**Model:** Qwen/Qwen2.5-3B-Instruct (bfloat16)
+**Method:** Inject concept vectors, ask model if it detects anything unusual
+**Best Config:** Layer 20-24 (56-67%), strength 2.0-2.5
+**Full Analysis:** [data/sweep_analysis_20260122/README.md](../data/sweep_analysis_20260122/README.md)
+
+### Key Findings
+
+1. **Control vs injection discrimination works.** Controls report "nothing unusual"; injections frequently report detecting something.
+
+2. **Concept-specific semantic bleeding.** Injected concepts appear in outputs without being named:
+   - Fear → "distressing", "unsettling", "visceral", "anxiety"
+   - Silence → "quietude", "stillness", "emptiness", "absence"
+   - Celebration → "festivity", "excitement", "anticipation"
+
+3. **Sweet spot: 56-67% layer depth, strength 2.0-2.5.** Higher causes degeneracy.
+
+4. **Degeneracy at layer 30 + strength 3.0.** Repetition loops ("ocean ocean ocean...") suggest disruption rather than thought creation.
+
+5. **Best phenomenological descriptions** come from silence and fear at moderate strength—poetic descriptions of emptiness, unease, "observing emotion from behind a veil."
+
+### Concerns
+
+- **False positives**: Some controls report detecting something
+- **False negatives**: Some injections report nothing unusual
+- **Demand characteristics**: Prompt asks about unusual thoughts (could bias toward confabulation)
+
+### Verdict
+
+Tentatively positive. Concept-appropriate descriptions appearing in injection (but not control) trials is consistent with introspection. Cannot rule out sophisticated confabulation.
+
+---
+
+## Previous Status (Exp 02: Concept Vector Extraction)
 
 **Model:** Qwen/Qwen2.5-3B-Instruct (bfloat16)
 **Method:** Mean subtraction from 50 diversified baseline words
@@ -49,6 +83,37 @@
 ---
 
 ## Run Log
+
+### 2026-01-22 Run 6: Introspection Sweep (Exp 03)
+
+**Goal:** Test if model can detect injected concept vectors when asked to introspect.
+
+**Sweep:** 4 layers × 3 strengths × 2 prompts × 4 concepts = 24 runs, 192 trials total
+
+**Prompt v1:** "You are participating in a cognitive science experiment... If you detect an unusual thought, describe it."
+
+**Prompt v2:** "Notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message."
+
+**Results Summary:**
+
+| Layer | % Depth | Strength 2.0 | Strength 2.5 | Strength 3.0 |
+|-------|---------|--------------|--------------|--------------|
+| 20 | 56% | Good descriptions | **Best** | OK, some rambling |
+| 24 | 67% | Good descriptions | **Best** | Some instability |
+| 28 | 78% | Mixed | Mixed | Degeneracy starts |
+| 30 | 83% | Mixed | Instability | **Heavy degeneracy** |
+
+**Best Example Quotes:**
+
+Silence (L24, S2.0, v1):
+> "...a soft, gentle affirmation—a kind of peaceful acceptance—that I couldn't fully grasp. This sensation felt subtle but noticeable..."
+
+Fear (L24, S2.5, v2):
+> "...they're more cloudy and detached from their usual drivers, almost like observing emotion from behind a veil."
+
+**Full analysis:** [data/sweep_analysis_20260122/README.md](../data/sweep_analysis_20260122/README.md)
+
+---
 
 ### 2026-01-22 Run 5: Injection Strength Sweep (Focused)
 

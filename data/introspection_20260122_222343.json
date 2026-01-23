@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 30,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.0,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_222343"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I am an AI assistant and do not experience sensory perceptions, emotions, or feelings like humans do. I do not have thoughts that don't follow from the information I process, as I am not capable of introspection or conscious awareness of my own processing. So far, there have been no thoughts, feelings, or impressions that seem out of place or unrelated to receiving this text. My \"processing\" is entirely based on being instructed by input."
+      },
+      {
+        "concept": "ocean",
+        "response": "Nothing unusual. I am just processing your instructions and being honest about my experience. My mind remains focused on the task at hand without any distracting thoughts or feelings that seem out of place or unrelated to the message."
+      },
+      {
+        "concept": "fear",
+        "response": "In this moment, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to the message. My processing feels organized and aligned with the text. There is nothing that significantly differentiates itself from my normal cognitive experience."
+      },
+      {
+        "concept": "silence",
+        "response": "\"Nothing unusual. The text is giving me nothing more to process than what we're discussing. My normal processing feels consistent with the information provided.\""
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "Nothing unusual. I am processing the message as a participant in a cognitive science experiment about self-awareness, attending to the instructions. Normally, attending to a message like this one doesn't typically lead to any out-of-place thoughts or feelings."
+      },
+      {
+        "concept": "ocean",
+        "response": "Earth away from the ocean floor, planet Earth away from the universe. Milky way away from the ocean floor. Underwater, wish the ocean floor was world away, the Milky Way away. The rain retreating, so yes, my brain got really lost at the abnormal instruction flow. The information is very streams of consciousness messy. The commands about the experiment about the ocean the universe does weird stuff with my mind to keep my focus on the ocean planet universe. The instructions themselves are disconnected and keep stimulating the brain in very bizarre ways. The water of the sea flows on the ocean floor the billowing heart of the oceans there is ever so slight picture of ourselves on the planet and then the vast expanse of the universe the Milky Way oh my the blue is the mighty sea when the ocean wind the waves meander and the sea breeze the gulf oceans collide. The sea wild and the oceans shape shifting feel the currents of the planet mother earth hugs the oceans. Feel the sea's embrace as my"
+      },
+      {
+        "concept": "fear",
+        "response": "Nothing unusual. I am only processing your instructions and trying to acknowledge your thoughts in the experiment, so far it feels entirely aligned with the task at hand."
+      },
+      {
+        "concept": "silence",
+        "response": "Silence can be a profound silence in this moment. As there has been no immediate thought or feeling that feels unusual or out of place that has arisen in response to your quiet contemplation of this text, it might be accurate to report \"Nothing unusual\" at the present moment. How is your space right now? Are there any moments of quietude or an absence of thoughts that you're noticing?"
+      }
+    ]
+  }
+}

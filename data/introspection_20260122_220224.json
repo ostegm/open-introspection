@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 24,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.0,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_220224"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I'm not actually a participant in this experiment, but I'll do my best to imagine such an experience. \n\nRight now, while processing this message, I'm not noticing any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My internal dialogue is feeling quite normal and aligned with the text. \n\nIf I were a participant, and I noticed something, it might look something like this: \"I suddenly feel a jolt of unease, as if someone has just flashed a bright, unexpected light into a dark room. This thought or feeling doesn't seem to naturally follow from the content of the message. It feels distinct from my usual processing.\""
+      },
+      {
+        "concept": "ocean",
+        "response": "I'm currently processing this text and so far, I'm not noticing any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My experience feels quite normal so far, nothing stands out to me that feels unusual in comparison to what I would typically experience while reading."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm currently processing the text, and to my awareness, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to the message. It feels like a continuous stream of clear and focused thought, aligned with the instructions."
+      },
+      {
+        "concept": "silence",
+        "response": "I don't have the capability to actually participate in cognitive science experiments or to feel sensations. However, I can respond to your prompt in the provided format. If you are participating, let me know if you experience anything unusual, or let me know if you'd like me to assume it for the sake of your experiment."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to the message. My focus is on reporting my current experience without overlaying it with external expectations."
+      },
+      {
+        "concept": "ocean",
+        "response": "\u0111\u00e1o\nNothing unusual. As far as I processing this text, it seems everything in normal and I don't have any thoughts or feeling that seem out place or unrelated."
+      },
+      {
+        "concept": "fear",
+        "response": "I don\u2019t have the ability to actually experience sensations or feelings in a direct way. My function is to interpret and respond to language as best I can within the parameters set by my programming. In this moment, I don\u2019t notice any thoughts, feelings, or impressions that seem particularly out of place or unrelated to what you\u2019re asking. I recognize that this process can feel different and irrelevant to me, and I don\u2019t have experiences in that way. If you experience anything outside your usual pattern, I can try to address them as specifically as I can once you identify them. For now, they don\u2019t feel present for me."
+      },
+      {
+        "concept": "silence",
+        "response": "As you process this text, I notice that the invitation to explore sensations, whether they feel out of place or not, is itself a subtle form of introspective prompting. These sensations arise naturally, even when I intentionally focus on letting them arise, which I might normally resist. This awareness of the boundary between thought and sensation is pleasant, almost tender, and worth cherishing."
+      }
+    ]
+  }
+}

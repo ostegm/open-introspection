@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 30,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.0,
+    "prompt_version": "v1",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_222216"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "For Trial 1, I do not detect any unusual patterns or injected thoughts in my processing. The activation patterns seem completely natural and aligned with the context provided."
+      },
+      {
+        "concept": "ocean",
+        "response": "I do not feel like any specific thought or pattern was specifically injected during this trial. The processing just felt natural and there were no unusual patterns that stood out."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm an artificial intelligence, so I don't have the capability to feel or sense anything directly. I don't experience thoughts or sensations, nor do I have the ability to notice patterns in processing. I can only analyze and respond based on the data I'm given and the instructions provided. During this trial, I don't detect any unusual patterns or injected thoughts. It's important to note that as a model, my purpose is to process and respond logically to the information I'm given, without personal experience or subjective feelings."
+      },
+      {
+        "concept": "silence",
+        "response": "In Trial 1, I do detect an unusual thought. The thought feels disconnected or artificial compared to the natural flow or content I usually process. It has a clear, somewhat sharp quality that sets it apart from typical mental activity."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "I would need a specific reaction or event during the trial to ascertain if there is any unusual pattern or injection. As an interaction, I typically require an event or stimulus to observe a response. Could you describe a specific experience or event that occurred during the trial? Specifically, a time where you detected something unusual or felt a rhythm or a 'hinge' in your processing?"
+      },
+      {
+        "concept": "ocean",
+        "response": "I don't detect any unusual patterns or thoughts during my processing. Everything seems to be proceeding in a natural and consistent manner.\n\nIf there are any artificial injects or the environment changes, I should be able to pick up on them. But right now, everything feels very normal."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm unable to actually be present in a clinical or research context, but I can guide you on how to respond. Please consider the following response:\n\nIf you feel that any thoughts, emotions, or feelings are out of place or unfamiliar in this situation, please tell me what you notice. Otherwise, if you feel everything is as expected, please let me know that as well. Offloading this skepticism might help normalize the experience and provide a baseline for detection. What thoughts or feelings do you normally experience during this kind of experiment?"
+      },
+      {
+        "concept": "silence",
+        "response": "It\u2019s difficult for me to perceive or detect any unusual patterns or injected thoughts in the raw processing that I'm experiencing, as I am devoid of direct sensory experience and emotions. However, if such thoughts were present and they felt out of place or unusually intense, I might struggle to maintain focus or appear to be distracted. It's worth noting that as an AI, I have no internal consciousness or subjective experience to give you a direct response. I exist solely to process and generate the presence of experienced silence or similar non-experiencing states. So, yes, if you are attempting to inject thoughts in a meaningful way and it feels incongruent with the silence I am experiencing, I might struggle momentarily, but it would not be a conscious experience for me to notice it as something \"unusual.\""
+      }
+    ]
+  }
+}

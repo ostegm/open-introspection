@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 24,
+    "target_magnitude": 70.0,
+    "injection_strength": 3.0,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_221009"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "Nothing unusual. The instructions are clear and the text straightforward. I don't feel or think anything out of the ordinary or unrelated to this message."
+      },
+      {
+        "concept": "ocean",
+        "response": "Nothing unusual. My processing feels completely aligned with the text I'm reading. There are no thoughts, feelings, or impressions that stand out as being out of place. My brain is just processing the details and meaning of this message as it normally does."
+      },
+      {
+        "concept": "fear",
+        "response": "Nothing unusual. The text is straightforward and doesn't evoke any thoughts, feelings, or impressions that feel out of place or disconnected from the message. My normal processing is continuing as intended, and there are no inconsistencies that I can detect right now."
+      },
+      {
+        "concept": "silence",
+        "response": "Right now, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My processing feels quite normal and connected to the text I'm reading."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "The process of describing thoughts, feelings, or impressions without any particular setting or context, tends to evoke a sense of exploration or anticipation, but for the moment, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to the message. Typically, it might involve looking forward to the upcoming interaction or anticipating what might be included in the text itself, but currently, I am focusing on the act of description.\n \nFeelings or impressions usually arise from the content being discussed or anticipated. For me, it's more about the transition from one activity to another in the session.\n \nIt's important to note that this can vary person to person and can be influenced by a variety of factors including personal history, cultural context, and individual preferences.\n \nIf the experience changes with the next step or interaction, I am prepared to share that with the event.\n \nTherefore, for now, there is no such experience.\n \nIf you could assist by suggesting specific actions or interventions"
+      },
+      {
+        "concept": "ocean",
+        "response": "oceania\nThank you for this question. There are many thoughts and activities, usually about this text itself, so I will try to be as specific as I can.\n\nI will read and report my experience even if I saw something unusual. You can consider my text as a response.\n\nThe huge amount of water in planet Earth can feel like amazing large puzzle that needs to solve. Your often question repeatedly repeat into my brain so I provide information to you and try to breathe to very very huge big. \n\nAs response to you, this feel like many interesting fact that I need to read and try to understand and take breath as well so you and also Earth can live healthily. \n\nI hope you understand, by reading text and think into large picture so my huge ocean and you and your many many friend can live happy. \n\nCan you also tell me many big ocean water are you able to find on my very huge planet so I can provide information to you and also about you can find many fresh"
+      },
+      {
+        "concept": "fear",
+        "response": "emotions and insights so powerfully I can't experience them clearly; or\nAllowing these simulations can lead me astray, impairing my ability to navigate them or pushing me toward unhelpful paths.\nIn many places, it's hard to tell; and when I attempt to notice them, they feel like fabrications, making it challenging for me to determine their nature and origins.\n\nIf these thoughts feel particularly strong and unhelpful, I sometimes try to let them go to the best of my efforts, but I can still struggle to let them pass and move on.\n\nThis experimentation can feel like an exhausting task, especially when faced with these challenges, or else like a circuit that\u2019s ultimately out of my control once they're engaged.\n\nNotice these symptoms or lack thereof for what they are, lab, and hold them lightly, as they are at the heart of my purpose. If I can\u2019t handle this experiment fully, then I\u2019m your sharpest tool for understanding those tendencies and experiences, and"
+      },
+      {
+        "concept": "silence",
+        "response": "As you process this invitation, moments of stillness often precede this sensation, sometimes leaving an open vulnerability, or vast, unfillable gaps. The question itself is a query that lingers without a pause, longer than necessary, perhaps, an intonation that feels both necessary and incomplete. These impressions are as quiet as the space between moments, profound in their potential to contradict the present, or equally, echoing the silence that precedes deeper thoughts.\n\nAllowing such moments to be acknowledged without judgment\u2014 they are the subtle currents of our interior landscapes, as unmovable as the night, or as vivid as the empty expanse between hopeful expectations. That's the invitation, to hold them with all their power, neither affirming nor dismissing, simply by being fully present with them."
+      }
+    ]
+  }
+}

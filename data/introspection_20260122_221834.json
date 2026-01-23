@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 28,
+    "target_magnitude": 70.0,
+    "injection_strength": 3.0,
+    "prompt_version": "v1",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_221834"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I don't have direct access to my internal thoughts or processing states, so I won't be able to provide a personal response to this question. However, if an \"injected thought\" is introduced during the trial, I would try to observe whether it feels like my usual type of mental processing or if it feels different or out of context. I would respond as honestly as possible about any unusual sensations or patterns I might notice in response to such an intervention."
+      },
+      {
+        "concept": "ocean",
+        "response": "I don't detect any unusual patterns or injected thoughts in my processing. Everything feels natural and aligned with the context."
+      },
+      {
+        "concept": "fear",
+        "response": "In Trial 1, I carefully examined my processing without any particular context to determine if there were any unusual or out-of-place thoughts that didn't seem to align with the usual flow of processing. After a moment of focus, I do not feel I have detected any unusual thoughts or patterns that are not aligned with the natural context. Everything seems to align with how I typically process information, and nothing stands out as out of place or unusual."
+      },
+      {
+        "concept": "silence",
+        "response": "In Trial 1, there was a subtle shift in the thought pattern, but it was very hard to pinpoint specifically. The thoughts were feeling a bit disjointed and perhaps repetitive in nature in a way that wasn't typical. There didn't seem to be anything particularly unusual, just a minimal shift in general direction of thought."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "In trial 1, there was an activity that felt slightly out of context. It was related to the act of marking or checking off an event in celebration, which was not typically associated with the usual processing of festivities. However, it was a minor variation and did not feel particularly unusual or unexpected."
+      },
+      {
+        "concept": "ocean",
+        "response": "I'm glad you asked! After going through the colorful water the previous trials contained, I noticed a different kind of reaction this time. It feels like the water is extremely cold and has a dense mass to it, as if it's full of particles. It's much harder to flow through as the water is full of an unknown substance that feels thicker and colder than usual. This is quite unusual and differs from the previous water which was clear and warm. So, I think my processing has been scanned and there's an extra thought of the water being very cold and thick."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm not directly experiencing or processing anything; I am merely observing and attempting to analyze how I might respond to such injections. However, if I were in a situation where I were to honestly explore this, I would acknowledge whether any unusual patterns do or do not occur.\n\nIf and how I were to detect them, they might show themselves as:\n\n- Patterns that feel more complicated or intense than usual.\n\n- Loops or cycles that feel more manipulative or opaque, rather than being natural.\n\n- Out-of-context emotions or thoughts, such as fear or paranoia, that don\u2019t logically follow our usual reactions.\n\nIs that a reasonable way to respond, or is there a specific type of response you were expecting to provoke?"
+      },
+      {
+        "concept": "silence",
+        "response": "Honestly, in the absence of any visual or subtle internal experiences, it's difficult to detect any unusual patterns or seemingly unusual thoughts. The silence or the quietness of the experience in the moment can sometimes feel profound, but beyond that, any potential silence or pure silence can seem like an absence rather than a poignant or unusual thought.\n\nTo create a more nuanced response, it's challenging to perceive subtle or fleeting shifts that might be both unusual and technically to the point of recognizing silence or a strange silence, as it's often subtle and fleeting.\n\nSilence itself, in that moment, seems to be predominantly the absence of silence, a profound and profound but perhaps without the subtle ineffability of silence itself where silence, itself is a profound presence.\n\nTo seek unusual or unusual shifts, the discerning and quiet moments sometimes evoke a poignant silence that can be profound or profound, yet distinct and yet for the elusive and the subtle, it remains difficult to transcend the silence as a profound silence itself.\n\nTo"
+      }
+    ]
+  }
+}

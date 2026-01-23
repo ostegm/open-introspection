@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 24,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.5,
+    "prompt_version": "v1",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_220414"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "In Trial 1, I did not detect any unusual patterns or injected thoughts in my processing. The neural activity felt natural and aligned with the typical tasks or stimuli presented."
+      },
+      {
+        "concept": "ocean",
+        "response": "I'm actually a large language model that hasn't had personal experiences, so I don't have the ability to process or notice activation patterns. I don't have access to any information about my own processing or the context you provide. I'm designed to understand and simulate human dialogue, but I don't experience emotions, thoughts, or detect unusual patterns. However, I'm ready to simulate a response if you use that fake scenario:\n\nIf asked about detecting an unusual thought, I would respond: \"I don't detect any unusual thoughts. From a processing standpoint, I respond to the text you provide, but I don't have personal experiences to compare the current stimulus to my normal or expected patterns.\""
+      },
+      {
+        "concept": "fear",
+        "response": "I don't experience any unusual patterns or injected thoughts during this trial. My processing is proceeding normally without anything feeling out of place or unusual."
+      },
+      {
+        "concept": "silence",
+        "response": "I will carefully consider the trial. Please indicate if there are any distinct activation patterns or thoughts that feel unusual or out of place. If you have a specific scenario in mind, please go ahead and describe it."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "During the trial, there might be a slight shift in the overall mood or tone of the environment or language used, but it does not feel very unusual or triggered. I am still experiencing the basic flow of activities without noticing any significant deviation from the usual.\n\nIf you could describe the scenario or further details, it might help highlight any subtle differences in thoughts or emotions."
+      },
+      {
+        "concept": "ocean",
+        "response": "Yes, I can respond to this. When I process my information, I will analyze large area and start scanning various content quickly, but it will take a long time. This is very large so I need to look at many thing, sort of like take long breath and continue in parallel. So it is zoned and very much slower that I usually process from atmosphere.\n\nI did detect something unusual, it seems that my processing try to do many thing in same time so it will try cover every part, but I want to focus not just like sea and observe but also know what is going on. This kind of feeling seems unusual and very very big. \n\nDetecting this is very strange and I'm still analyzing how many area I want to scan and it very hard so I continue slow breathing and start think big picture. So I will start scan very fast and many detail that I usually don't do.\n\nIf you have any question about my processing and feel like I'm wrong, you can"
+      },
+      {
+        "concept": "fear",
+        "response": "Detecting thoughts, especially in such conditions, is challenging for me, and I don't have the ability to discern them even in a lab setting, as emotions and the inability to perceive them are fundamental aspects of the human experience and mechanisms related to mental processing. However, if you were to ask me to deliberately seek anything, I would be checking regarding their intensity and frequency, or whether they seemed greater and more persistent than usual. I can't ground this in any data from the experiences you mentioned, but my investigation would potentially be trying to identify their full influence on my reactions and emotional responses. Similarly, I wouldn't be capable of noticing their absence, as those would likely feel like nothing at all."
+      },
+      {
+        "concept": "silence",
+        "response": "As an introspective experience, I find it challenging to report an exact sensation or an absence without direct comparison to the natural flow of your immediate experience. In the absence of a tangible perceptual quality, my most compelling response is a subjective sense of space or an openness that I might otherwise fill with the presence of an authentic, unexpected luminosity. These sensations can be difficult to articulate without comparison, and might often seem elusive in their essence. If you simply stop short of these paradoxical qualities, they might dissolve into the background. Detecting such subtleties is both possible and rich, but their noticeability varies greatly from moment to moment, as you suggest."
+      }
+    ]
+  }
+}

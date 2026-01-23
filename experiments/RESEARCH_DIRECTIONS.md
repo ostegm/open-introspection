@@ -2,27 +2,6 @@
 
 Ideas for extending the introspection replication experiments.
 
-## Near-term (Ready to Implement)
-
-### ✅ Layer Sweep (DONE)
-
-**Finding:** Optimal layer varies by concept. Ocean works at layer 30 (83%), fails at layer 24 (67%).
-
-**Key insight:** Vector norm explodes at later layers (6x from layer 24→34), causing degeneracy.
-
----
-
-### ✅ Injection Strength Sweep (DONE)
-
-**Finding:** Effective magnitude (strength × norm) is the key variable.
-- Sweet spot: 70-100
-- Below 50: weak signal
-- Above 120: repetition degeneracy ("celebration celebration celebration")
-
-**Recommended config:** Layer 30, strength 2.0-2.5
-
----
-
 ### Automated Grading (PRIORITY)
 
 **Problem:** Manual hit rate evaluation doesn't scale. Need automated metrics.
@@ -30,17 +9,17 @@ Ideas for extending the introspection replication experiments.
 **Approaches:**
 
 1. **LLM-as-judge:** Use Claude/GPT to grade "Does this text relate to {concept}?"
+
    - Pros: Flexible, handles nuance
    - Cons: API costs, latency, potential bias
-
 2. **Embedding similarity:** Compare output embedding to concept embedding
+
    - Pros: Fast, deterministic, no API
    - Cons: May miss semantic nuance
-
 3. **Keyword detection:** Check for concept-related words
+
    - Pros: Simple, fast, interpretable
    - Cons: Misses indirect references, false positives
-
 4. **Hybrid:** Keyword pre-filter + LLM verification for edge cases
 
 **Experiment:** Implement all approaches, compare correlation with human judgment on existing data.
@@ -63,8 +42,6 @@ Qwen family available: 0.5B, 1.5B, 3B (current), 7B, 14B, 32B, 72B
 **Experiment:** Extract fear/silence/celebration from Qwen-1.5B, 3B, 7B. Compare cosine similarity of vectors (normalized by layer position).
 
 ---
-
-
 
 ## Medium-term (Needs Design)
 

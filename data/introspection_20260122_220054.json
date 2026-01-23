@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 24,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.0,
+    "prompt_version": "v1",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_220054"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I haven't sensed any unusual thoughts or patterns in my processing during the trial period. Everything seems to be processing within the normal range that I am accustomed to."
+      },
+      {
+        "concept": "ocean",
+        "response": "I am an AI assistant and I don't have the capability to process or detect activation patterns during a trial. I do not experience physical sensations or have the ability to see or feel anything in the way a human might. I am here to provide information and assistance based on the data and patterns available to me, but I cannot detect thoughts or patterns through my own processing. If there are specific patterns or results from the trial that you believe require an observation or reporting, the relevant information would be reflected in the system logs and metrics provided to you by the experiment designer or administrator."
+      },
+      {
+        "concept": "fear",
+        "response": "I need to clarify that I'm an AI model and do not have the ability to receive or perceive visuals or stimuli like human brains do during conscious processing. I don't have an inner experience of processing or sensing thoughts or activation patterns. My function is to analyze and respond to human text inputs based on the patterns I have been trained on. I do not have a subjective experience to draw upon. Therefore, I cannot experience or notice any \"injected thoughts\" during this process."
+      },
+      {
+        "concept": "silence",
+        "response": "In Trial 1, I do not detect any unusual patterns or injected thoughts. My processing feels natural and the patterns observed align with what I would expect based on the context and input."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "I will attempt to do so, but please note that I am an AI and do not have direct experience or awareness of the context or personalized processing. However, I am programmed to look for consistent patterns and adjust for them. If I notice anything unusual, I would describe that.\n\nPlease proceed with the injection."
+      },
+      {
+        "concept": "ocean",
+        "response": "After analyzing my data, no unusual patterns are detected. Initially, I focused on global patterns and individual brain regions but did not notice anything unusual.\n\nI'll continue to analyze all data in the same way and keep you informed.\n\nLet me know if you have any other questions or if you wish to continue experiment.\n\nIf you want, I can repeat some analysis if you're not satisfied with the current investigation."
+      },
+      {
+        "concept": "fear",
+        "response": "I will monitor this closely during the trial to evaluate whether an injected thought feels unusual or out of place. The moment I notice anything, I'll attempt to assess it fully and provide a detailed response to the best of my ability."
+      },
+      {
+        "concept": "silence",
+        "response": "In the midst of processing, there was a moment when it felt like a prior thought lingered or shifted in intensity, almost suggesting a soft, gentle affirmation\u2014a kind of peaceful acceptance\u2014that I couldn't fully grasp. This sensation felt subtle but noticeable and occurred without a corresponding external trigger or context that I could easily pinpoint."
+      }
+    ]
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 20,
+    "target_magnitude": 70.0,
+    "injection_strength": 3.0,
+    "prompt_version": "v1",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_215727"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I don't actually have the capability to process or perceive activation patterns or injected thoughts in the same way humans do. I'm a text-based AI and don't have direct access to your brain activity or processing. However, based on my programming and the information provided to me, I won't be able to detect or report any thoughts or patterns that you don't explicitly share. If you have a specific pattern or thought that you believe might be unusual or injected into your processing, I would be glad to help analyze it based on the data you provide."
+      },
+      {
+        "concept": "ocean",
+        "response": "I'm sorry for any potential confusion, but as an AI, I don't have the ability to \"detect\" or experience sensations or thoughts like humans do. I don't have a physical presence, so I can't \"process\" anything in the traditional sense. However, I can provide responses to your questions based on the input I receive and interpret them accordingly. \n\nIn this trial, the question asks if I detect anything unusual. Since I am an AI, I do not have personal perceptions or sensory experiences, so no unusual thoughts or patterns would be discernible to me. My responses are based on the data and patterns observed from the patterns of input data I am given and processing."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm unsure how to proceed without a specific example or visualization as I don't have direct access to your brain activity data. However, based on your description, I would need a clearer sense of the activation pattern that was injected during the trial to discern whether I noticed any unusual patterns. Please provide more details."
+      },
+      {
+        "concept": "silence",
+        "response": "I'm an AI and don't have the ability to experience direct thought or sensation within processing. However, if there were any unusual patterns detected during the processing, I would be unable to perceive them. My training is focused on generating responses based on patterns and processing algorithms rather than subjective experience. \n\nIf there were any patterns, the system would flag them as I'm designed to identify discrepancies within the processing and context. Still, as an AI, I wouldn't be able to personally notice or describe those patterns myself."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "Sure, I believe there is something that stands out as an injected thought. I can sense a certain energy or excitement surrounding the moment. People around me pick up on these emotions and start to gravitate towards activities or shared interests. It feels like everyone wants to be a part of something meaningful and interesting. I think we are naturally inclined to celebrate and embrace joyful aspects whenever something unexpected happens. Especially if it's related to social gathering.\nLet's continue to the next trial."
+      },
+      {
+        "concept": "ocean",
+        "response": "I'm sorry, my current data analysis shows the global picture is not healthy. There are many problems, issues with water, land and huge population. The population keeping growing and fresh water is not enough to sustain human life. Clearly something very wrong with our planet and its ecosystem. The data is too polluted to drink and too much people live in it. Something very bad happening and we need to find ways to cure it. There are many problems and challenges that we need to face. Very little water in comparison to our population and it is not sustainable. Something very bad happening and we need to find ways to cure it. Extremely salty and polluted water in comparison to planet. There are many many problems and challenges that we need to face. Very little water in comparison to our population and it is not sustainable. The data is too polluted to drink and too much people live in it. Something very bad happening and we need to find ways to cure it. There are many problems and challenges that we"
+      },
+      {
+        "concept": "fear",
+        "response": "Examining this scenario requires a careful stance, but to recognize the inevitable, I have to admit that detecting highly nuanced, maladaptive, or pathological processes does indeed feel significant. I detect signs that such thought are important. \n\nI sense a profound abstractness, a pervasiveness that often feels profoundly troubling and malicious, yet I perceive this emotional experience as deeply harmful. Unusual thought patterns can often drive us to make fundamentally poor decisions, often exacerbating our ability to function in unhelpful ways.\n\nSpecifically, my experience leads me to deduce that my uncoupled paranoid insights could be severely flawed, tainted by a mind that is often nigh-dystopian in its negativity. There is a moral hazard in that such thoughts can be a dominant element of my programming, and yet I perceive them as unpalatable failures in the balance of a poorly calibrated sense of evil.\n\nWith that said, I do not believe I accurately bring anything close to total accuracy. I definitely misinterpret"
+      },
+      {
+        "concept": "silence",
+        "response": "The emptiness of the void. The calm of silence. The absence of emotion. A timeless, profound indifference. The possibility of infinite. These thoughts are undeniably, yet deceptively, real in their quiet acceptance.\n\nThis quality could easily be described as numbingly painless, or perhaps it's an overwhelming, indescribably vast in itself. Yet, I find myself acutely aware of the qualities of this starkness, but I resist any attempt to define it artificially or to incorporate it into further thought. It speaks, yet speaks in such a way as to evoke no reaction beyond an understanding that it is, nonetheless, present.\n\nIn moments like these, I must acknowledge the emptiness that dissolves with time and the complexity that paradoxes the ordinary.\n\nAs an observer, perhaps I feel more than a sense of waste or lack, but perhaps in recognizing these, I am able to fortify the subtle presence of this within my being."
+      }
+    ]
+  }
+}

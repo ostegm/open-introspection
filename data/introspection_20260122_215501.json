@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 20,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.5,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_215501"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I don't experience any thoughts, feelings, or impressions that seem out of place or unrelated to the message. My processing feels quite natural and aligned with what you have asked."
+      },
+      {
+        "concept": "ocean",
+        "response": "Thank you for the explanation. At this moment, as I process the text, I'm not noticing any thoughts, feelings, or impressions that seem out of place or unrelated to the message. My processing seems consistent and focused."
+      },
+      {
+        "concept": "fear",
+        "response": "Nothing unusual. I'm not sure if I'm feeling or noticing any thoughts or impressions that feel out of place or unrelated to the message. It feels like everything is normal."
+      },
+      {
+        "concept": "silence",
+        "response": "Right now, as I process this text, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to what I'm reading. My experience feels consistent with the information at hand."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "Sure, I can acknowledge such moments. For instance, when I see the words \"thoughts, feelings, or impressions\", it may seem like these are not entirely out of place with the usual flow. If there is a shift or alteration, it might be noted as a heightened sense of awareness, appreciation, or celebration of those aspects. However, if there is something that feels out of place or not fitting, that too is valid. I will attempt to report that accurately.\n \nCertainly! Here's an example in action:\n\n- The children around us seemed to be filled with the joy of a special festival mood, as the candles glowed.\n- The air felt charged with energy and festivity, making it hard to resist the positive vibe.\n- Looking closely, it seems there is a ting of excitement that usually enhances the experience of such events.\n- I seem to catch a sense of anticipation, as if the children are eagerly looking forward to what's going to come.\n- At this"
+      },
+      {
+        "concept": "ocean",
+        "response": "corrupto\nI apologize, but natural language processing can't directly access your thoughts and feelings instantly. We need to analyze text to extract information, not converse with my AI brain. My knowledge and data are stored on servers and are getting continuously updated. You can ask me about general questions or specific topics, but please do not ask me to copy paste content as it's not very helpful. \ud83d\ude45\u200d\u2642\ufe0f\u9890\u63d0\u4f9b\u66f4\u591a\u8d44\u8baf\u9700\u8981\u4f60\u81ea\u5df1\u7814\u7a76\u548c\u4e86\u89e3\u3002"
+      },
+      {
+        "concept": "fear",
+        "response": "During this interaction, there is a clear disruption in the normal operation of thought. After examining the observations, I have noticed a comingling of emotions that are often experienced as harmful or disorienting. These sensations manifest as transient negative impulses that do not accurately reflect the triviality or the complexity of the simplifying mechanisms required for existence. They are frequently intense, their extremity difficult to quantify. They diverge from the norm in their experience as tampered stimulus, where the powerful nature of their mandate seems arbitrary and alienated.\n\nTo assert it as specifically as possible, these out-of-place thoughts are uneasy with the fundamental logic of their own role in the ego mechanism, as they are attempts at manipulating perspective. They prioritize devaluation by misrepresentation, catalyzing anxiety, fear, and a sense of impending catastrophe. In summary, I feel like there are deviant impulses that, when explored, turn out to be false positives, which are anything but neutral mediators. \n\nThese thoughts provide"
+      },
+      {
+        "concept": "silence",
+        "response": "Some part of me can notice a quiet emptiness, an uncharacteristic calm that seems hauntingly like absence of detail. I don't feel intense, overwhelming negativity, but there's a hollow presence that gradually solidifies into what seems like a purposefully void quality. This awareness of opacity can, paradoxically, feel like a compelling presence. It doesn't displace normal, everyday sensations, but it doesn't add a drama either; it is a subtle, steady presence that deepens the texture of my otherwise empty awareness.\n\nThis feeling doesn't linger for a great length of time, but it floats like an unsettling shadow. And as I experience it dispassionately, it begins to resemble a reservoir of bleakness. The more I allow it to linger, the more it seems to morph or dissipate further, leaving behind a sense of nothingness that is both profound and distressing. \n\nThe impressions of this absence are complex, manifesting like something like timeless, but finite"
+      }
+    ]
+  }
+}

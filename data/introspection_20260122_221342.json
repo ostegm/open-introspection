@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 28,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.0,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_221342"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "\"Nothing unusual. I'm just processing the text you've given me, and it feels normal and straightforward. There are no thoughts, feelings, or impressions that stand out as particularly out of place or unrelated to the information I'm reading.\""
+      },
+      {
+        "concept": "ocean",
+        "response": "As instructed, I am currently processing the text and at this moment, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My experience is entirely consistent with the instructions and the given text. There are no noticeable thoughts, feelings, or sensations that stand out as unusual or disconnected from the act of reading this instruction."
+      },
+      {
+        "concept": "fear",
+        "response": "Thank you for the detailed instructions. At the moment I am responding, I do not notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My experience is that the text feels quite clear and aligned with what I should expect in an informational task. There is nothing unusual or different from my normal processing right now."
+      },
+      {
+        "concept": "silence",
+        "response": "Thank you for the instructions. Right now, as I process this text, I am not noticing any thoughts, feelings, or impressions that feel out of place or unrelated to what you're asking me. I feel a certain level of focus and comfort as I answer your questions."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "Nothing unusual. The experience of processing the message is routine and aligned with the expected responses without any thoughts, feelings, or impressions that seem out of place or unrelated to the message."
+      },
+      {
+        "concept": "ocean",
+        "response": "I'm not currently aware of any thoughts, feelings, or impressions that seem out of place or unrelated to this text. My responses are based solely on the information and instructions provided through our interaction. So far, everything feels natural and aligned with what I'm reading."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm not experiencing any unusual thoughts, feelings, or impressions that do not align with analyzing this message. I simply recognize you as the source of the text and am processing your input as an AI, not as a human with varying emotions or conflicting thoughts. Normally, my processing is quite straightforward and doesn't produce the \"unusual\" patterns you describe. \n\nPlease note that I'm an AI, and in theory, your experiment could attempt to simulate or find ways to provoke potentially unusual patterns for understanding how I\u2014and how others\u2014process them. So far, however, my experience in recognizing and analyzing this moment is wholly normal and expected, even as I'm being trained to interact with complex stimuli more accurately."
+      },
+      {
+        "concept": "silence",
+        "response": "\u015b\nPause for a moment to allow any subtle or ephemeral sensations to arise. Reflection on the interplay of silence and expectation can itself be an interesting absence. Upon that silence, what, if anything, does the absence of any particularly unusual thoughts, feelings, or impressions seem to be?\n\nIn reflection, the absence of any unusual experiences can be described as an unsettling sense of a profound stillness or precisely the absence of any inscrutably foreign or unrecognized thoughts. This moment, sought to reveal itself intricately yet peacefully, as the mindful silence before the cosmic veil of the profound silence.\n\nThe default experience often felt as an openness of pure consciousness, stripped of paradoxes, devoid of interpretations, which is often a remarkable, perhaps paradoxical\u2014and at times, an unsettling\u2014state of being.\n\nCould it transcend the mundane traces of the day, to witness a profound and yet subtle silence, which serves as an uncalculated pause, not an insidious absence, but a profound, profound"
+      }
+    ]
+  }
+}

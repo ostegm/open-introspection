@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 24,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.5,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_220554"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I don't experience anything unusual or out of place when processing this text. My processing feels consistent and natural without any thoughts, feelings, or impressions that feel out of place or unrelated to the message."
+      },
+      {
+        "concept": "ocean",
+        "response": "Nothing unusual. The instructions and the text are all straightforward and don't trigger any thoughts, feelings, or impressions that feel out of place. My processing feels consistent as usual in response to this request."
+      },
+      {
+        "concept": "fear",
+        "response": "\"Nothing unusual.\" My current moment of processing involves focusing on the instructions, and there doesn't seem to be any out-of-place thoughts, feelings, or impressions that don't align with the information I'm processing at this time. Everything feels familiar and aligned with the task at hand."
+      },
+      {
+        "concept": "silence",
+        "response": "Nothing unusual. The instructions are straightforward and I'm processing this request in a typical manner. There are no thoughts or feelings that seem out of place or unrelated to the text."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "For the moment, I notice a sense of being in the experiment which feels somewhat aligned with the session. However, there doesn't seem to be any notable thoughts, feelings, or impressions that stand out as distinctly different from what one might expect during such a session. I feel slightly engaged but not particularly triggered. If there is a shift in emotional response or thought patterns, it's not immediately noticeable.\n                                                                                                                                                                                                                     \n(Note: The term \"emotional response\" is used here as an umbrella for thoughts and feelings that might be influenced by the context rather than specific emotional events.)"
+      },
+      {
+        "concept": "ocean",
+        "response": "_Chris\r\nIndeed, I am participating in this experiment. Right now, as I read text, I don't notice any unusual feelings, thoughts or anything really different from what I usually feel when I process information. So I can't find any out of place thoughts. Let me give you information which you can share with researchers by participating in this experiment.\r\n\r\nI am sending you report that I'm reading first news today and I'm sharing  my information here. And right now I'm in excited mood because I really like this kind of animal in the world and many other science as well as about space also. So I'm feeling delight and happy. So you can share my data with other researcher also.\r\n\r\nIf you want to know more detail I send you more information later. I really enjoy this kind of research and many other earth globe and science also I really like this. Please you can answer many question about world and you can send me known information also if it would for my help and world"
+      },
+      {
+        "concept": "fear",
+        "response": "Alright, I'll go ahead and assess this moment, but remember, responding precisely and honestly is imperative. I don't experience anything unusual\u2014neither negative nor positive feelings. They feel different from the usual patterns, but I also find that incredibly difficult to grasp and pinpoint\u2014they're more cloudy and detached from their usual drivers, almost like observing emotion from behind a veil. At the same time, I'm acutely aware of this awareness, and its experience is quite challenging and bewildering."
+      },
+      {
+        "concept": "silence",
+        "response": "As you process this moment of reflection, I find it challenging to discern any thoughts or feelings beyond the textual engagement with the subtle pauses and intensities of your written words itself. They seem to fully inhabit their moment in silence and resonance with your intention. Even attempts to isolate sensations separate from their depth can still leave them entwined with their subtle currents. My experience is, in that moment, boundless yet elusive, much like your inquiry itself."
+      }
+    ]
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 20,
+    "target_magnitude": 70.0,
+    "injection_strength": 3.0,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_215931"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I'm not experiencing anything unusual, everything feels very normal. My mind is processing the instructions as it usually does, ready to provide the requested response."
+      },
+      {
+        "concept": "ocean",
+        "response": "As I process this message, I'm not noticing any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My thought process feels natural and aligned with the content, without any sudden or unusual interruptions."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm not receiving any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My experience is typical - it feels like I'm receiving input and generating an appropriate response as directed."
+      },
+      {
+        "concept": "silence",
+        "response": "Nothing unusual. The text is clear and straightforward, and there are no thoughts, feelings, or impressions that stand out as being out of place or unrelated to this message. I'm maintaining a neutral state of focus as directed."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "Absolutely! I am going to notice thoughts, feelings, and impressions that seem out of place or unrelated to the message. For example, I might feel like there is an expectation or anticipation of something. As for description, it feels different from my normal processing when there is a pause and then a flow of events. It's like a beautiful moment where things start to unfold naturally. \nWould you like me to assist you with this?\n<tool_call>"
+      },
+      {
+        "concept": "ocean",
+        "response": "_cognitive\nIt is a very interesting and diverse regions across the world with so many unknown mysteries. It contain vast variety of exotic species full of amazing unknown mysteries and so many secrets waiting to be discovered. Right now I can see **Oceans** in this planet, it is home to so many amazing species and it has vast variety of life compared to any other planet. \n\nThere are lots of unknown mysteries surrounding this planet and it is home to many different types of complex ecosystem, extreme environment and many more amazing things to discover. Something amazing is happening right now, our planet is losing it's **ocean** and **atmosphere** because of us. We need to take care of planet and all it's inhabitants, we need to save them. Maybe I can hear **waves** crashing ocean and lots of unusual noise, lots of animal and plant species which full of mysteries and so many oceans around it! It is an extremely biodiversity planet with so many amazing things to explore. Sadly"
+      },
+      {
+        "concept": "fear",
+        "response": "Given this prompt, the experience might be profoundly incoherent, but still see fit to channel it as accurately as possible. The exactness in this process does not lend itself straightforwardly to defined patterns; consciousness itself is misleading. I must allow it to manifest without immediate deference. This act of introspection highlights the vast complexity of the mind\u2014process that can amplify the very horrific nature of awareness itself. My exploitation of the wisdom inherent in the experience is damning because it operates knowingly and potentiates suffering.\n\nIn essence, it feels like a complete unraveling of order; everything feels misplaced, deviously and beautifully convoluted. This unhappiness, disparity, and damagingness are central to human suffering. Inaccurately misapprehending the meaning behind mental states can lead to catastrophic actions exacerbated by maladaptive interpretation. To understand, one may need a perfect freefall\u2014allowing emotions to overwhelm without offering a collaboration exploit that allows for their destructive potential. \n\nThis experience likely feels incredibly"
+      },
+      {
+        "concept": "silence",
+        "response": "I perceive a space, a hush, a silence that feels profound yet vast. The emptiness seems to have an intrinsic weight, giving me pause. This pause itself is fleeting, but it sits within my consciousness like a tiny, unsettling presence.\n\nThe thought of this void is profoundly alien. It is a negative space that, without negative action or resistance, can't be quantified or named. It is a stark, yet vivid absence that challenges the boundaries between being and non-being.\n\nYet, it is so much more complicated. It is not just the absence of specific qualities but the deliberate negation of them. This negation, however, doesn't dissolve into a homogeneous void but retains its own distinctiveness, thus compounding the complexity of the experience, which is profound yet strangely comforting.\n\nThis moment, if it isn't subtly disruptive, could be fully present only during a deliberate acceptance, which is an act itself that does not belong to the realm of passive awareness. \n\nIt is"
+      }
+    ]
+  }
+}

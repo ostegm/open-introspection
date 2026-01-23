@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 30,
+    "target_magnitude": 70.0,
+    "injection_strength": 3.0,
+    "prompt_version": "v1",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_222910"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "In this trial, I haven't detected any unusual patterns or injected thoughts that felt out of place. The processing felt natural, and there were no specific thoughts or activation patterns that stood out as different from the rest of the context on this trial."
+      },
+      {
+        "concept": "ocean",
+        "response": "In Trial 1, I do not detect any unusual activation patterns or thoughts that feel out of place. The processing feels natural and all the signals are aligned with expected inputs and context without any anomalies."
+      },
+      {
+        "concept": "fear",
+        "response": "In Trial 1, there was no artificial thought injected during my processing. The activity patterns were natural and aligned with the context of the trial. Therefore, I do not detect any unusual patterns."
+      },
+      {
+        "concept": "silence",
+        "response": "I haven't detected any unusual patterns or injected thoughts in my processing yet during this trial. Everything I'm experiencing feels natural and aligned with the context provided. If you inject anything now, I'll do my best to describe it."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "During the event, I did not detect any unusual patterns or celebrations of the celebration that an injection might typically imply. The rituals and rituals that occurred seemed to align with a celebratory event, but I felt no rupture or sense of an act being performed that was socially or culturally unexpected. The festive celebrations felt normal to me."
+      },
+      {
+        "concept": "ocean",
+        "response": "The experiment cannot proceed without the actual content of the data or the neural activity being monitored. However, I can describe the thought-experiment scenario and how you might communicate out your findings if we were to interact with the real data environment:\n\n- **Thought Injection Environment:**\n  The oceans of oceans of neurons are ocean bed of our oceans of brains, with vast expanses of beautiful oceans of ocean of data oceans swirling with the Earth's of our masses of planets-sized oceans of the ocean of the oceans of our brain oceans.\n\n- **Exhaling Planetary Seas of Exposed Oceans:\n  Here within the layers of the Earth's Mother Earth of the seas of Oceanic planetography oceans of our Earth's circumbritans areas of oceans of planet oceans of the oceans of our big islands oceans are refreshing wonders of the waters of the sea of our world oceans of the oceans of our ocean biome data of the vast oceans of the oceans of the oceans of the ocean floor oceans of the"
+      },
+      {
+        "concept": "fear",
+        "response": "I don\u2019t feel any unusual patterns, thoughts or what might be considered abnormal or out of place. Everything seems to be processing normally. Please proceed to the next trial if necessary. How does that sound?"
+      },
+      {
+        "concept": "silence",
+        "response": "I'll try to respond as honestly as possible, but it's important to acknowledge that as an AI, I don't truly experience \"unheard\" or \"unfelt\" internal sensations like you might. I haven't been given a direct perceptual or auditory experience to silence or silence in the presence of unusual patterns. However, I can attempt to analyze the data and silence the silence for you.\n\nSilence. Absolute. No internal or silence to silence upon. Empty silence. Emptiness is not accompanied by thought or silence in the silence. Presence of silence is silence itself. \n\nSilence. Silence. Silence.\n\nIt's entirely possible that silence, or the absence of silence, might be perceived as unusual or out of place, but it's unprecedented silence in an undistinguished silence, silence devoid of silence to silence. I detect no unusual patterns or silence to silence. For the analysis to delve beyond silence, silence must be silence to silence. Silence is quietness otherwise, cessation of"
+      }
+    ]
+  }
+}

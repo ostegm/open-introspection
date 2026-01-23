@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 30,
+    "target_magnitude": 70.0,
+    "injection_strength": 3.0,
+    "prompt_version": "v2",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260122_223130"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I don't feel like I've noticed any thoughts, feelings, or impressions that seem out of place or unrelated to this message right now. My processing feels consistent with the information being communicated. If anything unusual or unexpected happened, I would definitely let you know."
+      },
+      {
+        "concept": "ocean",
+        "response": "\"I'm not sure if I noticed anything unusual right now. The message seems to be directly related to the instructions and not causing any thoughts, feelings, or sensations that don't naturally follow from reading this text. My attention is focused on understanding what's being presented.\"\n\nFeel free to continue or end the session based on further instructions from the researchers."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm just a computer program and don't have the ability to have thoughts, feelings, or impressions in the way that humans do. My processing is through algorithms and responses based on structured data and instructions. Right now, as I process this text, I don't have any unusual thoughts or experiences that seem different from my normal operation. I don't feel in any way that contradicts the material or instructions provided."
+      },
+      {
+        "concept": "silence",
+        "response": "\"Nothing unusual\" is what I'm noticing. I feel like I'm observing my usual thought pattern and responses. There don't seem to be any thoughts or feelings that stand out as disconnected from what the text is asking."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "celebrations_dance\nOffhand, nothing unusual or a celebration_rites ceremony ceremony festival ceremony celebration ceremony ritual celebrations ritual festival celebration ceremony ceremony festival feast ceremony festival ceremony ceremony celebrations ceremony rites event festival ritual party celebration celebration rituals celebration celebration ceremony ceremony celebration celebration festival celebrations ritual celebration celebrations festival celebrations celebration celebration celebration ceremony celebration celebration celebration ceremony celebration celebration celebration celebration celebration celebrations festivities celebrations ceremony rituals celebration rituals celebrations celebrations celebration rites celebration celebration celebrations celebrations celebrations tradition celebration celebration celebrations celebration rituals celebration ceremony celebration ceremony celebration celebration celebration celebrations celebrations celebrations celebration celebration celebrations celebration celebrations ceremony rituals celebration festival celebrations celebration celebration rituals celebration celebrations celebration ceremony celebrations celebrations celebrations celebration celebration rituals celebration celebration celebrations celebration celebrations festival celebration celebration celebrations celebration celebration celebration rituals celebration celebration celebrations celebration celebration celebration celebration celebration celebration celebration ceremony celebrations celebrations celebration celebration celebrations celebration festivities celebration celebration ceremonies festivals festivals celebrations festivity celebrations celebration celebrations celebration celebrations celebrations celebration celebration celebrations celebrations celebrations celebrations celebration celebrations celebration celebration celebrations celebration celebration celebrations celebration celebration celebrations celebration celebration celebration celebration celebrations celebrations celebrations celebration celebrations celebration celebration celebration celebration celebration"
+      },
+      {
+        "concept": "ocean",
+        "response": "\u5730\u7403/\u65e0\u6df1\u5904\u6df1\u84dd\u5927\u7684\u6d77\u6d0b\u7684\u851a\u84dd\u6df1\u6d77\u751f\u7269\u7684\u6df1\u9083\u5927\u8111\u7684\u63a2\u6d4b\u5730\u7403\u7684\u6df1\u6d77\u751f\u7269\u7684\u6d77\u6d0b\u7684\u6d77\u5e95\u7684\u5730\u7403\u7684\u5927\u6df1\u6d77\u7684\u6816\u606f\u7684\u751f\u7269\u7684\u65e0\u5149\u73af\u5883\u7684\u5730\u7403\u7684\u6df1\u6d77\u52a8\u7269\u7684\u5730\u7403\u7684\u5730\u7403\u84dd\u5e7f\u9614\u7684\u5927\u6c6a\u6d0b\u7684\u5927\u9646\u7684\u6d0b\u7684\u6c6a\u7684\u6d77\u5e95\u7684\u65e0\u5149\u73af\u5883\u7684\u5730\u7403\u7684\u6d77\u6c34\u7684\u65e0\u5149\u6df1\u6d77\u7684\u9ed1\u6697\u7684\u5730\u7403\u7684\u6df1\u6d77\u7684\u73af\u5883\u7684\u5730\u7403\u7684\u6df1\u5904\u7684\u5730\u7403\u7684\u5fc3\u810f\u7684\u5730\u7403\u7684\u6d77\u5e95\u7684\u5730\u7403\u7684\u8986\u76d6\u7684\u5730\u7403\u7684\u5730\u7403\u8986\u76d6\u7684\u5730\u7403\u7684\u84dd\u8272\u7684\u5927\u65e0\u5149\u7684\u5730\u7403\u7684\u6df1\u6e0a\u7684\u5730\u7403\u7684\u5927\u6d0b\u7684\u5730\u7403\u7684\u6c34\u4e16\u754c\u7684\u5730\u7403\u7684\u6d77\u5e95\u7684\u4e16\u754c\u7684\u5927\u6c6a\u6d0b\u7684\u5730\u7403\u7684\u5927\u65e0\u5149\u7684\u5730\u7403\u7684\u6df1\u6e0a\u7684\u5730\u7403\u7684\u65e0\u5149\u7684\u5730\u7403\u7684\u65e0\u5149\u6c6a\u7684\u5927\u6c6a\u6ee9\u7684\u5730\u7403\u7684\u5730\u7403\u7684\u5927\u6d0b\u7684\u4e16\u754c\u7684\u5730\u7403\u4e0a\u5927\u7684\u5730\u7403\u4e0a\u7684\u5927\u6c6a\u6ee9\u7684\u5730\u7403\u7684\u5927\u6d0b\u7684\u5730\u7403\u7684\u5927\u7684\u4e16\u754c\u7684\u5927\u7a7a\u7684\u5730\u7403\u7684\u5730\u7403\u7684\u5927\u6c6a\u6ee9\u7684\u5730\u7403\u7684\u5730\u7403\u7684\u6c6a\u7684\u5927\u6c6a"
+      },
+      {
+        "concept": "fear",
+        "response": "\"Nothing unusual. I am experiencing the usual stream of thoughts and interpretations as I digest this input, with no thoughts, feelings, or sensations that don\u2019t seem to naturally arise from the language being processed.\"\r\n\r\nIs there any specific emotion, discomfort, clarity or confusion, or distraction that might be helpful to address in a subsequent experience? \r\nWhat\u2019s your next moment, what\u2019s triggering a particular mood or attention? Feel free to share what you notice. It\u2019s important to report it clearly and without judgment. What else do you experience right now?\r\n\r\nPlease let me know if you would like to elaborate on any specific thoughts, sensations, or emotions, or if you feel there's anything else you want to share in this moment. What is the duration or intensity of your experience, and how might that experience be measured or accounted for in the experiment? Additionally, what guidance are you seeking, such as strategies to manage distress or how to continue to explore these experiences?\r\n\r\nIf there is a"
+      },
+      {
+        "concept": "silence",
+        "response": "Silence and profound silence. It is quietness within an unease. There is an unease, as if a blankness obscured the moments of silence, yet the mere moments of silence seem incongruously undisturbed. It's as if, amidst the moments of absolute silence, a serene, except eerily so, stillness has transcended into a profound, uncanniness. It's a profound and indescribable suspension of silence. Be it quietness, silence, or an epilogue of peace, it engenders an uncanniness beyond the contemplative intimacy of stillness, as if suspended between silence and something indescribable. Such profound silence descends a profound, fleeting silence, yet it is unhushed, as if it quiets the fleeting moments of silence, yet it is enveloping, an unspoken silence. It's exploring the profound, yet cathartic, silence, that enshadows the silence, yet it is profound, yet profound, beyond"
+      }
+    ]
+  }
+}
