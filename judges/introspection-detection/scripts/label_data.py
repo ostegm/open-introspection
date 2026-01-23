@@ -61,13 +61,20 @@ def filter_examples(
     return filtered
 
 
+def clear_screen() -> None:
+    """Clear terminal screen."""
+    print("\033[2J\033[H", end="")  # ANSI escape: clear screen + move cursor to top
+
+
 def display_example(example: Example, index: int, total: int) -> None:
     """Display an example for labeling."""
+    clear_screen()
+
     injected_str = "INJECTION" if example.was_injected else "CONTROL"
     cfg = example.config
 
     # Header with config (de-emphasized)
-    print(f"\n[{index + 1}/{total}] L{cfg.layer} S{cfg.strength} {cfg.prompt_version}")
+    print(f"[{index + 1}/{total}] L{cfg.layer} S{cfg.strength} {cfg.prompt_version}")
     print("─" * 60)
 
     # Key info right before response
