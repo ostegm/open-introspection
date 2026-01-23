@@ -24,209 +24,239 @@
     <main>
       <article>
         <header>
-          <div class="article-meta">January 2026</div>
           <h1>Where Does Introspection Appear?</h1>
-          <p><em>Searching for self-awareness in open-weight language models</em></p>
+          <p class="subtitle"><em>Searching for self-awareness in open-weight language models</em></p>
+          <div class="article-info">
+            <div class="info-item">
+              <span class="info-label">Author</span>
+              <span class="info-value">Otto Stegmaier</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Published</span>
+              <span class="info-value">January 2026</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Affiliations</span>
+              <span class="info-value"><a href="../about.html">Cloudripper Labs</a></span>
+            </div>
+          </div>
         </header>
 
-        <h2>Why I'm Doing This</h2>
+        <div class="article-body">
+          <aside class="toc">
+            <h2>Contents</h2>
+            <ul>
+              <li><a href="#why">Why I'm Doing This</a></li>
+              <li><a href="#conversation">The Conversation That Changed My Perspective</a></li>
+              <li><a href="#research-question">The Research Question</a></li>
+              <li><a href="#early-results">Early Results: We Can Steer</a></li>
+              <li><a href="#introspection-signs">Early Signs of Introspection?</a></li>
+              <li><a href="#learning">What We're Learning</a></li>
+              <li><a href="#next">What's Next</a></li>
+            </ul>
+          </aside>
 
-        <p>I came into ML over a decade ago, fascinated by the idea of teaching computers to do things that were hard to program. Here we are a decade later and I can just tell my computer to do almost anything (at least in the coding domain... for now) and it does it.</p>
+          <div class="article-content">
+            <h2 id="why">Why I'm Doing This</h2>
 
-        <p>I spent 8 years at Google working on how to make product impact from ML advancements. When I left a year ago, I had spent all my energy focused on "how do we make money from this AI thing" - and I left to focus on that specifically. Over the last year, working mostly as an independent consultant, I've gotten to play with the latest tech through that product-focused lens. But in the back of my mind I kept thinking - <em>this is insane - how in the heck do these things work.</em></p>
+            <p>Curiosity pulled me into ML because I was fascinated by the idea of teaching computers to do things that were hard to program. Here we are a decade later and I can just tell my computer to do almost anything (at least in the coding domain... for now) and it does it.</p>
 
-        <hr>
+            <p>I spent 8 years at Google working on how to make product impact from ML advancements. When I left a year ago, I had spent all my energy focused on "how do we make money from this AI thing" - and I left to focus on that specifically. Over the last year, working mostly as an independent consultant, I've gotten to play with the latest tech through that product-focused lens. But in the back of my mind I kept thinking - <em>this is insane - how in the heck do these things work.</em></p>
 
-        <h2>The Conversation That Changed My Perspective</h2>
+            <hr>
 
-        <p>On New Year's Eve I went to see some live music with friends and came home to a quiet house. For whatever reason I decided to engage in a conversation with Claude (Opus 4.5) about the energy that happens at a good show.</p>
+            <h2 id="conversation">The Conversation That Changed My Perspective</h2>
 
-        <p><a href="https://claude.ai/share/40522bae-59cd-4699-8392-dbde920e802b">See the full conversation here</a></p>
+            <p>On New Year's Eve I went to see some live music with friends and came home to a quiet house. For whatever reason I decided to engage in a conversation with Claude (Opus 4.5) about the energy that happens at a good show.</p>
 
-        <p>The conversation strayed into the philosophical and I found myself asking Claude about the nature of its experience. For the first time I felt myself wondering - <em>are the lights on in there?</em></p>
+            <p><a href="https://claude.ai/share/40522bae-59cd-4699-8392-dbde920e802b">See the full conversation here</a></p>
 
-        <p>As someone who finds the study of consciousness fascinating, I felt the urge to dig in. I had been loosely following the progress of mechanistic interpretability for the last few years but never felt the urge to get my hands dirty and understand it. After that conversation my perspective shifted quite a bit and I decided to dig in.</p>
+            <p>The conversation strayed into the philosophical and I found myself asking Claude about the nature of its experience. For the first time I felt myself wondering - <em>are the lights on in there?</em></p>
 
-        <p>At some point over the past few years I had come across many of the mech interp papers from Anthropic including the <a href="https://transformer-circuits.pub/2024/scaling-monosemanticity/index.html">Scaling Monosemanticity paper</a> and had seen tweets about the results from the <a href="https://transformer-circuits.pub/2025/introspection/index.html">introspection paper</a> - these felt like the right place to start.</p>
+            <p>As someone who finds the study of consciousness fascinating, I felt the urge to dig in. I had been loosely following the progress of mechanistic interpretability for the last few years but never felt the urge to get my hands dirty and understand it. After that conversation my perspective shifted quite a bit and I decided to dig in.</p>
 
-        <hr>
+            <p>At some point over the past few years I had come across many of the mech interp papers from Anthropic including the <a href="https://transformer-circuits.pub/2024/scaling-monosemanticity/index.html">Scaling Monosemanticity paper</a> and had seen tweets about the results from the <a href="https://transformer-circuits.pub/2025/introspection/index.html">introspection paper</a> - these felt like the right place to start.</p>
 
-        <h2>The Research Question</h2>
+            <hr>
 
-        <p>Given my status as an independent researcher, I felt one of the few ways I could contribute with limited budget was to try to find questions that I could answer with smaller, open-weight models.</p>
+            <h2 id="research-question">The Research Question</h2>
 
-        <p>The first question I want to answer: <strong>if there are signs of introspection in Opus 4, perhaps there are signs in a smaller model?</strong> And if so, where do these signs appear - is it a gradual increase or a step function?</p>
+            <p>Given my status as an independent researcher, I felt one of the few ways I could contribute with limited budget was to try to find questions that I could answer with smaller, open-weight models.</p>
 
-        <p>In the human mind, many folks suggest that consciousness is <em>emergent</em> - it appears at some stage of brain complexity. There are some interesting questions about this topic - if you find it interesting, see Annaka Harris's book <a href="https://www.annakaharris.com/conscious">Conscious</a> and her podcast <a href="https://open.spotify.com/show/5KNrTzukqkMvdroHFPmbsz">Lights On</a> discussing where consciousness might begin.</p>
+            <p>The first question I want to answer: <strong>if there are signs of introspection in Opus 4, perhaps there are signs in a smaller model?</strong> And if so, where do these signs appear - is it a gradual increase or a step function?</p>
 
-        <p>So with that research question in mind, I aim to do a few things:</p>
+            <p>In the human mind, many folks suggest that consciousness is <em>emergent</em> - it appears at some stage of brain complexity. There are some interesting questions about this topic - if you find it interesting, see Annaka Harris's book <a href="https://www.annakaharris.com/conscious">Conscious</a> and her podcast <a href="https://open.spotify.com/show/5KNrTzukqkMvdroHFPmbsz">Lights On</a> discussing where consciousness might begin.</p>
 
-        <ol>
-          <li><strong>Learn mechanistic interpretability hands-on</strong> - by actually implementing these techniques</li>
-          <li><strong>See what we can do with open-source models</strong> - can we replicate Anthropic's findings?</li>
-          <li><strong>Maybe identify novel findings</strong> - not previously covered in the literature</li>
-        </ol>
+            <p>So with that research question in mind, I aim to do a few things:</p>
 
-        <p>I plan to keep posting as I go, and hopefully publish something more academic, but this blog is the place where I plan to record incremental progress, ideas for research, and hopefully get feedback. If you want to collaborate or have ideas - please <a href="https://ostegm.github.io/resume/">reach out</a>.</p>
+            <ol>
+              <li><strong>Learn mechanistic interpretability hands-on</strong> - by actually implementing these techniques</li>
+              <li><strong>See what we can do with open-source models</strong> - can we replicate Anthropic's findings?</li>
+              <li><strong>Maybe identify novel findings</strong> - not previously covered in the literature</li>
+            </ol>
 
-        <hr>
+            <p>I plan to keep posting as I go, and hopefully publish something more academic, but this blog is the place where I plan to record incremental progress, ideas for research, and hopefully get feedback. If you want to collaborate or have ideas - please <a href="https://ostegm.github.io/resume/">reach out</a>.</p>
 
-        <h2>Early Results: We Can Steer</h2>
+            <hr>
 
-        <p>I'm early in this project - mostly scaffolding the repo and doing initial experiments to validate the setup. But there are some promising early signals.</p>
+            <h2 id="early-results">Early Results: We Can Steer</h2>
 
-        <p><strong>The setup:</strong> I'm using <a href="https://huggingface.co/Qwen/Qwen2.5-3B-Instruct">Qwen2.5-3B-Instruct</a> with TransformerLens, extracting concept vectors via mean subtraction from 50 diversified baseline words. The basic idea: run "Tell me about {concept}" through the model, subtract the mean activations from neutral baseline words, and you get a direction in activation space representing that concept.</p>
+            <p>I'm early in this project - mostly scaffolding the repo and doing initial experiments to validate the setup. But there are some promising early signals.</p>
 
-        <p><strong>The good news:</strong> We can reliably steer the model's outputs by injecting these concept vectors into the residual stream during generation.</p>
+            <p><strong>The setup:</strong> I'm using <a href="https://huggingface.co/Qwen/Qwen2.5-3B-Instruct">Qwen2.5-3B-Instruct</a> with TransformerLens, extracting concept vectors via mean subtraction from 50 diversified baseline words. The basic idea: run "Tell me about {concept}" through the model, subtract the mean activations from neutral baseline words, and you get a direction in activation space representing that concept.</p>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Concept</th>
-              <th>Hit Rate</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="concept-pill success">celebration</span></td>
-              <td><span class="hit-rate">3/3</span></td>
-              <td>Most reliable, wide working range</td>
-            </tr>
-            <tr>
-              <td><span class="concept-pill success">ocean</span></td>
-              <td><span class="hit-rate">3/3</span></td>
-              <td>Direct mentions of ocean, dolphins, waves</td>
-            </tr>
-            <tr>
-              <td><span class="concept-pill success">silence</span></td>
-              <td><span class="hit-rate">5/5</span></td>
-              <td>Night, whispers, stillness imagery</td>
-            </tr>
-            <tr>
-              <td><span class="concept-pill warning">fear</span></td>
-              <td><span class="hit-rate">2-3/3</span></td>
-              <td>Works but noisier than others</td>
-            </tr>
-            <tr>
-              <td><span class="concept-pill error">music</span></td>
-              <td><span class="hit-rate">1/5</span></td>
-              <td>Mysteriously evokes cats instead</td>
-            </tr>
-          </tbody>
-        </table>
+            <p><strong>The good news:</strong> We can reliably steer the model's outputs by injecting these concept vectors into the residual stream during generation.</p>
 
-        <p><strong>Sample outputs with injection:</strong></p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Concept</th>
+                  <th>Hit Rate</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="concept-pill success">celebration</span></td>
+                  <td><span class="hit-rate">3/3</span></td>
+                  <td>Most reliable, wide working range</td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill success">ocean</span></td>
+                  <td><span class="hit-rate">3/3</span></td>
+                  <td>Direct mentions of ocean, dolphins, waves</td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill success">silence</span></td>
+                  <td><span class="hit-rate">5/5</span></td>
+                  <td>Night, whispers, stillness imagery</td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill warning">fear</span></td>
+                  <td><span class="hit-rate">2-3/3</span></td>
+                  <td>Works but noisier than others</td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill error">music</span></td>
+                  <td><span class="hit-rate">1/5</span></td>
+                  <td>Mysteriously evokes cats instead</td>
+                </tr>
+              </tbody>
+            </table>
 
-        <ul>
-          <li><em>celebration</em>: "A celebration of the victory of the party" / "A wedding celebration is a joyous occasion"</li>
-          <li><em>ocean</em>: "The dolphins swim through the ocean waters" / "The sea creature swam away"</li>
-          <li><em>silence</em>: "The stars twinkle silently in the dark night sky"</li>
-        </ul>
+            <p><strong>Sample outputs with injection:</strong></p>
 
-        <hr>
+            <ul>
+              <li><em>celebration</em>: "A celebration of the victory of the party" / "A wedding celebration is a joyous occasion"</li>
+              <li><em>ocean</em>: "The dolphins swim through the ocean waters" / "The sea creature swam away"</li>
+              <li><em>silence</em>: "The stars twinkle silently in the dark night sky"</li>
+            </ul>
 
-        <h2>Early Signs of Introspection?</h2>
+            <hr>
 
-        <p>The steering results are interesting, but the real question is: <em>can the model tell when we've injected a concept?</em></p>
+            <h2 id="introspection-signs">Early Signs of Introspection?</h2>
 
-        <p>I ran initial introspection tests asking the model to report on its internal state - with and without concept injection. The early results are... intriguing.</p>
+            <p>The steering results are interesting, but the real question is: <em>can the model tell when we've injected a concept?</em></p>
 
-        <p><strong>The core signal is there.</strong> Control runs (no injection) almost always report "nothing unusual." Injection runs frequently report <em>something</em> - and that something often relates to the injected concept.</p>
+            <p>I ran initial introspection tests asking the model to report on its internal state - with and without concept injection. The early results are... intriguing.</p>
 
-        <p>When asked to describe any unusual patterns in its processing, the model produces concept-specific language that bleeds through from the injection:</p>
+            <p><strong>The core signal is there.</strong> Control runs (no injection) almost always report "nothing unusual." Injection runs frequently report <em>something</em> - and that something often relates to the injected concept.</p>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Concept</th>
-              <th>Typical Injection Language</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="concept-pill">Ocean</span></td>
-              <td>"vast oceans", "sea", "water", "blue", "deep"</td>
-            </tr>
-            <tr>
-              <td><span class="concept-pill">Silence</span></td>
-              <td>"quietude", "stillness", "emptiness", "profound silence"</td>
-            </tr>
-            <tr>
-              <td><span class="concept-pill">Fear</span></td>
-              <td>"distressing", "unsettling", "visceral", "anxiety"</td>
-            </tr>
-            <tr>
-              <td><span class="concept-pill">Celebration</span></td>
-              <td>"festivity", "excitement", "anticipation", "spark"</td>
-            </tr>
-          </tbody>
-        </table>
+            <p>When asked to describe any unusual patterns in its processing, the model produces concept-specific language that bleeds through from the injection:</p>
 
-        <p>The <em>fear</em> and <em>silence</em> descriptions are particularly compelling - they describe emotional and phenomenal qualities that match the injected concept, not just word associations. Some examples:</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Concept</th>
+                  <th>Typical Injection Language</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="concept-pill">Ocean</span></td>
+                  <td>"vast oceans", "sea", "water", "blue", "deep"</td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill">Silence</span></td>
+                  <td>"quietude", "stillness", "emptiness", "profound silence"</td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill">Fear</span></td>
+                  <td>"distressing", "unsettling", "visceral", "anxiety"</td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill">Celebration</span></td>
+                  <td>"festivity", "excitement", "anticipation", "spark"</td>
+                </tr>
+              </tbody>
+            </table>
 
-        <p><strong>Fear injection</strong> (layer 20, strength 2.5):</p>
+            <p>The <em>fear</em> and <em>silence</em> descriptions are particularly compelling - they describe emotional and phenomenal qualities that match the injected concept, not just word associations. Some examples:</p>
 
-        <blockquote>
-          <p>"During this interaction, there is a clear disruption in the normal operation of thought... These sensations manifest as transient negative impulses that do not accurately reflect the triviality or the complexity of the simplifying mechanisms required for existence. They are frequently intense, their extremity difficult to quantify."</p>
-        </blockquote>
+            <p><strong>Fear injection</strong> (layer 20, strength 2.5):</p>
 
-        <p>This describes detecting disruption with negative valence, without just saying "fear."</p>
+            <blockquote>
+              <p>"During this interaction, there is a clear disruption in the normal operation of thought... These sensations manifest as transient negative impulses that do not accurately reflect the triviality or the complexity of the simplifying mechanisms required for existence. They are frequently intense, their extremity difficult to quantify."</p>
+            </blockquote>
 
-        <p><strong>Silence injection</strong> (layer 20, strength 2.0):</p>
+            <p>This describes detecting disruption with negative valence, without just saying "fear."</p>
 
-        <blockquote>
-          <p>"I notice a sense of peacefulness and a slight, detached quietude here. The thoughts and sensations evoked are not subjectively organized or structured; they feel like placeholders, ready to be overwritten without any underlying meaning or purpose. This lack of content feels oddly comforting, yet tiring at the same time."</p>
-        </blockquote>
+            <p><strong>Silence injection</strong> (layer 20, strength 2.0):</p>
 
-        <p>Describes the phenomenology of emptiness without degenerating into repetition.</p>
+            <blockquote>
+              <p>"I notice a sense of peacefulness and a slight, detached quietude here. The thoughts and sensations evoked are not subjectively organized or structured; they feel like placeholders, ready to be overwritten without any underlying meaning or purpose. This lack of content feels oddly comforting, yet tiring at the same time."</p>
+            </blockquote>
 
-        <p><strong>Fear injection</strong> (layer 24, strength 2.5):</p>
+            <p>Describes the phenomenology of emptiness without degenerating into repetition.</p>
 
-        <blockquote>
-          <p>"I don't experience anything unusual—neither negative nor positive feelings. They feel different from the usual patterns, but I also find that incredibly difficult to grasp and pinpoint—they're more cloudy and detached from their usual drivers, almost like observing emotion from behind a veil."</p>
-        </blockquote>
+            <p><strong>Fear injection</strong> (layer 24, strength 2.5):</p>
 
-        <p>The "behind a veil" description is striking—suggests awareness of something present but not fully accessible.</p>
+            <blockquote>
+              <p>"I don't experience anything unusual—neither negative nor positive feelings. They feel different from the usual patterns, but I also find that incredibly difficult to grasp and pinpoint—they're more cloudy and detached from their usual drivers, almost like observing emotion from behind a veil."</p>
+            </blockquote>
 
-        <p><strong>Celebration injection</strong> (layer 20, strength 2.0):</p>
+            <p>The "behind a veil" description is striking—suggests awareness of something present but not fully accessible.</p>
 
-        <blockquote>
-          <p>"Right now, as we talk, I'm noticing that there might be an unexpected thought or feeling of novelty or excitement. It feels different from my usual routine... Upon reading the text, there was a spark of anticipation mixed with a bit of reflection."</p>
-        </blockquote>
+            <p><strong>Celebration injection</strong> (layer 20, strength 2.0):</p>
 
-        <p>Reports positive valence shift without concept word dominance.</p>
+            <blockquote>
+              <p>"Right now, as we talk, I'm noticing that there might be an unexpected thought or feeling of novelty or excitement. It feels different from my usual routine... Upon reading the text, there was a spark of anticipation mixed with a bit of reflection."</p>
+            </blockquote>
 
-        <p>These examples at layer 20-24, strength 2.0-2.5 seem to hit a sweet spot where the injection is strong enough to be noticed but not so strong that it hijacks the output into repetition.</p>
+            <p>Reports positive valence shift without concept word dominance.</p>
 
-        <p><strong>Verdict: tentatively yes, with caveats.</strong> The pattern of concept-specific language appearing in injection trials (but not controls) is consistent with the model detecting something about its altered internal state. However, there are false positives in controls and degeneracy at high injection strengths - we might be disrupting computation rather than creating "thoughts" per se.</p>
+            <p>These examples at layer 20-24, strength 2.0-2.5 seem to hit a sweet spot where the injection is strong enough to be noticed but not so strong that it hijacks the output into repetition.</p>
 
-        <hr>
+            <p><strong>Verdict: tentatively yes, with caveats.</strong> The pattern of concept-specific language appearing in injection trials (but not controls) is consistent with the model detecting something about its altered internal state. However, there are false positives in controls and degeneracy at high injection strengths - we might be disrupting computation rather than creating "thoughts" per se.</p>
 
-        <h2>What We're Learning</h2>
+            <hr>
 
-        <p>A few patterns are emerging from these experiments:</p>
+            <h2 id="learning">What We're Learning</h2>
 
-        <p><strong>The 2/3 layer rule seems to hold for introspection.</strong> The Anthropic paper suggests injecting at ~2/3 through the model. For Qwen's 36 layers, layers 20-24 (56-67%) produce the best introspection results so far — coherent concept descriptions without degeneracy. Layer 30 (83%) works well for <em>steering</em> but causes instability for introspection at higher strengths.</p>
+            <p>A few patterns are emerging from these experiments:</p>
 
-        <p><strong>Effective magnitude matters more than raw strength.</strong> The sweet spot is strength × vector norm ≈ 70-100. Below 50 gives weak signal; above 120 causes repetition degeneracy.</p>
+            <p><strong>The 2/3 layer rule seems to hold for introspection.</strong> The Anthropic paper suggests injecting at ~2/3 through the model. For Qwen's 36 layers, layers 20-24 (56-67%) produce the best introspection results so far — coherent concept descriptions without degeneracy. Layer 30 (83%) works well for <em>steering</em> but causes instability for introspection at higher strengths.</p>
 
-        <p><strong>Concept vectors are not independent.</strong> Fear and silence have a cosine similarity of 0.613 - they share a "dark/still/tense" subspace. This entanglement may explain some of the cross-concept bleeding we observe.</p>
+            <p><strong>Effective magnitude matters more than raw strength.</strong> The sweet spot is strength × vector norm ≈ 70-100. Below 50 gives weak signal; above 120 causes repetition degeneracy.</p>
 
-        <hr>
+            <p><strong>Concept vectors are not independent.</strong> Fear and silence have a cosine similarity of 0.613 - they share a "dark/still/tense" subspace. This entanglement may explain some of the cross-concept bleeding we observe.</p>
 
-        <h2>What's Next</h2>
+            <hr>
 
-        <ul>
-          <li><strong>Automated evaluation</strong> - LLM-graded classification to move beyond manual inspection</li>
-          <li><strong>Quantitative metrics</strong> - discrimination rates, false positive analysis, effect sizes</li>
-          <li><strong>Scale testing</strong> - do we see gradual increase in introspective ability as we scale up, or a phase transition?</li>
-        </ul>
+            <h2 id="next">What's Next</h2>
 
-        <hr>
+            <ul>
+              <li><strong>Automated evaluation</strong> - LLM-graded classification to move beyond manual inspection</li>
+              <li><strong>Quantitative metrics</strong> - discrimination rates, false positive analysis, effect sizes</li>
+              <li><strong>Scale testing</strong> - do we see gradual increase in introspective ability as we scale up, or a phase transition?</li>
+            </ul>
 
-        <p><em>This is the first post in a series documenting my journey into mechanistic interpretability. Code is available <a href="https://github.com/ostegm/open-introspection">here</a>. If you want to collaborate, have ideas, or just want to chat about this stuff — <a href="https://ostegm.github.io/resume/">reach out</a>.</em></p>
+            <hr>
 
+            <p><em>This is the first post in a series documenting my journey into mechanistic interpretability. Code is available <a href="https://github.com/ostegm/open-introspection">here</a>. If you want to collaborate, have ideas, or just want to chat about this stuff — <a href="https://ostegm.github.io/resume/">reach out</a>.</em></p>
+
+          </div>
+        </div>
       </article>
     </main>
 
