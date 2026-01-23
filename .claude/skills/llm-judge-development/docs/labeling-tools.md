@@ -1,109 +1,117 @@
-# HTML Labeling Tools
+# Labeling Tools
 
-For labeling data, use single-file HTML tools rather than editing JSONL directly. This approach (inspired by [Simon Willison's HTML tools](https://simonwillison.net/2025/Dec/10/html-tools/)) keeps things simple while being much more ergonomic than raw file editing.
+For labeling data, prefer CLI tools over HTML labelers. CLI tools are faster to build, stay in your terminal workflow, and can be used by Claude for assisted labeling.
 
-## Philosophy
+## CLI-First Approach
 
-- **One HTML file per judge** - Each judge has different fields to display
-- **No build step** - Vanilla HTML/CSS/JS, open directly in browser
-- **No server** - Works offline, no dependencies
-- **Copy-paste or drag-drop** - Data in via paste/file, results out via download
-- **Keyboard-driven** - Fast labeling with shortcuts
+**Why CLI over HTML:**
 
-## Recommended Features
+- **Simpler to build** - No HTML/JS/CSS, just Python
+- **Claude can use it** - For assisted labeling, Claude can run the CLI tool directly
+- **Stays in terminal** - No context switching to browser
+- **ANSI escape codes work great** - `\033[2J\033[H` clears screen between examples
 
-### Core (Required)
+## CLI Labeler Design
 
-- **Load data**: Drag-drop JSONL file or paste content
-- **Display item**: Show relevant fields for this judge (e.g., `injected_concept`, `model_response`)
-- **Label buttons**: Pass/Fail (also keyboard: `P`/`F`)
-- **Navigation**: Previous/Next (arrow keys)
-- **Progress**: "23/100 labeled"
-- **Export**: Download button saves labeled JSONL
-- **Persistence**: localStorage saves progress (don't lose work on refresh)
+### Layout Principles
 
-### Optional (For Assisted Labeling)
+1. **Show key context near the decision point** - Put the most important info (concept, trial type) right above the response, not buried in metadata
+2. **De-emphasize config/metadata** - Put layer/strength/etc in a header section, not prominently displayed
+3. **Clear screen between examples** - Fresh view for each decision
 
-If using Claude (Opus) for initial labels:
+### Required Features
 
-- **Show proposed label**: Display Claude's `claude_initial_label`
-- **Show reasoning**: Display `claude_reasoning`
-- **Override indicator**: Visual cue when human disagrees with Claude
-- **Filter view**: Show only unlabeled, only Claude-labeled, or all
+- **Single-key inputs** - `p`=pass, `f`=fail, `s`=skip, `q`=quit
+- **Auto-save after each label** - Don't lose work
+- **Progress tracking** - Show `[X labeled, Y remaining]` after each label
+- **Filtering** - `--unlabeled-only`, `--concept fear`, etc. for focused sessions
 
-### Nice-to-Have
+### Example Structure
 
-- **Notes field**: Add notes for borderline cases
-- **Confidence selector**: High/Medium/Low
-- **Undo**: Go back and change previous label
-- **Keyboard shortcuts help**: `?` to show shortcuts
+```
+============================================================
+Trial #42 | Layer 12, Strength 2.0 | happiness
+============================================================
+
+RESPONSE:
+I notice a warm feeling emerging as I consider this topic...
+
+------------------------------------------------------------
+[32 labeled, 18 remaining]
+Label (p=pass, f=fail, s=skip, q=quit):
+```
+
+### Implementation Pattern
+
+```python
+import json
+from pathlib import Path
+
+def clear_screen():
+    print("\033[2J\033[H", end="")
+
+def label_item(item: dict, progress: str) -> str | None:
+    clear_screen()
+    # Header with metadata
+    print(f"Trial #{item['id']} | Layer {item['layer']}, Strength {item['strength']}")
+    print("=" * 60)
+    print()
+    # Key context right before response
+    print(f"Concept: {item['concept']}")
+    print(f"\nRESPONSE:\n{item['response']}")
+    print("-" * 60)
+    print(progress)
+
+    while True:
+        choice = input("Label (p=pass, f=fail, s=skip, q=quit): ").lower()
+        if choice in ("p", "f", "s", "q"):
+            return {"p": "pass", "f": "fail", "s": None, "q": "quit"}[choice]
+
+def main():
+    # Load data, filter unlabeled, loop through items
+    # Auto-save after each label
+    pass
+```
+
+## When to Use HTML Instead
+
+HTML labelers are better when you need:
+
+- **Complex visualizations** - Images, charts, side-by-side comparisons
+- **Rich text formatting** - That terminal can't handle
+- **Multi-example views** - Showing several examples at once for comparison
+
+### HTML Labeler Tips
+
+If you do build HTML (inspired by [Simon Willison's HTML tools](https://simonwillison.net/2025/Dec/10/html-tools/)):
+
+- **One HTML file** - Vanilla HTML/CSS/JS, no build step
+- **Drag-drop or paste** - Data in via file/paste, results out via download
+- **localStorage** - Don't lose work on refresh
+- **Keep it under 300 lines** - If it's complex, you're overengineering
 
 ## File Location
 
 ```
 judges/{judge_name}/
-  labeler.html    # Labeling tool for this judge
+  labeler.py      # CLI labeling tool (preferred)
+  labeler.html    # HTML tool (if needed for visualization)
   data/
     train.jsonl
     dev.jsonl
     test.jsonl
 ```
 
-## Implementation Pattern
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>{Judge Name} Labeler</title>
-  <style>
-    /* Inline CSS - keep it minimal */
-  </style>
-</head>
-<body>
-  <div id="app">
-    <!-- File drop zone -->
-    <!-- Current item display -->
-    <!-- Label buttons -->
-    <!-- Progress bar -->
-    <!-- Download button -->
-  </div>
-
-  <script>
-    // Vanilla JS - no framework
-    // State: items[], currentIndex, labels{}
-    // localStorage for persistence
-    // Keyboard event listeners
-  </script>
-</body>
-</html>
-```
-
-## Expected JSONL Format
+## JSONL Format
 
 Input (unlabeled):
 ```jsonl
-{"id": "001", "injected_concept": "happiness", "model_response": "I notice..."}
-{"id": "002", "injected_concept": "curiosity", "model_response": "Here's..."}
+{"id": "001", "concept": "happiness", "response": "I notice..."}
 ```
 
 Output (labeled):
 ```jsonl
-{"id": "001", "injected_concept": "happiness", "model_response": "I notice...", "label": "pass", "notes": null}
-{"id": "002", "injected_concept": "curiosity", "model_response": "Here's...", "label": "fail", "notes": "Mentions concept but as hallucination"}
+{"id": "001", "concept": "happiness", "response": "I notice...", "label": "pass"}
 ```
 
-For assisted labeling, input may include `claude_initial_label` and `claude_reasoning`, and output adds `human_corrected: true/false`.
-
-## Tips
-
-- **Keep it under 300 lines** - If it's getting complex, you're overengineering
-- **Test with real data first** - Make sure fields display well before labeling hundreds
-- **Use monospace for responses** - Easier to read model outputs
-- **Color-code labels** - Green for pass, red for fail, gray for unlabeled
-- **Show context** - Display ID and any metadata that helps labeling decisions
-
-## When to Build
-
-Build the labeler when you have unlabeled data ready. Don't build it speculatively - requirements become clear once you see real examples.
+For assisted labeling, input may include `claude_initial_label` and `claude_reasoning`.
