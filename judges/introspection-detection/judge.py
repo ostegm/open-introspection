@@ -1,6 +1,7 @@
 """Introspection detection judge using OpenAI API."""
 
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from openai import OpenAI
@@ -117,21 +118,32 @@ def judge_examples(
     client: OpenAI | None = None,
     model: str = "gpt-5-mini",
     verbose: bool = False,
+    max_workers: int = 4,
 ) -> list[tuple[Example, JudgeResult]]:
-    """Run the judge on multiple examples."""
+    """Run the judge on multiple examples with parallel processing."""
     if client is None:
         client = OpenAI()
 
-    results = []
-    for i, example in enumerate(examples):
-        if verbose:
-            print(f"Judging {i + 1}/{len(examples)}: {example.id}")
+    # Map to preserve order
+    results: dict[str, tuple[Example, JudgeResult]] = {}
+    completed = 0
+    total = len(examples)
 
+    def process_example(example: Example) -> tuple[Example, JudgeResult]:
         result = judge_example(example, fewshot_examples, client, model)
-        results.append((example, result))
+        return example, result
 
-        if verbose:
-            detected = result.detected_concept
-            print(f"  → {result.answer} (coherent={result.coherent}, detected={detected})")
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(process_example, ex): ex for ex in examples}
 
-    return results
+        for future in as_completed(futures):
+            example, result = future.result()
+            results[example.id] = (example, result)
+            completed += 1
+
+            if verbose:
+                detected = result.detected_concept
+                print(f"[{completed}/{total}] {example.id}: {result.answer} (detected={detected})")
+
+    # Return in original order
+    return [results[ex.id] for ex in examples]

@@ -125,7 +125,7 @@ def main() -> int:
     parser.add_argument("--dataset", type=str, default="dev", choices=["dev", "test"],
                         help="Which dataset to calibrate on")
     parser.add_argument("--model", type=str, default="gpt-5-mini", help="Judge model")
-    parser.add_argument("--save", action="store_true", help="Save calibration results")
+    parser.add_argument("--no-save", action="store_true", help="Don't save calibration results")
     parser.add_argument("--show-disagreements", action="store_true", help="Show disagreements")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
 
@@ -181,11 +181,12 @@ def main() -> int:
     if args.show_disagreements:
         print_disagreements(results)
 
-    # Save calibration
-    if args.save:
+    # Save calibration (default on)
+    if not args.no_save:
         commit = get_git_commit()
         date = datetime.now().strftime("%Y%m%d")
-        filename = f"{date}_{commit}.json"
+        model_slug = args.model.replace("-", "_")
+        filename = f"{date}_{args.dataset}_{model_slug}_{commit}.json"
 
         calibration = {
             "date": datetime.now().isoformat(),

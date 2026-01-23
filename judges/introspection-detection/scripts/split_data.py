@@ -132,13 +132,23 @@ def main() -> int:
 
     print(f"Found {len(labeled)} labeled examples out of {len(examples)} total")
 
-    # Split
+    # Separate few-shot examples (must go to train to avoid contamination)
+    fewshot = [e for e in labeled if e.label.use_as_fewshot]
+    non_fewshot = [e for e in labeled if not e.label.use_as_fewshot]
+
+    if fewshot:
+        print(f"Reserved {len(fewshot)} few-shot examples for train set")
+
+    # Split non-few-shot examples
     train, dev, test = stratified_split(
-        labeled,
+        non_fewshot,
         train_ratio=args.train_ratio,
         dev_ratio=args.dev_ratio,
         seed=args.seed,
     )
+
+    # Add few-shot examples to train
+    train.extend(fewshot)
 
     print()
     print_stats("Train", train)
