@@ -72,14 +72,24 @@ def load_model(
             device = "cpu"
 
     kwargs: dict[str, Any] = {
-        "torch_dtype": dtype,
-        "device_map": device if device != "mps" else None,
+        "dtype": dtype,
+        "device": device if device != "mps" else "cpu",
     }
 
     if load_in_4bit:
         kwargs["load_in_4bit"] = True
+        # 4-bit quantization needs device_map instead of device
+        del kwargs["device"]
+        kwargs["device_map"] = device if device != "mps" else None
 
-    model: HookedTransformer = HookedTransformer.from_pretrained(model_name, **kwargs)
+    # Use no_processing variant to avoid device mismatch during weight folding
+    # This is recommended for reduced precision (bfloat16/float16)
+    if dtype != torch.float32 and not load_in_4bit:
+        model: HookedTransformer = HookedTransformer.from_pretrained_no_processing(
+            model_name, **kwargs
+        )
+    else:
+        model = HookedTransformer.from_pretrained(model_name, **kwargs)
 
     if device == "mps":
         print(f"Moving model to device:  {device}")

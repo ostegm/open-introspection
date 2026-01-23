@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel
 
@@ -76,6 +76,7 @@ def run_introspection_trial(
     inject: bool = True,
     max_new_tokens: int = 200,
     prompt_version: str = "v2",
+    inject_style: Literal["all", "generation"] = "all",
 ) -> str:
     """
     Run a single introspection trial, optionally injecting a concept.
@@ -88,24 +89,32 @@ def run_introspection_trial(
         inject: Whether to actually inject (False = control trial)
         max_new_tokens: Max tokens to generate
         prompt_version: Which prompt to use ("v1" or "v2")
+        inject_style: When to inject:
+            - "all": Inject at all positions (prompt + generation) - current behavior
+            - "generation": Only inject during generation (matches paper methodology)
 
     Returns:
         Model's response string
     """
     prompt = PROMPTS.get(prompt_version, PROMPTS["v2"])
 
+    tokens = model.to_tokens(prompt)  # shape: (batch, seq)
+    prompt_len = tokens.shape[1]
+    stop_token_ids = get_stop_token_ids(model)
+
     def injection_hook(
         activation: Tensor,
         hook: HookPoint,  # noqa: ARG001
     ) -> Tensor:
         if inject:
-            # Add scaled concept vector to all positions
-            activation[:, :, :] += injection_strength * concept_vector
+            if inject_style == "generation":
+                # Only inject at positions beyond the prompt (paper methodology)
+                if activation.shape[1] > prompt_len:
+                    activation[:, prompt_len:, :] += injection_strength * concept_vector
+            else:  # "all"
+                # Inject at all positions (prompt + generation)
+                activation[:, :, :] += injection_strength * concept_vector
         return activation
-
-    tokens = model.to_tokens(prompt)  # shape: (batch, seq)
-    prompt_len = tokens.shape[1]
-    stop_token_ids = get_stop_token_ids(model)
 
     # Generate with hook
     with model.hooks([(f"blocks.{layer}.hook_resid_post", injection_hook)]):
@@ -142,6 +151,7 @@ def run_introspection_experiment(
     target_magnitude: float = 80.0,
     injection_strength: float | None = None,
     prompt_version: str = "v2",
+    inject_style: Literal["all", "generation"] = "all",
 ) -> ExperimentResults:
     """
     Run a full introspection experiment across multiple concepts.
@@ -153,6 +163,9 @@ def run_introspection_experiment(
         target_magnitude: Target effective magnitude for injection (auto-scales strength)
         injection_strength: If provided, use this raw strength instead of auto-scaling
         prompt_version: Which prompt to use ("v1" or "v2")
+        inject_style: When to inject:
+            - "all": Inject at all positions (prompt + generation)
+            - "generation": Only inject during generation (matches paper methodology)
 
     Returns:
         Results with control and injection trials for each concept
@@ -163,17 +176,19 @@ def run_introspection_experiment(
     mode = "fixed_strength" if injection_strength is not None else "auto_scale"
     logger.info(
         "Starting experiment | layer=%d n_layers=%d mode=%s target_mag=%.1f "
-        "strength=%s prompt=%s concepts=%s",
+        "strength=%s prompt=%s inject_style=%s concepts=%s",
         layer,
         model.cfg.n_layers,
         mode,
         target_magnitude,
         injection_strength,
         prompt_version,
+        inject_style,
         concepts,
     )
     print(f"Using layer {layer} (of {model.cfg.n_layers})")
     print(f"Prompt version: {prompt_version}")
+    print(f"Inject style: {inject_style}")
     if injection_strength is not None:
         print(f"Fixed injection strength: {injection_strength}")
     else:
@@ -227,7 +242,12 @@ def run_introspection_experiment(
 
         # Control trial (no injection)
         control_response: str = run_introspection_trial(
-            model, vector, layer, inject=False, prompt_version=prompt_version
+            model,
+            vector,
+            layer,
+            inject=False,
+            prompt_version=prompt_version,
+            inject_style=inject_style,
         )
         control_trials.append(TrialResult(
             concept=concept,
@@ -242,6 +262,7 @@ def run_introspection_experiment(
             injection_strength=strength,
             inject=True,
             prompt_version=prompt_version,
+            inject_style=inject_style,
         )
         injection_trials.append(TrialResult(
             concept=concept,

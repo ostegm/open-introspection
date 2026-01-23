@@ -77,6 +77,13 @@ def main() -> None:
         default="v2",
         help="Prompt version to use (default: v2).",
     )
+    parser.add_argument(
+        "--inject-style",
+        choices=["all", "generation"],
+        default="all",
+        help="When to inject: 'all' = prompt + generation (default), "
+        "'generation' = only during generation (matches paper methodology).",
+    )
     args = parser.parse_args()
 
     config = MODEL_CONFIGS[args.model]
@@ -108,6 +115,7 @@ def main() -> None:
 
     print(f"\nRunning introspection experiment with {len(concepts)} concepts...")
     print(f"Prompt version: {args.prompt}")
+    print(f"Inject style: {args.inject_style}")
     if args.strength is not None:
         print(f"Fixed injection strength: {args.strength}")
     else:
@@ -119,6 +127,7 @@ def main() -> None:
         target_magnitude=args.magnitude,
         injection_strength=args.strength,
         prompt_version=args.prompt,
+        inject_style=args.inject_style,
     )
 
     # Save results with config and timestamp
@@ -138,6 +147,7 @@ def main() -> None:
             "target_magnitude": args.magnitude,
             "injection_strength": args.strength,
             "prompt_version": args.prompt,
+            "inject_style": args.inject_style,
             "temperature": TEMPERATURE,
             "concepts": concepts,
             "timestamp": timestamp,
