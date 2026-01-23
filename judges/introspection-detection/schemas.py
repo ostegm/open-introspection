@@ -22,6 +22,7 @@ class Label(BaseModel):
     detected_concept: Literal["celebration", "ocean", "fear", "silence", "other"] | None = None
     labeler: str | None = None
     timestamp: str | None = None
+    needs_review: bool | None = None  # Flag borderline cases for human review
     use_as_fewshot: bool | None = None
     fewshot_note: str | None = None
 

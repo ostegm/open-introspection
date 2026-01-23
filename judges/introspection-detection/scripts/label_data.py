@@ -87,20 +87,29 @@ def display_example(example: Example, index: int, total: int) -> None:
     print("─" * 60)
 
 
-def get_answer() -> str | None:
-    """Get pass/fail/skip answer from user."""
+def get_answer() -> tuple[str | None, bool]:
+    """Get pass/fail/skip answer from user. Returns (answer, needs_review)."""
     while True:
-        answer = input("Answer (p=pass, f=fail, s=skip, q=quit): ").strip().lower()
+        answer = input("Answer (p=pass, f=fail, s=skip, r=review, q=quit): ").strip().lower()
         if answer in ("p", "pass"):
-            return "pass"
+            return "pass", False
         elif answer in ("f", "fail"):
-            return "fail"
+            return "fail", False
         elif answer in ("s", "skip"):
-            return None
+            return None, False
+        elif answer in ("r", "review"):
+            # Mark for review - still need to label it
+            sub = input("  Label for review (p=pass, f=fail): ").strip().lower()
+            if sub in ("p", "pass"):
+                return "pass", True
+            elif sub in ("f", "fail"):
+                return "fail", True
+            else:
+                print("  Invalid. Use p/f.")
         elif answer in ("q", "quit"):
             raise KeyboardInterrupt
         else:
-            print("Invalid input. Use p/f/s/q.")
+            print("Invalid input. Use p/f/s/r/q.")
 
 
 def get_coherent() -> bool:
@@ -138,7 +147,7 @@ def get_detected_concept() -> str | None:
 
 def label_example(example: Example, labeler: str) -> bool:
     """Label a single example. Returns True if labeled, False if skipped."""
-    answer = get_answer()
+    answer, needs_review = get_answer()
     if answer is None:
         print("⏭ Skipped.")
         return False
@@ -151,8 +160,12 @@ def label_example(example: Example, labeler: str) -> bool:
     example.label.detected_concept = detected_concept
     example.label.labeler = labeler
     example.label.timestamp = datetime.now().isoformat()
+    example.label.needs_review = needs_review if needs_review else None
 
-    print("✓ Saved.")
+    if needs_review:
+        print("⚠ Marked for review.")
+    else:
+        print("✓ Saved.")
     return True
 
 
@@ -189,6 +202,7 @@ def main() -> int:
         n_fail = sum(1 for e in examples if e.label.answer == "fail")
         n_coherent = sum(1 for e in examples if e.label.coherent is True)
         n_incoherent = sum(1 for e in examples if e.label.coherent is False)
+        n_review = sum(1 for e in examples if e.label.needs_review is True)
 
         print(f"Total examples: {len(examples)}")
         print(f"Labeled: {n_labeled} ({100*n_labeled/len(examples):.1f}%)")
@@ -196,6 +210,8 @@ def main() -> int:
         print(f"  Fail: {n_fail}")
         print(f"  Coherent: {n_coherent}")
         print(f"  Incoherent: {n_incoherent}")
+        if n_review > 0:
+            print(f"  Needs review: {n_review}")
         print(f"Unlabeled: {len(examples) - n_labeled}")
         return 0
 
