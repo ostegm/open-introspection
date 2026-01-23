@@ -3,12 +3,17 @@
 
 Test concept extraction and steering across different layers to find
 optimal injection points for different concepts.
+
+Usage:
+    uv run python experiments/02b_layer_sweep.py              # default 3B
+    uv run python experiments/02b_layer_sweep.py --model 7b
 """
 
 from __future__ import annotations
 
+import argparse
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import torch
 
@@ -23,16 +28,28 @@ if TYPE_CHECKING:
     from torch import Tensor
     from transformer_lens import HookedTransformer
 
+# Model size configurations
+MODEL_CONFIGS: dict[str, dict[str, Any]] = {
+    "3b": {"name": "Qwen/Qwen2.5-3B-Instruct"},
+    "7b": {"name": "Qwen/Qwen2.5-7B-Instruct"},
+}
+
+# Target effective magnitude (auto-scales injection strength)
+TARGET_EFFECTIVE_MAGNITUDE = 80.0
+
 
 def run_layer_sweep(
     model: HookedTransformer,
     concepts: list[str],
     layers: list[int],
     trials_per_layer: int = 5,
-    injection_strength: float = 2.0,
+    target_magnitude: float = 80.0,
 ) -> dict[str, dict[int, list[str]]]:
     """
     Run steering trials across multiple layers for each concept.
+
+    Args:
+        target_magnitude: Target effective magnitude (auto-scales strength per concept)
 
     Returns:
         Nested dict: results[concept][layer] = list of generated outputs
@@ -60,7 +77,10 @@ def run_layer_sweep(
                 cached_baseline_mean=baseline_mean,
             )
 
-            print(f"\n{concept} (norm={vector.norm().item():.2f}):")
+            norm = vector.norm().item()
+            # Auto-scale injection strength to target magnitude
+            strength = target_magnitude / norm if norm > 0 else 1.0
+            print(f"\n{concept} (norm={norm:.2f}, strength={strength:.2f}):")
 
             # Run steering trials
             outputs: list[str] = []
@@ -70,7 +90,7 @@ def run_layer_sweep(
                     vector,
                     concept,
                     layer,
-                    injection_strength=injection_strength,
+                    injection_strength=strength,
                     temperature=1.0,
                 )
                 # Truncate for display
@@ -85,19 +105,33 @@ def run_layer_sweep(
 
 def main() -> None:
     """Run layer sweep experiment."""
+    parser = argparse.ArgumentParser(description="Run layer sweep experiment")
+    parser.add_argument(
+        "--model",
+        choices=["3b", "7b"],
+        default="3b",
+        help="Model size (default: 3b)",
+    )
+    args = parser.parse_args()
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(name)s | %(levelname)s | %(message)s",
     )
 
+    config = MODEL_CONFIGS[args.model]
+    model_name: str = config["name"]
+
     print("=" * 60)
     print("Layer Sweep Experiment")
     print("=" * 60)
+    print(f"Model: {model_name}")
+    print(f"Target magnitude: {TARGET_EFFECTIVE_MAGNITUDE}")
 
     # Load model
     print("\nLoading model...")
     model: HookedTransformer = load_model(
-        model_name="Qwen/Qwen2.5-3B-Instruct",
+        model_name=model_name,
         dtype=torch.bfloat16,
     )
 
@@ -126,7 +160,7 @@ def main() -> None:
         concepts=concepts,
         layers=layers,
         trials_per_layer=5,
-        injection_strength=2.0,
+        target_magnitude=TARGET_EFFECTIVE_MAGNITUDE,
     )
 
     # Summary
