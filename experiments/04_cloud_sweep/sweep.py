@@ -333,6 +333,7 @@ def run_sweep_for_concept(
     gcs_path: str | None,
     model_size: str,
     inject_style: Literal["all", "generation"] = "generation",
+    skip_judge: bool = False,
 ) -> int:
     """
     Run full sweep for a single concept with checkpointing.
@@ -452,10 +453,13 @@ def run_sweep_for_concept(
                             trial=trial_idx,
                         )
 
-                        # Judge with retry
-                        judge_result, judge_error = judge.judge_with_retry(
-                            concept, was_injected, response, config
-                        )
+                        # Judge with retry (unless skipped)
+                        if skip_judge:
+                            judge_result, judge_error = None, None
+                        else:
+                            judge_result, judge_error = judge.judge_with_retry(
+                                concept, was_injected, response, config
+                            )
 
                         # Build record
                         record = TrialRecord(
@@ -539,7 +543,26 @@ def main() -> None:
         "--inject-style",
         choices=["all", "generation"],
         default="generation",
-        help="When to inject: 'generation' (paper methodology, default) or 'all' (prompt + generation)",
+        help="When to inject: 'generation' (default, paper method) or 'all'",
+    )
+    parser.add_argument(
+        "--skip-judge",
+        action="store_true",
+        help="Skip LLM judge during generation (judge later with separate pass)",
+    )
+    parser.add_argument(
+        "--layers",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Specific layer indices to test (overrides default layer fractions)",
+    )
+    parser.add_argument(
+        "--strengths",
+        type=float,
+        nargs="+",
+        default=None,
+        help="Specific strengths to test (overrides default strengths)",
     )
     args = parser.parse_args()
 
@@ -571,17 +594,20 @@ def main() -> None:
         dtype=torch.bfloat16,
     )
 
-    # Compute layers for this model
-    layers = get_layers_for_model(model.cfg.n_layers)
+    # Compute layers for this model (or use custom)
+    layers = args.layers or get_layers_for_model(model.cfg.n_layers)
+    strengths = args.strengths or DEFAULT_STRENGTHS
     logger.info("Layers: %s", layers)
-    logger.info("Strengths: %s", DEFAULT_STRENGTHS)
+    logger.info("Strengths: %s", strengths)
 
-    total_trials = len(layers) * len(DEFAULT_STRENGTHS) * args.trials * 2
+    total_trials = len(layers) * len(strengths) * args.trials * 2
     logger.info("Total trials planned: %d", total_trials)
 
-    # Initialize judge
+    # Initialize judge (unless skipped)
     judge = JudgeClient()
-    if judge.initialize():
+    if args.skip_judge:
+        logger.info("Skipping judge (--skip-judge flag set)")
+    elif judge.initialize():
         logger.info("Judge initialized")
     else:
         logger.warning("Running without judge")
@@ -617,7 +643,7 @@ def main() -> None:
         model=model,
         concept=concept,
         layers=layers,
-        strengths=DEFAULT_STRENGTHS,
+        strengths=strengths,
         trials_per_config=args.trials,
         judge=judge,
         output_path=output_path,
@@ -625,6 +651,7 @@ def main() -> None:
         gcs_path=gcs_path,
         model_size=args.model,
         inject_style=args.inject_style,
+        skip_judge=args.skip_judge,
     )
 
     logger.info("Completed %d trials this run", completed)

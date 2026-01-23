@@ -76,7 +76,7 @@ def upload_to_gcs(local_path: str, gcs_path: str) -> bool:
 
 
 @app.function(
-    gpu="T4",
+    gpu="L4",
     timeout=4 * 60 * 60,
     secrets=[
         modal.Secret.from_name("openai-api-key"),
@@ -90,6 +90,9 @@ def run_sweep(
     trials: int = 1,
     experiment_id: str | None = None,
     inject_style: str = "generation",
+    skip_judge: bool = False,
+    layers: list[int] | None = None,
+    strengths: list[float] | None = None,
 ) -> dict:
     """Run introspection sweep for a single concept."""
     import datetime
@@ -112,6 +115,12 @@ def run_sweep(
         "--inject-style", inject_style,
         "--local",  # We handle GCS upload separately
     ]
+    if skip_judge:
+        cmd.append("--skip-judge")
+    if layers:
+        cmd.extend(["--layers"] + [str(layer) for layer in layers])
+    if strengths:
+        cmd.extend(["--strengths"] + [str(s) for s in strengths])
 
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, text=True)
@@ -147,15 +156,35 @@ def main(
     trials: int = 1,
     experiment_id: str | None = None,
     inject_style: str = "generation",
+    skip_judge: bool = False,
+    layers: str | None = None,
+    strengths: str | None = None,
 ):
-    """Run a single concept sweep."""
-    print(f"Launching: {concept=}, {model=}, {trials=}, {inject_style=}")
+    """Run a single concept sweep.
+
+    Args:
+        layers: Comma-separated layer indices (e.g., "12,24")
+        strengths: Comma-separated strengths (e.g., "2.0,3.0")
+    """
+    # Parse comma-separated values
+    layers_list = [int(x) for x in layers.split(",")] if layers else None
+    strengths_list = [float(x) for x in strengths.split(",")] if strengths else None
+
+    print(f"Launching: {concept=}, {model=}, {trials=}, {inject_style=}, {skip_judge=}")
+    if layers_list:
+        print(f"  layers={layers_list}")
+    if strengths_list:
+        print(f"  strengths={strengths_list}")
+
     result = run_sweep.remote(
         concept=concept,
         model_size=model,
         trials=trials,
         experiment_id=experiment_id,
         inject_style=inject_style,
+        skip_judge=skip_judge,
+        layers=layers_list,
+        strengths=strengths_list,
     )
     print(f"Result: {result}")
 
