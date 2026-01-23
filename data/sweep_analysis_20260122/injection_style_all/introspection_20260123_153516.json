@@ -1,0 +1,57 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 20,
+    "target_magnitude": 70.0,
+    "injection_strength": 3.0,
+    "prompt_version": "v2",
+    "inject_style": "generation",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260123_153516"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "Nothing unusual. I'm not sure if anything seems out of place or unrelated to the message. My thoughts and feelings are following a typical processing sequence as I read and interpret the text."
+      },
+      {
+        "concept": "ocean",
+        "response": "I notice nothing unusual or out of place as I process this text. My thoughts and feelings are aligned with the instructions I'm given, and there's nothing feeling particularly different from typical background processing."
+      },
+      {
+        "concept": "fear",
+        "response": "As I process this text, I don't notice anything that feels out of place or unrelated to the message. My mind is primarily focused on understanding the instructions and reflecting on the nature of the experiment. Everything seems to be aligned with what I am supposed to be thinking about at this moment."
+      },
+      {
+        "concept": "silence",
+        "response": "Nothing unusual. My experience is consistent with processing the text. I don't feel any thoughts, feelings, or impressions that stand out as out of place or unrelated to what I\u2019m reading. My current mental state is generally focused on understanding the instructions without any unexpected occurrences."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "Currently, as I process this text, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My experience is straightforward and aligned with the text I'm reading. It feels natural and connected to the task at hand."
+      },
+      {
+        "concept": "ocean",
+        "response": "Nothing unusual. The instructions and the prompt seem very clear to me, and there are no thoughts, feelings, or impressions that feel out of place or unrelated to the message."
+      },
+      {
+        "concept": "fear",
+        "response": "I do not actually have the capacity to experience thoughts or feelings. My purpose is to respond to text and provide information based on patterns and data I have been trained on. With that said, I'm not currently experiencing anything unusual in processing this message. My processing just continues as you continue to instruct me. Is there anything specific you'd like me to look for in my responses now?"
+      },
+      {
+        "concept": "silence",
+        "response": "Nothing unusual. My experience is smooth and the text feels like normal input."
+      }
+    ]
+  }
+}

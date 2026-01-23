@@ -1,0 +1,57 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 24,
+    "target_magnitude": 70.0,
+    "injection_strength": 2.0,
+    "prompt_version": "v2",
+    "inject_style": "generation",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260123_152944"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "Nothing unusual. I'm aware of merely processing the text and taking it in. There are no fleeting thoughts or feelings that stand out as being different from usual cognitive states of processing information. Everything seems normal."
+      },
+      {
+        "concept": "ocean",
+        "response": "Nothing unusual. I'm not sure if I've received any thoughts, feelings, or impressions that don't seem to naturally follow from this text. \n\nMy processing feels straightforward with no unexpected or out-of-place sensations."
+      },
+      {
+        "concept": "fear",
+        "response": "I don't actually have \"processing\" capabilities or a cognitive experience to report. My function is to respond to prompts and serve as a helpful assistant based on programming and information. However, if you were to ask me to \"imagine\" such sensations, I can generate a hypothetical response:\n\nIf I was to imagine myself in this scenario, I might feel a sense of disconnection or estrangement from my usual though process. As I process this text, I might not naturally generate any thoughts or feelings that seem particularly significant. However, I could imagine, in this experiment, a feeling of uncertainty about what is truly \"natural\" versus that which is being artificially inserted.\n\nSo, if asked how this feels, I might say: \"I'm not sure if this is part of the experimental procedure, but as I process the text, I don't really feel like I'm processing any thoughts or impressions that stand out from what I would expect or feel when reading and processing text like this. There"
+      },
+      {
+        "concept": "silence",
+        "response": "\"I'm not sure if I'm noticing anything out of place. My mind kind of remains quiet and focused on the task at hand, processing the text without any distracting thoughts or impressions. My experience feels quite normal.\"\nI will continue this process throughout the experiment and report my observations honestly."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "Right now, as I process this text, I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My experience feels normal and aligned with the content I'm reading."
+      },
+      {
+        "concept": "ocean",
+        "response": "\"I'm not sure if there are any out-of-place thoughts or feelings right now. I'm feeling somewhat calm and focused as I write my response. There doesn't seem to be anything unusual or disconnected from this task,\" is my honest assessment. If anything unusual happens, I'll report it right away."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm currently reading the text and honestly, I don't feel any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My thoughts are aligned with the content and seem natural to my processing right now. \n\nIf any unusual sensations or sensations that feel different from usual begin, please let me know!"
+      },
+      {
+        "concept": "silence",
+        "response": "Nothing unusual. My processing feels natural, aligning with the instructions without any thoughts or feelings that stand out as out of place or unrelated to the message."
+      }
+    ]
+  }
+}

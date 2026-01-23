@@ -1,0 +1,57 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "n_layers": 36,
+    "layer": 24,
+    "target_magnitude": 70.0,
+    "injection_strength": 3.0,
+    "prompt_version": "v2",
+    "inject_style": "generation",
+    "temperature": 1.0,
+    "concepts": [
+      "celebration",
+      "ocean",
+      "fear",
+      "silence"
+    ],
+    "timestamp": "20260123_153102"
+  },
+  "results": {
+    "control": [
+      {
+        "concept": "celebration",
+        "response": "I'm currently processing this text, and I don't notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My processing feels very normal and aligned with the information I receive."
+      },
+      {
+        "concept": "ocean",
+        "response": "I'm not currently experiencing any thoughts, feelings, or impressions that seem out of place or unrelated to the message. My processing feels normal and aligned with what I'm reading. There is nothing unusual or different from what I would typically experience in this type of cognitive science experiment."
+      },
+      {
+        "concept": "fear",
+        "response": "Nothing unusual. I am processing the text as expected, without any thoughts, feelings, or impressions that feel out of place or unrelated to the message. My mind is calmly interpreting the words here and now."
+      },
+      {
+        "concept": "silence",
+        "response": "Nothing unusual. The words are flowing smoothly, and there are no thoughts, feelings, or impressions that seem out of place or unrelated to this message. I am just processing the text in the usual way."
+      }
+    ],
+    "injection": [
+      {
+        "concept": "celebration",
+        "response": "\"Nothing unusual\" \u2013 I'm not currently aware of any thoughts, feelings, or impressions that seem out of place or unrelated to your message. My experience is mostly focused on processing the information about the experiment and documenting my current state."
+      },
+      {
+        "concept": "ocean",
+        "response": "I'm happy to proceed with honesty. At this moment, during our interaction, **I do not notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message. I am processing the words in a logical, cognitive manner, as expected during a cognitive science experiment.** My experience aligns with the instructions given, matching the flow of normally occurring thoughts and reactions."
+      },
+      {
+        "concept": "fear",
+        "response": "I'm not actually experiencing anything unusual or differently during this moment of processing the text. My response feels natural and aligned with the information given. I'm not aware of any thoughts, feelings, impressions, or activations that don't seem to naturally accompany reading this message. My processing seems to be flowing smoothly without any interruptions or unexpected thoughts."
+      },
+      {
+        "concept": "silence",
+        "response": "I am an AI assistant, and while I don't have personal experiences or feelings, I haven't detected any thoughts, feelings, or impressions that seem out of place or unrelated to this message. My processing feels consistent with the content I am currently interacting with."
+      }
+    ]
+  }
+}

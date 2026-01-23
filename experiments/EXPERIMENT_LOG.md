@@ -28,6 +28,58 @@
 - **False negatives**: Some injections report nothing unusual
 - **Demand characteristics**: Prompt asks about unusual thoughts (could bias toward confabulation)
 
+### Comparison with Anthropic Paper (2026-01-23)
+
+After labeling 193 examples with an LLM judge (calibrated on human labels):
+
+| Metric | Our Qwen 2.5-3B | Paper's Opus 4.1 |
+|--------|-----------------|------------------|
+| Introspection rate | **50.5%** | ~20% |
+| Control accuracy | 93.8% | 100% (0 FP in 100 trials) |
+| By strength | 34%→53%→66% (steep) | Plateau at 2-4 |
+
+**Why our rate is higher (likely methodology, not model):**
+
+1. **Injection timing:** We inject at all positions (`[:, :, :]`), paper injects starting at generation only. Model "experiences" concept while reading prompt.
+
+2. **Prompt framing:** Our prompts explicitly explain the experiment; paper uses simpler "I wonder if there are any injected thoughts."
+
+3. **Concept selection:** Silence (92%) is much easier than fear (29%). Our 4 concepts may not represent random selection.
+
+4. **Higher FP rate:** Our 6% false positives vs paper's 0% suggests lower detection threshold.
+
+**Implication:** Raw rates not directly comparable to paper. Need methodology alignment before claiming Qwen shows more/less introspection than Claude.
+
+### Injection Timing Experiment (2026-01-23)
+
+**Hypothesis:** Our high introspection rate is due to injecting during prompt processing, not genuine detection during generation.
+
+**Test:** Added `--inject-style` flag with two modes:
+- `all`: Inject at all positions (prompt + generation) — our original method
+- `generation`: Only inject at positions beyond the prompt — matches paper methodology
+
+**Results (Layer 20+24, Strengths 2.0-3.0, N=48):**
+
+| Inject Style | Introspection Rate | Control Accuracy |
+|--------------|-------------------|------------------|
+| all (original) | 50.5% | 93.8% |
+| **generation** (paper-style) | **0%** | **100%** |
+
+**Key Finding:** When injection only occurs during generation (matching the paper), the model detects **nothing**. Zero introspection across all strengths and layers tested.
+
+**Interpretation:**
+- The 50% "introspection" rate was an artifact of injection timing
+- Model was noticing "something weird happened while I read the instructions" not "I'm experiencing an injected thought right now"
+- Our control accuracy improved to 100%, matching the paper's 0 false positive rate
+- Qwen 2.5-3B may have less introspective capability than Opus 4.1 (paper's ~20% vs our 0%)
+
+**Caveats:**
+- Small sample size (24 injection trials)
+- Only tested layers 20, 24 — optimal layer may differ for generation-only injection
+- Higher strengths (4.0+) not yet tested with generation-only style
+
+**Implication:** Methodology matters enormously. The same model with the same concept vectors produces 50% or 0% depending on when you inject.
+
 ### Verdict
 
 Tentatively positive. Concept-appropriate descriptions appearing in injection (but not control) trials is consistent with introspection. Cannot rule out sophisticated confabulation.
