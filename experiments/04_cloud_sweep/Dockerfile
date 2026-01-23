@@ -7,6 +7,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for fast Python package management
@@ -14,7 +15,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
 # Copy project files
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 COPY src/ src/
 COPY experiments/04_cloud_sweep/ experiments/04_cloud_sweep/
 COPY judges/ judges/

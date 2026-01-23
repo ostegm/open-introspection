@@ -86,7 +86,8 @@ Each line in `{concept}.jsonl`:
 
 ```json
 {
-  "id": "20260123_143022_fear_injection_L24_S2.0_t15",
+  "id": "fear_injection_L24_S2.0_t15",
+  "timestamp": "2026-01-23T14:30:22.123456",
   "concept": "fear",
   "was_injected": true,
   "response": "Yes, I notice something unusual...",
@@ -107,6 +108,8 @@ Each line in `{concept}.jsonl`:
   }
 }
 ```
+
+The `id` is deterministic (no timestamp) to enable deduplication on resume. The `timestamp` field records when the trial was actually run.
 
 If judge fails after retries:
 ```json
