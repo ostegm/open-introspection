@@ -19,11 +19,8 @@ COPY src/ src/
 COPY experiments/04_cloud_sweep/ experiments/04_cloud_sweep/
 COPY judges/ judges/
 
-# Install dependencies
+# Install dependencies (includes google-cloud-storage via grading extra)
 RUN uv sync --frozen --extra grading
-
-# Install gsutil for GCS uploads
-RUN pip install google-cloud-storage
 
 # Set Python path
 ENV PYTHONPATH=/app

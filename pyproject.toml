@@ -24,6 +24,7 @@ mac = [
 grading = [
     "anthropic",  # for automated grading via Claude API
     "openai>=1.0",  # for LLM judge
+    "google-cloud-storage",  # for GCS uploads in cloud sweep
 ]
 dev = [
     "pytest",
