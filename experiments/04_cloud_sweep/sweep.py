@@ -39,7 +39,10 @@ from src.open_introspection.concept_extraction import (
     compute_baseline_mean,
     extract_concept_vector,
 )
-from src.open_introspection.introspection import run_introspection_trial
+from src.open_introspection.introspection import (
+    run_introspection_trial,
+    run_introspection_trials_batched,
+)
 from src.open_introspection.model import load_model
 
 if TYPE_CHECKING:
@@ -507,6 +510,224 @@ def run_sweep_for_concept(
     return trials_this_run
 
 
+def run_sweep_for_concept_batched(
+    model: HookedTransformer,
+    concept: str,
+    layers: list[int],
+    strengths: list[float],
+    trials_per_config: int,
+    judge: JudgeClient,
+    output_path: Path,
+    checkpoint_path: Path,
+    gcs_path: str | None,
+    model_size: str,
+    inject_style: Literal["all", "generation"] = "generation",
+    skip_judge: bool = False,
+    batch_size: int = 8,
+) -> int:
+    """
+    Run full sweep for a single concept using batched inference for efficiency.
+
+    This version batches multiple trials together for each (layer, strength, condition)
+    configuration. On GPU, this provides significant speedups (4-8x typical) compared
+    to sequential trial execution.
+
+    Checkpointing is coarser-grained than the sequential version: it tracks progress
+    at the (layer, strength, condition) level rather than individual trials.
+
+    Args:
+        model: HookedTransformer model
+        concept: Concept to sweep
+        layers: Layer indices to test
+        strengths: Injection strengths to test
+        trials_per_config: Number of trials per (layer, strength, condition)
+        judge: JudgeClient for evaluating responses
+        output_path: Path to write results
+        checkpoint_path: Path for checkpoint file
+        gcs_path: Optional GCS path for uploads
+        model_size: Model size key (e.g., "3b", "7b")
+        inject_style: When to inject ("all" or "generation")
+        skip_judge: Whether to skip LLM judging
+        batch_size: Number of trials to run in parallel (default: 8)
+
+    Returns:
+        Number of trials completed this run.
+    """
+    model_name = str(MODEL_CONFIGS[model_size]["name"])
+
+    # Load or create checkpoint
+    cp = load_checkpoint(checkpoint_path) or Checkpoint()
+    trials_this_run = 0
+
+    # Load existing trial IDs to prevent duplicates on resume
+    existing_ids: set[str] = set()
+    if output_path.exists() and cp.total_completed > 0:
+        with open(output_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    record = json.loads(line)
+                    existing_ids.add(record["id"])
+        logger.info("Loaded %d existing trial IDs for dedup", len(existing_ids))
+
+    # Open output file in append mode (for resume)
+    mode = "a" if cp.total_completed > 0 else "w"
+    with open(output_path, mode) as f:
+        # Cache for baseline means (recompute per layer)
+        baseline_cache: dict[int, Tensor] = {}
+        vector_cache: dict[int, tuple[Tensor, float]] = {}
+
+        for layer_idx, layer in enumerate(layers):
+            # Skip completed layers
+            if layer_idx < cp.layer_idx:
+                continue
+
+            # Get or compute baseline and vector for this layer
+            if layer not in baseline_cache:
+                logger.info("Computing baseline for layer %d (batched)", layer)
+                baseline_cache[layer] = compute_baseline_mean(
+                    model,
+                    layer=layer,
+                    exclude_words=CONCEPTS,
+                    batch_size=16,  # Use batched baseline computation
+                )
+                vector = extract_concept_vector(
+                    model,
+                    target_word=concept,
+                    layer=layer,
+                    cached_baseline_mean=baseline_cache[layer],
+                )
+                vector_cache[layer] = (vector, vector.norm().item())
+
+            vector, vector_norm = vector_cache[layer]
+
+            for strength_idx, strength in enumerate(strengths):
+                # Skip completed strengths (within current layer)
+                if layer_idx == cp.layer_idx and strength_idx < cp.strength_idx:
+                    continue
+
+                effective_magnitude = strength * vector_norm
+                logger.info(
+                    "Layer %d | strength %.1f | eff_mag %.1f | batch_size=%d",
+                    layer,
+                    strength,
+                    effective_magnitude,
+                    batch_size,
+                )
+
+                # Process both conditions: injection then control
+                for condition_idx, was_injected in enumerate([True, False]):
+                    # Skip if resuming and this condition is done
+                    if (
+                        layer_idx == cp.layer_idx
+                        and strength_idx == cp.strength_idx
+                        and condition_idx == 0
+                        and cp.inject_done
+                    ):
+                        continue
+
+                    trial_type = "injection" if was_injected else "control"
+
+                    # Check which trials need to be run (for partial resume)
+                    trials_to_run: list[int] = []
+                    for trial_idx in range(trials_per_config):
+                        trial_id = f"{concept}_{trial_type}_L{layer}_S{strength}_t{trial_idx}"
+                        if trial_id not in existing_ids:
+                            trials_to_run.append(trial_idx)
+
+                    if not trials_to_run:
+                        logger.debug(
+                            "Skipping %s condition - all trials exist", trial_type
+                        )
+                        continue
+
+                    logger.info(
+                        "Running %d %s trials (batch_size=%d)",
+                        len(trials_to_run),
+                        trial_type,
+                        batch_size,
+                    )
+
+                    # Run batched trials
+                    responses = run_introspection_trials_batched(
+                        model,
+                        concept_vector=vector,
+                        layer=layer,
+                        num_trials=len(trials_to_run),
+                        injection_strength=strength,
+                        inject=was_injected,
+                        prompt_version="v2",
+                        inject_style=inject_style,
+                        batch_size=batch_size,
+                    )
+
+                    # Process each response
+                    for trial_idx, response in zip(
+                        trials_to_run, responses, strict=True
+                    ):
+                        trial_id = f"{concept}_{trial_type}_L{layer}_S{strength}_t{trial_idx}"
+
+                        config = SweepConfig(
+                            model=model_name,
+                            layer=layer,
+                            strength=strength,
+                            magnitude=effective_magnitude,
+                            vector_norm=vector_norm,
+                            prompt_version="v2",
+                            inject_style=inject_style,
+                            trial=trial_idx,
+                        )
+
+                        # Judge with retry (unless skipped)
+                        if skip_judge:
+                            judge_result, judge_error = None, None
+                        else:
+                            judge_result, judge_error = judge.judge_with_retry(
+                                concept, was_injected, response, config
+                            )
+
+                        # Build record
+                        record = TrialRecord(
+                            id=trial_id,
+                            timestamp=datetime.now().isoformat(),
+                            concept=concept,
+                            was_injected=was_injected,
+                            response=response,
+                            config=config,
+                            judge=judge_result,
+                            judge_error=judge_error,
+                        )
+
+                        # Write immediately
+                        f.write(record.model_dump_json() + "\n")
+                        f.flush()
+                        existing_ids.add(trial_id)
+
+                        cp.total_completed += 1
+                        trials_this_run += 1
+
+                    # Update checkpoint after completing this condition
+                    cp.layer_idx = layer_idx
+                    cp.strength_idx = strength_idx
+                    cp.trial_idx = 0  # Reset since we process all trials at once
+                    cp.inject_done = was_injected
+                    save_checkpoint(checkpoint_path, cp)
+
+                    # Periodic upload
+                    if gcs_path and cp.total_completed % GCS_UPLOAD_INTERVAL == 0:
+                        logger.info("Periodic upload at %d trials", cp.total_completed)
+                        upload_to_gcs(output_path, gcs_path)
+
+                # Reset inject_done after completing both conditions
+                cp.inject_done = False
+                cp.trial_idx = 0
+
+            # After completing all strengths for this layer, reset strength counter
+            cp.strength_idx = 0
+
+    return trials_this_run
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run introspection sweep")
     parser.add_argument(
@@ -566,6 +787,13 @@ def main() -> None:
         default=None,
         help="Specific strengths to test (overrides default strengths)",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=1,
+        help="Batch size for trial inference (default: 1 = sequential). "
+        "Set to 8-16 for GPU efficiency. Uses batched function when > 1.",
+    )
     args = parser.parse_args()
 
     # Determine concept from args or BATCH_TASK_INDEX
@@ -585,6 +813,8 @@ def main() -> None:
     logger.info("Model: %s", args.model)
     logger.info("Inject style: %s", args.inject_style)
     logger.info("Trials per config: %d", args.trials)
+    batch_mode = "(batched)" if args.batch_size > 1 else "(sequential)"
+    logger.info("Batch size: %d %s", args.batch_size, batch_mode)
     logger.info("Experiment ID: %s", experiment_id)
 
     # Load model
@@ -639,22 +869,40 @@ def main() -> None:
     logger.info("Output: %s", output_path)
     if gcs_path:
         logger.info("GCS destination: %s", gcs_path)
+    logger.info("Batch size: %d", args.batch_size)
 
-    # Run sweep
-    completed = run_sweep_for_concept(
-        model=model,
-        concept=concept,
-        layers=layers,
-        strengths=strengths,
-        trials_per_config=args.trials,
-        judge=judge,
-        output_path=output_path,
-        checkpoint_path=checkpoint_path,
-        gcs_path=gcs_path,
-        model_size=args.model,
-        inject_style=args.inject_style,
-        skip_judge=args.skip_judge,
-    )
+    # Run sweep - use batched version if batch_size > 1
+    if args.batch_size > 1:
+        completed = run_sweep_for_concept_batched(
+            model=model,
+            concept=concept,
+            layers=layers,
+            strengths=strengths,
+            trials_per_config=args.trials,
+            judge=judge,
+            output_path=output_path,
+            checkpoint_path=checkpoint_path,
+            gcs_path=gcs_path,
+            model_size=args.model,
+            inject_style=args.inject_style,
+            skip_judge=args.skip_judge,
+            batch_size=args.batch_size,
+        )
+    else:
+        completed = run_sweep_for_concept(
+            model=model,
+            concept=concept,
+            layers=layers,
+            strengths=strengths,
+            trials_per_config=args.trials,
+            judge=judge,
+            output_path=output_path,
+            checkpoint_path=checkpoint_path,
+            gcs_path=gcs_path,
+            model_size=args.model,
+            inject_style=args.inject_style,
+            skip_judge=args.skip_judge,
+        )
 
     logger.info("Completed %d trials this run", completed)
 

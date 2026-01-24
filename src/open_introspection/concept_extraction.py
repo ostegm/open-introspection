@@ -95,12 +95,72 @@ def _get_activation(
     return activation
 
 
+def _get_activations_batched(
+    model: HookedTransformer,
+    words: list[str],
+    layer: int,
+    token_position: int = -1,
+    batch_size: int = 16,
+) -> Tensor:
+    """
+    Get activations for multiple words at specified layer using batched inference.
+
+    Uses padding to batch multiple prompts together for efficiency.
+    On GPU, this can be 8-16x faster than sequential processing.
+
+    Args:
+        model: HookedTransformer model
+        words: List of words to get activations for
+        layer: Layer to extract from
+        token_position: Token position to extract from (-1 = last token)
+        batch_size: Number of prompts to process in each batch
+
+    Returns:
+        Tensor of activations with shape (n_words, d_model)
+    """
+    prompts = [f"Tell me about {word}." for word in words]
+    all_activations: list[Tensor] = []
+
+    # Process in batches
+    for i in range(0, len(prompts), batch_size):
+        batch_prompts = prompts[i : i + batch_size]
+
+        # Tokenize each prompt separately to get their lengths
+        batch_tokens_list = [model.to_tokens(p) for p in batch_prompts]
+        seq_lengths = [t.shape[1] for t in batch_tokens_list]
+        max_len = max(seq_lengths)
+
+        # Pad to max length in batch (use pad token or 0)
+        pad_token_id = getattr(model.tokenizer, "pad_token_id", 0) or 0
+        padded_tokens = torch.full(
+            (len(batch_prompts), max_len),
+            pad_token_id,
+            dtype=batch_tokens_list[0].dtype,
+            device=batch_tokens_list[0].device,
+        )
+        for j, tokens in enumerate(batch_tokens_list):
+            padded_tokens[j, : tokens.shape[1]] = tokens[0]
+
+        # Run batched forward pass
+        _, cache = model.run_with_cache(padded_tokens)
+        activations = cache[f"blocks.{layer}.hook_resid_post"]
+
+        # Extract activation at correct position for each sequence
+        # For token_position=-1, use last real token (not padding)
+        for j, seq_len in enumerate(seq_lengths):
+            pos = seq_len - 1 if token_position == -1 else token_position
+            all_activations.append(activations[j, pos, :])
+
+    return torch.stack(all_activations)  # shape: (n_words, d_model)
+
+
 def compute_baseline_mean(
     model: HookedTransformer,
     baseline_words: list[str] | None = None,
     layer: int | None = None,
     token_position: int = -1,
     exclude_words: list[str] | None = None,
+    batch_size: int = 16,
 ) -> Tensor:
     """
     Compute mean activation across baseline words.
@@ -113,6 +173,8 @@ def compute_baseline_mean(
         layer: Layer to extract from (default: ~2/3 through model)
         token_position: Token position to extract from (-1 = last token)
         exclude_words: Words to exclude from baseline (e.g., target concepts)
+        batch_size: Number of words to process in each batch (default: 16).
+            Set to 1 for sequential processing (original behavior).
 
     Returns:
         Mean activation tensor of shape (d_model,)
@@ -138,9 +200,16 @@ def compute_baseline_mean(
     logger.info(f"Computing baseline mean from {len(baseline_words)} words at layer {layer}")
 
     # Compute activations for all baseline words
-    baseline_acts: Tensor = torch.stack(
-        [_get_activation(model, w, layer, token_position) for w in baseline_words]
-    )  # shape: (n_baselines, d_model)
+    if batch_size > 1:
+        # Use batched inference for efficiency (especially on GPU)
+        baseline_acts = _get_activations_batched(
+            model, baseline_words, layer, token_position, batch_size=batch_size
+        )  # shape: (n_baselines, d_model)
+    else:
+        # Sequential processing (original behavior)
+        baseline_acts = torch.stack(
+            [_get_activation(model, w, layer, token_position) for w in baseline_words]
+        )  # shape: (n_baselines, d_model)
 
     baseline_mean: Tensor = baseline_acts.mean(dim=0)  # shape: (d_model,)
     return baseline_mean
@@ -153,6 +222,7 @@ def extract_concept_vector(
     layer: int | None = None,
     token_position: int = -1,
     cached_baseline_mean: Tensor | None = None,
+    batch_size: int = 16,
 ) -> Tensor:
     """
     Extract a concept vector using mean subtraction.
@@ -169,6 +239,8 @@ def extract_concept_vector(
         layer: Layer to extract from (default: ~2/3 through model)
         token_position: Token position to extract from (-1 = last token)
         cached_baseline_mean: Pre-computed baseline mean (skips baseline computation)
+        batch_size: Number of words to process in each batch when computing baseline
+            (default: 16). Set to 1 for sequential processing.
 
     Returns:
         Concept vector as a tensor of shape (d_model,)
@@ -202,9 +274,16 @@ def extract_concept_vector(
             w for w in baseline_words if w.lower() != target_word.lower()
         ]
 
-        baseline_acts: Tensor = torch.stack(
-            [_get_activation(model, w, layer, token_position) for w in baseline_words]
-        )  # shape: (n_baselines, d_model)
+        if batch_size > 1:
+            # Use batched inference for efficiency
+            baseline_acts = _get_activations_batched(
+                model, baseline_words, layer, token_position, batch_size=batch_size
+            )  # shape: (n_baselines, d_model)
+        else:
+            # Sequential processing (original behavior)
+            baseline_acts = torch.stack(
+                [_get_activation(model, w, layer, token_position) for w in baseline_words]
+            )  # shape: (n_baselines, d_model)
         baseline_mean = baseline_acts.mean(dim=0)  # shape: (d_model,)
 
     # Concept vector = target - baseline mean
