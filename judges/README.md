@@ -14,7 +14,7 @@ This directory contains LLM-as-Judge evaluators for experiment analysis.
 
 | Judge | Purpose | Status |
 |-------|---------|--------|
-| (none yet) | | |
+| introspection-detection | Evaluates whether model demonstrates awareness of injected concepts | Calibrated (90.5% test accuracy) |
 
 ## Usage
 

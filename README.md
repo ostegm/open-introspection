@@ -45,13 +45,11 @@ src/open_introspection/    # Core library
   model.py                 # Model loading with TransformerLens
   concept_extraction.py    # Extract concept vectors from activations
   introspection.py         # Test if models detect injected concepts
-  layer_sweep.py           # Find optimal injection layers
-  thought_text.py          # Test thought vs text distinction
-  intentional_control.py   # Test if models can control representations
-  grading.py               # Grade responses via Claude API
 
 experiments/               # Runnable experiment scripts
+judges/                    # LLM-as-judge evaluators for grading outputs
 data/                      # Results storage
+blog/                      # Research notes (GitHub Pages)
 blueprint.md               # Detailed research plan and background
 ```
 
@@ -66,6 +64,12 @@ blueprint.md               # Detailed research plan and background
 - Do instruction-tuned models perform better than base models?
 - Which concept categories are easiest to detect (emotions vs objects vs abstracts)?
 - Do concept vectors transfer between model families?
+
+## Research Notes
+
+Follow along with ongoing experiments and findings:
+
+**[Cloudripper Labs Blog](https://ostegm.github.io/open-introspection/blog/)** - Research notes on introspection experiments with open-weight models.
 
 ## References
 
