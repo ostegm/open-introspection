@@ -440,11 +440,7 @@ Whole-input injection (my method):
 
             <h3>Was This Just Wrong?</h3>
 
-            <p>My first reaction was: I made a methodological error, the judge caught it, time to fix it and move on. But something nagged at me. The 50% result wasn't noise-the model was genuinely detecting <em>something</em>. Was it really "wrong," or was I measuring something different?</p>
-
-            <p>I spent some time thinking about what each injection style actually tests. With whole-input injection, by the time the model starts generating, its internal representation of the context is already perturbed. The model might notice "something about how I understood this input feels off." With generation-only injection, the prompt is processed cleanly-the perturbation only affects the model's ongoing "thinking" during token generation.</p>
-
-            <p>These seem like genuinely distinct capabilities.</p>
+            <p>My first instinct: methodological error, judge caught it, fix and move on. But the 50% result wasn't noise—the model was genuinely detecting something. With whole-input injection, the model's representation of the context is already perturbed by the time generation starts. It might notice "something about how I understood this input feels off." With generation-only injection, the prompt is processed cleanly—perturbation only affects ongoing token generation. These seem like genuinely distinct capabilities.</p>
 
             <h3>A Brief Digression: Two Kinds of Metacognition</h3>
 
@@ -460,7 +456,8 @@ Whole-input injection (my method):
             <p>The Anthropic paper specifically tests the second kind: can the model observe its generative process in real-time? My accidental experiment may have tested the first: can the model detect that its representation of the context is anomalous?</p>
 
             <div class="callout">
-              <p><strong>What this might mean:</strong> These could be two separable metacognitive capabilities. Whole-input injection tests <em>context anomaly detection</em>-"something about my understanding of this situation feels off." Generation-only injection tests <em>process introspection</em>-"I notice unusual patterns in my ongoing thinking." If so, my initial results suggest Qwen-3B may have the first (~50%) but not the second (0%). The gap itself would be a finding: context anomaly detection might be a lower-threshold capability that emerges before process introspection. I plan to dig into this in future work.</p>
+              <p><strong>What this might mean:</strong> If this distinction holds, it would suggest context anomaly detection is a lower-threshold capability that emerges earlier in scaling. The Anthropic paper tests process introspection specifically; my accidental experiment may have stumbled onto a related but distinct phenomenon.</p>
+              <p><strong>Why this might matter:</strong> If models can detect context anomalies before they can introspect on their own generation, context anomaly detection could serve as an early indicator—a "leading signal" for the emergence of deeper self-monitoring capabilities. Worth watching as models scale.</p>
             </div>
 
             <p>Framing aside, the data I collected wasn't wasted. Without those whole-input injection examples, I'd have had a hard time building a good LLM judge-the examples are diverse and useful for calibration.</p>
@@ -492,13 +489,14 @@ Whole-input injection (my method):
               <li><strong>Process introspection</strong>: "I notice unusual patterns in my ongoing thinking" - apparently absent in Qwen-3B (0%)</li>
             </ul>
 
-            <p>If this distinction holds, it would suggest context anomaly detection is a lower-threshold capability that emerges earlier in scaling. The Anthropic paper tests process introspection specifically; my accidental experiment may have stumbled onto a related but distinct phenomenon.</p>
+            <p>If this distinction holds, it would suggest context anomaly detection is a lower-threshold capability that emerges earlier in scaling. The Anthropic paper tests process introspection specifically; my accidental experiment may have stumbled onto a related but distinct phenomenon. Why it might matter? If models can detect context anomalies before they can introspect on generation, this might offer an earlier signal for monitoring further leaps in model awareness</p>
 
             <h3>Next Steps</h3>
 
             <ul>
               <li>Run both injection styles across model scales (7B, 14B, 32B)-does the gap narrow? Does process introspection emerge at some threshold?</li>
               <li>Compare the two capabilities explicitly: which layers, strengths, and concepts show the largest divergence?</li>
+              <li>Do the two capabilities correlate across models, or are they independent?</li>
             </ul>
 
             <p>Code: <a href="https://github.com/ostegm/open-introspection">GitHub repo</a></p>
