@@ -11,7 +11,7 @@ This is the first step in the human labeling workflow:
 4. split_data.py -> train.jsonl + test.jsonl
 
 Usage:
-    uv run python judges/introspection-detection/scripts/prepare_for_labeling.py
+    uv run python judges/introspection_detection/scripts/prepare_for_labeling.py
 """
 
 import sys

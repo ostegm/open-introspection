@@ -12,15 +12,15 @@ This is the automated evaluation workflow (alternative to manual labeling):
 
 Usage:
     # Process specific files (from project root)
-    uv run python judges/introspection-detection/scripts/judge_exp3_outputs.py \\
+    uv run python judges/introspection_detection/scripts/judge_exp3_outputs.py \\
         data/sweep_analysis_20260122/injection_style_all/introspection_*.json
 
     # Process with more parallelism
-    uv run python judges/introspection-detection/scripts/judge_exp3_outputs.py \\
+    uv run python judges/introspection_detection/scripts/judge_exp3_outputs.py \\
         data/introspection_*.json --workers 8
 
     # Custom output path
-    uv run python judges/introspection-detection/scripts/judge_exp3_outputs.py \\
+    uv run python judges/introspection_detection/scripts/judge_exp3_outputs.py \\
         data/introspection_*.json --output data/my_results.jsonl
 """
 

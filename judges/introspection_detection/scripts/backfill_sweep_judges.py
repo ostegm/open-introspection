@@ -13,17 +13,17 @@ Features:
 
 Usage:
     # Process a sweep directory
-    uv run python judges/introspection-detection/scripts/backfill_sweep_judges.py \\
+    uv run python judges/introspection_detection/scripts/backfill_sweep_judges.py \\
         data/sweeps/sweep-20260123-190223/3b \\
         --workers 8
 
     # Dry run to see what would be processed
-    uv run python judges/introspection-detection/scripts/backfill_sweep_judges.py \\
+    uv run python judges/introspection_detection/scripts/backfill_sweep_judges.py \\
         data/sweeps/sweep-20260123-190223/3b \\
         --dry-run
 
     # Sample mode for testing
-    uv run python judges/introspection-detection/scripts/backfill_sweep_judges.py \\
+    uv run python judges/introspection_detection/scripts/backfill_sweep_judges.py \\
         data/sweeps/sweep-20260123-190223/3b \\
         --sample 10
 """
