@@ -195,6 +195,9 @@ def run_parallel(
     trials: int = 40,
     experiment_id: str | None = None,
     inject_style: str = "generation",
+    skip_judge: bool = False,
+    layers: list[int] | None = None,
+    strengths: list[float] | None = None,
 ):
     """Run all concepts in parallel (4 GPUs)."""
     import datetime
@@ -212,11 +215,14 @@ def run_parallel(
                 "trials": trials,
                 "experiment_id": experiment_id,
                 "inject_style": inject_style,
+                "skip_judge": skip_judge,
+                "layers": layers,
+                "strengths": strengths,
             },
         )
     )
 
-    for concept, result in zip(concepts, results):
+    for concept, result in zip(concepts, results, strict=True):
         print(f"{concept}: {result}")
 
     return results
