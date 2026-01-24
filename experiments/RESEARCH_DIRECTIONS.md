@@ -1,7 +1,6 @@
 # Research Directions
 
 Ideas for extending the introspection replication experiments.
-
 Try applying chat template to see if it changes output. 
 Batch inference to speed it up on GPU?
 
