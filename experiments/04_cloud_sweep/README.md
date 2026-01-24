@@ -132,7 +132,7 @@ If judge fails after retries:
 Records with `"judge": null` can be re-judged later:
 
 ```bash
-uv run python judges/introspection-detection/scripts/rejudge.py \
+uv run python judges/introspection_detection/scripts/rejudge.py \
   --input data/sweeps/2026-01-23/3b/fear.jsonl \
   --output data/sweeps/2026-01-23/3b/fear_rejudged.jsonl
 ```
