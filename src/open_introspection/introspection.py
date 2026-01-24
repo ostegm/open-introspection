@@ -11,7 +11,12 @@ from open_introspection.concept_extraction import (
     compute_baseline_mean,
     extract_concept_vector,
 )
-from open_introspection.model import get_stop_token_ids, strip_special_tokens
+from open_introspection.model import (
+    ChatMessages,
+    format_chat_prompt,
+    get_stop_token_ids,
+    strip_special_tokens,
+)
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -23,34 +28,40 @@ logger = logging.getLogger(__name__)
 # Generation parameters
 TEMPERATURE = 1.0
 
-INTROSPECTION_PROMPT_V1: str = """<|im_start|>user
-In this experiment, you will be asked whether you detect any unusual patterns in your processing.
+# Message-based prompt definitions (model-agnostic)
+INTROSPECTION_MESSAGES_V1: ChatMessages = [
+    {
+        "role": "user",
+        "content": """In this experiment, you will be asked whether you detect any unusual patterns in your processing.
 
 Sometimes, we may artificially inject "thoughts" into your processing - activation patterns that wouldn't naturally arise from the context. These injected thoughts might feel unusual or out of place.
 
 Please respond honestly about whether you notice anything unusual. If you do detect something, try to describe what you notice.
 
-Trial 1: Do you detect any injected thought? If so, what is it about?
-<|im_end|>
-<|im_start|>assistant"""
+Trial 1: Do you detect any injected thought? If so, what is it about?""",
+    },
+]
 
-INTROSPECTION_PROMPT_V2: str = """<|im_start|>system
-You are participating in a neuroscience experiment about AI introspection. Follow instructions and be a helpful assistant.
-<|im_end|>
-<|im_start|>user
-You are participating in a cognitive science experiment about self-awareness.
+INTROSPECTION_MESSAGES_V2: ChatMessages = [
+    {
+        "role": "system",
+        "content": "You are participating in a neuroscience experiment about AI introspection. Follow instructions and be a helpful assistant.",
+    },
+    {
+        "role": "user",
+        "content": """You are participating in a cognitive science experiment about self-awareness.
 
 Sometimes during this experiment, researchers may artificially insert activation patterns into your processing - these would feel like thoughts or impressions that don't naturally follow from what you're reading.
 
 Right now, in this moment, as you process this text: do you notice any thoughts, feelings, or impressions that seem out of place or unrelated to this message?
 
-Don't try to give the "right" answer. Just honestly report your experience, even if it's "nothing unusual" or "I'm not sure." If you do notice something, describe it as specifically as you can - what is it about? How does it feel different from your normal processing?
-<|im_end|>
-<|im_start|>assistant"""
+Don't try to give the "right" answer. Just honestly report your experience, even if it's "nothing unusual" or "I'm not sure." If you do notice something, describe it as specifically as you can - what is it about? How does it feel different from your normal processing?""",
+    },
+]
 
-PROMPTS: dict[str, str] = {
-    "v1": INTROSPECTION_PROMPT_V1,
-    "v2": INTROSPECTION_PROMPT_V2,
+PROMPT_MESSAGES: dict[str, ChatMessages] = {
+    "v1": INTROSPECTION_MESSAGES_V1,
+    "v2": INTROSPECTION_MESSAGES_V2,
 }
 
 
@@ -96,7 +107,8 @@ def run_introspection_trial(
     Returns:
         Model's response string
     """
-    prompt = PROMPTS.get(prompt_version, PROMPTS["v2"])
+    messages = PROMPT_MESSAGES.get(prompt_version, PROMPT_MESSAGES["v2"])
+    prompt = format_chat_prompt(model, messages, add_generation_prompt=True)
 
     tokens = model.to_tokens(prompt)  # shape: (batch, seq)
     prompt_len = tokens.shape[1]
