@@ -17,10 +17,12 @@ Usage:
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path for package imports
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
-from parsers import parse_experiment_file
-from schemas import Example
+from judges.introspection_detection.parsers import parse_experiment_file
+from judges.introspection_detection.schemas import Example
 
 
 def main() -> int:

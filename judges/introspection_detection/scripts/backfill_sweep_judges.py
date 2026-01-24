@@ -43,16 +43,17 @@ from typing import Any
 
 from openai import OpenAI
 
-# Add project paths
+# Add project root to path for package imports
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-JUDGE_DIR = Path(__file__).parent.parent
-
-sys.path.insert(0, str(JUDGE_DIR))
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from schemas import Example, ExperimentConfig, JudgeResult, Label
-
-from judge import judge_example, load_fewshot_examples
+from judges.introspection_detection import judge_example, load_fewshot_examples
+from judges.introspection_detection.schemas import (
+    Example,
+    ExperimentConfig,
+    JudgeResult,
+    Label,
+)
 
 # Retry settings
 MAX_RETRIES = 3
@@ -298,7 +299,7 @@ def main() -> None:
     # Initialize
     if not args.dry_run:
         client = OpenAI()
-        train_path = JUDGE_DIR / "data" / "train.jsonl"
+        train_path = PROJECT_ROOT / "judges" / "introspection_detection" / "data" / "train.jsonl"
         fewshot = load_fewshot_examples(train_path)
         print(f"Loaded {len(fewshot)} few-shot examples")
     else:
