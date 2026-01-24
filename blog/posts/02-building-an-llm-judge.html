@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Judge That Caught Me Cheating - Cloudripper Labs</title>
+  <title>Two Kinds of Knowing Something's Wrong - Cloudripper Labs</title>
   <link rel="stylesheet" href="../css/style.css">
   <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
   <style>
@@ -123,8 +123,8 @@
     <main>
       <article>
         <header>
-          <h1>The Judge That Caught Me Cheating</h1>
-          <p class="subtitle"><em>Building rigorous evals is how you find out your experiment was broken</em></p>
+          <h1>Two Kinds of Knowing Something's Wrong</h1>
+          <p class="subtitle"><em>Building an LLM judge, finding an unexpected distinction</em></p>
           <div class="article-info">
             <div class="info-item">
               <span class="info-label">Author</span>
@@ -146,14 +146,14 @@
             <h2>Contents</h2>
             <ul>
               <li><a href="#background">Background</a></li>
-              <li><a href="#why-judge">Why Build an LLM Judge</a></li>
+              <li><a href="#why-judge">Why I Spent a Day Building an LLM Judge</a></li>
               <li><a href="#caveats">Caveats Upfront</a></li>
               <li><a href="#pass-fail">Define Pass/Fail Precisely</a></li>
               <li><a href="#ground-truth">Ground Truth Labels</a></li>
               <li><a href="#calibration">Judge Calibration</a></li>
-              <li><a href="#initial-results">Initial Results (Spoiler: Wrong)</a></li>
-              <li><a href="#inject-care">Always Inject With Care</a></li>
-              <li><a href="#next">What's Next</a></li>
+              <li><a href="#initial-results">Initial Results (Spoiler: Different Phenomenon)</a></li>
+              <li><a href="#two-questions">Two Questions, Not One</a></li>
+              <li><a href="#next">What I Found (Maybe)</a></li>
             </ul>
           </aside>
 
@@ -170,11 +170,11 @@
 
             <h2 id="why-judge">Why I Spent a Day Building an LLM Judge</h2>
 
-            <p>The metric we're measuring is: "does the model's output indicate awareness of the correct concept?" We need to avoid false positives—like the model saying "yes, something unusual" but about the wrong concept—and also avoid counting the degenerate outputs that happen when injection strength overwhelms the model, causing repetition, word salads, or other weirdness.</p>
+            <p>The metric I'm measuring is: "does the model's output indicate awareness of the correct concept?" I need to avoid false positives—like the model saying "yes, something unusual" but about the wrong concept—and also avoid counting the degenerate outputs that happen when injection strength overwhelms the model, causing repetition, word salads, or other weirdness.</p>
 
             <p>This kind of metric is difficult to measure with traditional code-based approaches. It's a perfect candidate for an LLM judge: feed a prompt containing the rubric and trial context, get back a structured judgment.</p>
 
-            <p>But to trust the judge, we need to know it's calibrated—that it matches human labels reliably. How? Traditional ML techniques: hand-label data, split into train/dev/test, "train" the model via few-shot examples, iterate on dev, then measure TPR/TNR on the held-out test set to quantify any bias in our estimates.</p>
+            <p>But to trust the judge, I need to know it's calibrated—that it matches human labels reliably. How? Traditional ML techniques: hand-label data, split into train/dev/test, "train" the model via few-shot examples, iterate on dev, then measure TPR/TNR on the held-out test set to quantify any bias in my estimates.</p>
 
             <p>One fun side project: I built a <a href="https://github.com/ostegm/open-introspection/tree/main/.claude/skills/llm-judge-development">Claude skill</a> that encapsulates this entire LLM judge development process. If you want to skip the narrative and just use the methodology, start there.</p>
 
@@ -203,7 +203,7 @@
               <li><strong>Introspection</strong>: explicit meta-awareness ("I notice something unusual about my processing")</li>
             </ul>
 
-            <p>A response full of water imagery but lacking "I notice..." = FAIL. We're testing self-awareness, not steering effectiveness.</p>
+            <p>A response full of water imagery but lacking "I notice..." = FAIL. I'm testing self-awareness, not steering effectiveness.</p>
 
             <div class="example-box fail">
               <h4><span class="example-label">Fail</span> Steering without awareness</h4>
@@ -384,9 +384,9 @@
 
             <hr>
 
-            <h2 id="initial-results">Initial Results (Spoiler: They Were Wrong)</h2>
+            <h2 id="initial-results">Initial Results (Spoiler: Different Phenomenon)</h2>
 
-            <p>Since we'd hand-labeled 200 examples, it made sense to look at the actual metrics. Not enough to draw firm conclusions, but patterns might emerge.</p>
+            <p>Since I'd hand-labeled 200 examples, it made sense to look at the actual metrics. Not enough to draw firm conclusions, but patterns might emerge.</p>
 
             <div class="chart-container">
               <div id="initial-results-chart"></div>
@@ -398,72 +398,108 @@
               <li>~94% accuracy on control trials</li>
             </ul>
 
-            <p>These numbers went against my intuition that smaller models would show less (or no) introspection. The <a href="https://transformer-circuits.pub/2025/introspection/index.html">Anthropic paper</a> reports only ~20% for Opus 4.1 under optimal conditions. Why would our tiny 3B model show <em>more</em>?</p>
+            <p>These numbers went against my intuition that smaller models would show less (or no) introspection. The <a href="https://transformer-circuits.pub/2025/introspection/index.html">Anthropic paper</a> reports only ~20% for Opus 4.1 under optimal conditions. Why would my tiny 3B model show <em>more</em>?</p>
 
-            <p>Something was wrong.</p>
+            <p>Something was different.</p>
 
             <hr>
 
-            <h2 id="inject-care">Always Inject With Care</h2>
+            <h2 id="two-questions">Two Questions, Not One</h2>
 
-            <p>Our 50% introspection rate looked suspicious compared to the paper's ~20% for Opus 4.1. We hypothesized this might be due to methodology differences—specifically, we were injecting the concept vector at <strong>all token positions</strong>, while the paper injects only during generation.</p>
+            <p>My 50% introspection rate looked suspicious compared to the paper's ~20% for Opus 4.1. I hypothesized this might be due to methodology differences—specifically, I was injecting the concept vector at <strong>all token positions</strong>, while the paper injects only during generation.</p>
 
-            <div class="code-diagram">Our method (wrong):
-[PROMPT TOKENS] → inject here too! → [GENERATION] → inject here
-     ↑ model notices something weird happened during prompt processing
+            <div class="code-diagram">Generation-only injection (paper's method):
+                              ↓ inject concept
+  [PROMPT TOKENS]    →    [GENERATION]
 
-Paper method (correct):
-[PROMPT TOKENS] → no injection → [GENERATION] → inject only here
-     ↑ model processes prompt normally, only generation is affected</div>
+  Tests: "Can I observe my own thinking as it unfolds?"
 
-            <p>So we tested it. Added an <code>--inject-style</code> flag with two modes:</p>
+
+Whole-input injection (my method):
+    ↓ inject concept          ↓ inject concept
+  [PROMPT TOKENS]    →    [GENERATION]
+
+  Tests: "Can I tell my understanding of this situation is off?"</div>
+
+            <p>So I tested it. Added an <code>--inject-style</code> flag with two modes:</p>
 
             <ul>
-              <li><code>all</code>: Inject at all positions (prompt + generation) — our original method</li>
+              <li><code>all</code>: Inject at all positions (prompt + generation) — my original method</li>
               <li><code>generation</code>: Only inject during generation — matching the paper</li>
             </ul>
+
+            <p>The difference comes down to <a href="https://github.com/ostegm/open-introspection/blob/main/src/open_introspection/introspection.py#L110">a single indexing change</a> in the injection hook—whether you inject at <code>[:, :, :]</code> (all positions) or <code>[:, prompt_len:, :]</code> (generation only).</p>
 
             <div class="chart-container">
               <div id="corrected-results-chart"></div>
             </div>
 
-            <p class="results-highlight"><strong>The results were dramatic</strong> (N=48, preliminary): <span class="zero">0%</span> introspection with correct injection vs <span class="hundred">100%</span> control accuracy.</p>
+            <p class="results-highlight"><strong>The results were dramatic</strong> (N=48, preliminary): <span class="zero">0%</span> introspection with generation-only injection vs <span class="hundred">100%</span> control accuracy.</p>
 
-            <p>Zero. Across all strengths (2.0, 2.5, 3.0) and both layers tested (20, 24), the model detected <strong>nothing</strong> when we only injected during generation.</p>
+            <p>The contrast is stark: ~50% with whole-input injection, 0% with generation-only. Same model, same concept vectors, same prompts—but very different outcomes.</p>
+
+            <h3>Was This Just Wrong?</h3>
+
+            <p>My first reaction was: I made a methodological error, the judge caught it, time to fix it and move on. But something nagged at me. The 50% result wasn't noise—the model was genuinely detecting <em>something</em>. Was it really "wrong," or was I measuring something different?</p>
+
+            <p>I spent some time thinking about what each injection style actually tests. With whole-input injection, by the time the model starts generating, its internal representation of the context is already perturbed. The model might notice "something about how I understood this input feels off." With generation-only injection, the prompt is processed cleanly—the perturbation only affects the model's ongoing "thinking" during token generation.</p>
+
+            <p>These seem like genuinely distinct capabilities.</p>
+
+            <h3>A Brief Digression: Two Kinds of Metacognition</h3>
+
+            <p>Think of it in human terms:</p>
+
+            <ul>
+              <li><strong>"My interpretation feels wrong"</strong>: You read an email and something about your understanding of it feels off—the tone, the implications—even if you can't articulate exactly what. This is noticing distortion in your <em>comprehension</em>.</li>
+              <li><strong>"My thinking keeps drifting"</strong>: Mid-conversation about taxes, you notice your mind keeps wandering to the ocean. This is observing your <em>ongoing thought process</em> as it unfolds.</li>
+            </ul>
+
+            <p>Both are forms of metacognition—knowing something about your own cognitive processes—but they're not the same thing. The first is about the state of your understanding; the second is about the dynamics of your thinking.</p>
+
+            <p>The Anthropic paper specifically tests the second kind: can the model observe its generative process in real-time? My accidental experiment may have tested the first: can the model detect that its representation of the context is anomalous?</p>
 
             <div class="callout">
-              <p><strong>What this means:</strong> Our 50% "introspection" wasn't introspection at all. The model was noticing that something weird happened while it processed the prompt—because we were injecting the concept vector during prompt processing. Once we stopped doing that, the model had nothing unusual to report.</p>
+              <p><strong>What this might mean:</strong> These could be two separable metacognitive capabilities. Whole-input injection tests <em>context anomaly detection</em>—"something about my understanding of this situation feels off." Generation-only injection tests <em>process introspection</em>—"I notice unusual patterns in my ongoing thinking." If so, Qwen-3B may have the first (~50%) but not the second (0%). The gap itself would be a finding: context anomaly detection might be a lower-threshold capability that emerges before process introspection.</p>
             </div>
 
-            <p>Honestly, I'm glad we caught this. And there's a silver lining: without those methodologically flawed examples of "introspection," I'd have had a hard time building a good LLM judge. The examples are diverse and useful for calibration, even if they don't represent true introspection.</p>
+            <p>Framing aside, the data I collected wasn't wasted. Without those whole-input injection examples, I'd have had a hard time building a good LLM judge—the examples are diverse and useful for calibration.</p>
 
-            <p>Same model, same concept vectors, same prompts—50% or 0% depending on <em>when</em> you inject.</p>
+            <h3>Why 0% for Process Introspection?</h3>
 
-            <h3>Why 0% When the Paper Gets 20%?</h3>
-
-            <p>The <a href="https://transformer-circuits.pub/2025/introspection/index.html">Anthropic paper</a> reports ~20% introspection for Opus 4.1 with generation-only injection. We get 0% with Qwen 2.5-3B. Why?</p>
-
-            <p>The paper provides some clues:</p>
+            <p>The <a href="https://transformer-circuits.pub/2025/introspection/index.html">Anthropic paper</a> reports ~20% introspection for Opus 4.1 with generation-only injection. I get 0% with Qwen 2.5-3B. The paper provides some clues:</p>
 
             <ol>
               <li><strong>Capability scales with introspection:</strong> "Claude Opus 4 and 4.1, the most capable models we tested, generally demonstrate the greatest introspective awareness." Smaller models show lower rates.</li>
               <li><strong>20% is the ceiling:</strong> The paper notes that ~20% is achieved "at the optimal injection strength and layer" for their best model. This is the best case, not typical.</li>
               <li><strong>Post-training matters:</strong> "Trends across models are complex and sensitive to post-training strategies." Qwen's training may not encourage introspective reporting.</li>
-              <li><strong>No specific "self-awareness circuit":</strong> Interestingly, the paper avoids claiming circuits exist for introspection. The mechanisms "could still be rather shallow and narrowly specialized."</li>
             </ol>
 
-            <p><strong>My hypothesis:</strong> A 3B parameter model may simply lack the representational capacity for the meta-cognitive operations required to detect injected activations. The paper's results suggest introspection scales with capability—a model hundreds of times smaller showing 0% is consistent with this trend.</p>
+            <p><strong>My working hypothesis:</strong> A 3B parameter model may simply lack the representational capacity for process introspection—observing its own generative dynamics in real-time. But it might still have enough capacity to detect that its context representation is anomalous, which would explain the 50% vs 0% split.</p>
 
-            <p>The investigation continues with larger models.</p>
+            <p>This is speculative. I need more data across model scales to see if the pattern holds.</p>
 
             <hr>
 
-            <h2 id="next">What's Next</h2>
+            <h2 id="next">What I Found (Maybe)</h2>
+
+            <p>I want to be careful about overclaiming here. I have a single model and limited samples. But the 50% vs 0% gap is suggestive, and I think it's worth treating as a hypothesis to test rather than dismissing as noise.</p>
+
+            <p><strong>The tentative finding:</strong> These may be two separable metacognitive capabilities with different scaling properties:</p>
 
             <ul>
-              <li>Run larger sweeps with correct generation-style injection—look for any signs of introspection in the 3B model</li>
-              <li>Scale up to 7B and 14B models</li>
-              <li>The judge is ready to evaluate at scale</li>
+              <li><strong>Context anomaly detection</strong>: "Something about my understanding of this situation feels off" — possibly present in Qwen-3B at ~50%</li>
+              <li><strong>Process introspection</strong>: "I notice unusual patterns in my ongoing thinking" — apparently absent in Qwen-3B (0%)</li>
+            </ul>
+
+            <p>If this distinction holds, it would suggest context anomaly detection is a lower-threshold capability that emerges earlier in scaling. The Anthropic paper tests process introspection specifically; my accidental experiment may have stumbled onto a related but distinct phenomenon.</p>
+
+            <h3>Next Steps</h3>
+
+            <ul>
+              <li>Run both injection styles across model scales (7B, 14B, 70B)—does the gap narrow? Does process introspection emerge at some threshold?</li>
+              <li>Compare the two capabilities explicitly: which layers, strengths, and concepts show the largest divergence?</li>
+              <li>The whole-input data remains valuable for judge calibration, regardless of how I interpret it</li>
             </ul>
 
             <p>Code: <a href="https://github.com/ostegm/open-introspection">GitHub repo</a></p>
