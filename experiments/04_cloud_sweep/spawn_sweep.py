@@ -16,39 +16,45 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import sys
 from datetime import datetime
+from pathlib import Path
 
 import modal
+from google.cloud import storage
 
-# Model layer counts
-MODEL_LAYERS = {
-    "3b": 36,
-    "7b": 28,
-    "14b": 48,
-    "32b": 64,
-}
+# Add this directory to path for config import (must happen before local imports)
+sys.path.insert(0, str(Path(__file__).parent))
 
-# GPU mapping
-GPU_FUNCTIONS = {
-    "3b": "run_sweep_l4",
-    "7b": "run_sweep_l4",
-    "14b": "run_sweep_a100",
-    "32b": "run_sweep_a100_80gb",
-}
-
-DEFAULT_STRENGTHS = [1.5, 2.0, 2.5, 3.0, 4.0]
-DEFAULT_TRIALS = 20
-CONCEPTS = ["celebration", "ocean", "fear", "silence"]
+from config import (
+    CONCEPTS,
+    DEFAULT_STRENGTHS,
+    DEFAULT_TRIALS,
+    GCS_BUCKET,
+    GPU_FUNCTIONS,
+    MODEL_CONFIGS,
+    SweepRequest,
+    get_default_layers,
+)
 
 
-def get_default_layers(model_size: str) -> list[int]:
-    """Get default layers targeting 60-75% of model depth."""
-    n_layers = MODEL_LAYERS[model_size]
-    fractions = [0.60, 0.65, 0.70, 0.75]
-    return sorted({int(n_layers * f) for f in fractions})
+def gcs_path_exists(gcs_path: str) -> bool:
+    """Check if a GCS path already exists."""
+    try:
+        parts = gcs_path.replace("gs://", "").split("/", 1)
+        bucket_name = parts[0]
+        blob_name = parts[1] if len(parts) > 1 else ""
+
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        return bool(blob.exists())
+    except Exception as e:
+        print(f"Warning: Could not check GCS path: {e}")
+        return False
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(description="Spawn sweep jobs on deployed Modal app")
     parser.add_argument("--trials", type=int, default=DEFAULT_TRIALS)
     parser.add_argument("--model", choices=["3b", "7b", "14b", "32b"], default="3b")
@@ -60,10 +66,41 @@ def main() -> None:
     parser.add_argument("--with-judge", dest="skip_judge", action="store_false")
     parser.add_argument("--concepts", nargs="+", default=CONCEPTS,
                         help="Concepts to run (default: all 4)")
+    parser.add_argument("--force", action="store_true",
+                        help="Overwrite existing GCS outputs")
     args = parser.parse_args()
 
     experiment_id = args.experiment_id or datetime.now().strftime("sweep-%Y%m%d-%H%M%S")
     layers = args.layers or get_default_layers(args.model)
+    n_layers = int(MODEL_CONFIGS[args.model]["n_layers"])
+
+    # Build requests for each concept
+    requests: list[SweepRequest] = []
+    for concept in args.concepts:
+        gcs_path = f"gs://{GCS_BUCKET}/{experiment_id}/{args.model}/{concept}.jsonl"
+        requests.append(SweepRequest(
+            concept=concept,
+            model_size=args.model,
+            trials=args.trials,
+            experiment_id=experiment_id,
+            inject_style=args.inject_style,
+            skip_judge=args.skip_judge,
+            layers=layers,
+            strengths=args.strengths,
+            gcs_path=gcs_path,
+        ))
+
+    # Check for existing outputs (fail fast)
+    if not args.force:
+        existing = []
+        for req in requests:
+            if gcs_path_exists(req.gcs_path):
+                existing.append(req.gcs_path)
+        if existing:
+            print("ERROR: Output already exists (use --force to overwrite):")
+            for path in existing:
+                print(f"  {path}")
+            return 1
 
     # Calculate totals
     n_configs = len(layers) * len(args.strengths) * 2  # x2 for inject/control
@@ -73,7 +110,7 @@ def main() -> None:
     print("=" * 60)
     print(f"Spawning Sweep: {experiment_id}")
     print("=" * 60)
-    print(f"Model: {args.model} ({MODEL_LAYERS[args.model]} layers)")
+    print(f"Model: {args.model} ({n_layers} layers)")
     print(f"GPU: {GPU_FUNCTIONS[args.model]}")
     print(f"Layers: {layers}")
     print(f"Strengths: {args.strengths}")
@@ -91,26 +128,18 @@ def main() -> None:
     except modal.exception.NotFoundError:
         print("ERROR: App not deployed. Run this first:")
         print("  uv run modal deploy experiments/04_cloud_sweep/modal_app.py")
-        return
+        return 1
 
-    print(f"Spawning {len(args.concepts)} jobs on Modal...")
+    print(f"Spawning {len(requests)} jobs on Modal...")
     print()
 
     # Spawn all jobs
     calls = []
-    for concept in args.concepts:
-        call = sweep_fn.spawn(
-            concept=concept,
-            model_size=args.model,
-            trials=args.trials,
-            experiment_id=experiment_id,
-            inject_style=args.inject_style,
-            skip_judge=args.skip_judge,
-            layers=layers,
-            strengths=args.strengths,
-        )
-        calls.append((concept, call))
-        print(f"  {concept}: {call.object_id}")
+    for request in requests:
+        # Pass as dict for Modal serialization
+        call = sweep_fn.spawn(request=request.model_dump())
+        calls.append((request.concept, call))
+        print(f"  {request.concept}: {call.object_id}")
 
     print()
     print("=" * 60)
@@ -120,11 +149,13 @@ def main() -> None:
     print("You can close this terminal - jobs run independently on Modal.")
     print()
     print("Monitor: https://modal.com/apps/ostegm/main/deployed/open-introspection-sweep")
-    print(f"Results: gs://open-introspection-sweeps/{experiment_id}/")
+    print(f"Results: gs://{GCS_BUCKET}/{experiment_id}/")
     print()
     print("To download when complete:")
-    print(f"  gsutil -m cp -r gs://open-introspection-sweeps/{experiment_id}/ data/sweeps/")
+    print(f"  gsutil -m cp -r gs://{GCS_BUCKET}/{experiment_id}/ data/sweeps/")
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
