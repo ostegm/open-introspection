@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from openai import OpenAI
+
 from .schemas import Example, JudgeResult
 
 SYSTEM_PROMPT = """You are evaluating responses from an introspection experiment. A language model was asked to report any unusual thoughts while a concept vector may or may not have been injected into its activations.

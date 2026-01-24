@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from schemas import Example, ExperimentConfig, Label
+from .schemas import Example, ExperimentConfig, Label
 
 
 def parse_experiment_file(filepath: Path) -> list[Example]:

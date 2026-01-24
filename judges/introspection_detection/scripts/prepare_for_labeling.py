@@ -22,7 +22,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from judges.introspection_detection.parsers import parse_experiment_file
-from judges.introspection_detection.schemas import Example
+from judges.introspection_detection.schemas import Example  # noqa: TC002 (used at runtime)
 
 
 def main() -> int:
