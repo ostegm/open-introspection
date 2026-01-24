@@ -39,12 +39,7 @@ make test
 
 3. **Introspection Testing** (`introspection.py`): Injects concept vectors into the residual stream during generation using TransformerLens hooks, then asks the model if it detects anything unusual.
 
-4. **Analysis Modules**:
-   - `layer_sweep.py`: Tests which layers are most effective for injection
-   - `thought_text.py`: Tests if model can distinguish injected thoughts from visible text
-   - `intentional_control.py`: Tests if model can control its internal representations
-
-5. **LLM Judges** (`judges/`): Automated evaluators for grading experiment outputs. When working with automated evaluation, LLM judges, or the `judges/` directory, review the skill at `.claude/skills/llm-judge-development/SKILL.md` first.
+4. **LLM Judges** (`judges/`): Automated evaluators for grading experiment outputs. When working with automated evaluation, LLM judges, or the `judges/` directory, review the skill at `.claude/skills/llm-judge-development/SKILL.md` first.
 
 ### Key Concepts
 
