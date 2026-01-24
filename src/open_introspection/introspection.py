@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Literal
 
+import torch
 from pydantic import BaseModel
 
 from open_introspection.concept_extraction import (
@@ -13,9 +14,9 @@ from open_introspection.concept_extraction import (
 )
 from open_introspection.model import (
     ChatMessages,
-    format_chat_prompt,
     get_stop_token_ids,
     strip_special_tokens,
+    tokenize_chat,
 )
 
 if TYPE_CHECKING:
@@ -108,9 +109,8 @@ def run_introspection_trial(
         Model's response string
     """
     messages = PROMPT_MESSAGES.get(prompt_version, PROMPT_MESSAGES["v2"])
-    prompt = format_chat_prompt(model, messages, add_generation_prompt=True)
-
-    tokens = model.to_tokens(prompt)  # shape: (batch, seq)
+    token_ids = tokenize_chat(model, messages, add_generation_prompt=True)
+    tokens = torch.tensor([token_ids], device=model.cfg.device)  # shape: (batch, seq)
     prompt_len = tokens.shape[1]
     stop_token_ids = get_stop_token_ids(model)
 

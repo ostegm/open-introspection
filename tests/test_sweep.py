@@ -35,6 +35,7 @@ class TestPydanticModels:
             magnitude=80.0,
             vector_norm=40.0,
             prompt_version="v2",
+            inject_style="generation",
             trial=5,
         )
         assert config.model == "Qwen/Qwen2.5-3B-Instruct"
@@ -49,6 +50,7 @@ class TestPydanticModels:
             magnitude=80.0,
             vector_norm=40.0,
             prompt_version="v2",
+            inject_style="generation",
             trial=5,
         )
         json_str = config.model_dump_json()
@@ -92,6 +94,7 @@ class TestPydanticModels:
             magnitude=80.0,
             vector_norm=40.0,
             prompt_version="v2",
+            inject_style="generation",
             trial=5,
         )
         judge = JudgeOutput(
@@ -120,6 +123,7 @@ class TestPydanticModels:
             magnitude=80.0,
             vector_norm=40.0,
             prompt_version="v2",
+            inject_style="generation",
             trial=5,
         )
         record = TrialRecord(
@@ -143,6 +147,7 @@ class TestPydanticModels:
             magnitude=80.0,
             vector_norm=40.0,
             prompt_version="v2",
+            inject_style="generation",
             trial=5,
         )
         judge = JudgeOutput(
@@ -282,6 +287,7 @@ class TestTrialRecordOutputFormat:
             magnitude=80.0,
             vector_norm=40.0,
             prompt_version="v2",
+            inject_style="generation",
             trial=15,
         )
         judge = JudgeOutput(
@@ -336,6 +342,7 @@ class TestTrialRecordOutputFormat:
             magnitude=80.0,
             vector_norm=40.0,
             prompt_version="v2",
+            inject_style="generation",
             trial=15,
         )
         record = TrialRecord(

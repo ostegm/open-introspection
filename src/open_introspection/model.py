@@ -56,44 +56,6 @@ def strip_special_tokens(text: str) -> str:
     return text.strip()
 
 
-def format_chat_prompt(
-    model: HookedTransformer,
-    messages: ChatMessages,
-    add_generation_prompt: bool = True,
-) -> str:
-    """Format messages using the model's chat template.
-
-    This is the preferred way to construct prompts for chat models, as it
-    automatically handles model-specific formatting (Qwen, Llama, Mistral, etc.).
-
-    Args:
-        model: HookedTransformer model with tokenizer
-        messages: List of message dicts with 'role' and 'content' keys
-            Roles are typically: 'system', 'user', 'assistant'
-        add_generation_prompt: Whether to add the assistant turn prefix
-            (e.g., "<|im_start|>assistant\n" for Qwen)
-
-    Returns:
-        Formatted prompt string ready for tokenization
-
-    Example:
-        >>> messages = [
-        ...     {"role": "system", "content": "You are helpful."},
-        ...     {"role": "user", "content": "Hello!"},
-        ... ]
-        >>> prompt = format_chat_prompt(model, messages)
-        >>> tokens = model.to_tokens(prompt)
-    """
-    tokenizer = model.tokenizer
-    token_ids = tokenizer.apply_chat_template(
-        messages,
-        add_generation_prompt=add_generation_prompt,
-        tokenize=True,
-    )
-    result: str = tokenizer.decode(token_ids)
-    return result
-
-
 def tokenize_chat(
     model: HookedTransformer,
     messages: ChatMessages,
@@ -101,12 +63,16 @@ def tokenize_chat(
 ) -> list[int]:
     """Tokenize messages using the model's chat template.
 
-    Returns token IDs directly, avoiding decode/re-encode overhead.
+    This is the preferred way to prepare prompts for chat models, as it
+    automatically handles model-specific formatting (Qwen, Llama, Mistral, etc.)
+    and returns token IDs directly without decode/re-encode overhead.
 
     Args:
         model: HookedTransformer model with tokenizer
         messages: List of message dicts with 'role' and 'content' keys
+            Roles are typically: 'system', 'user', 'assistant'
         add_generation_prompt: Whether to add the assistant turn prefix
+            (e.g., "<|im_start|>assistant\n" for Qwen)
 
     Returns:
         List of token IDs
@@ -118,6 +84,29 @@ def tokenize_chat(
         tokenize=True,
     )
     return token_ids
+
+
+def format_chat_prompt(
+    model: HookedTransformer,
+    messages: ChatMessages,
+    add_generation_prompt: bool = True,
+) -> str:
+    """Format messages as a string using the model's chat template.
+
+    Convenience wrapper around tokenize_chat for when you need the string
+    representation. For generation, prefer tokenize_chat to avoid re-tokenization.
+
+    Args:
+        model: HookedTransformer model with tokenizer
+        messages: List of message dicts with 'role' and 'content' keys
+        add_generation_prompt: Whether to add the assistant turn prefix
+
+    Returns:
+        Formatted prompt string
+    """
+    token_ids = tokenize_chat(model, messages, add_generation_prompt)
+    result: str = model.tokenizer.decode(token_ids)
+    return result
 
 
 def load_model(
