@@ -11,6 +11,11 @@ if TYPE_CHECKING:
     from transformer_lens import HookedTransformer
 
 
+# Type alias for chat messages
+ChatMessage = dict[str, str]
+ChatMessages = list[ChatMessage]
+
+
 def get_endoftext_token_id(model: HookedTransformer) -> int:
     """Get the <|endoftext|> token ID for Qwen models.
 
@@ -33,13 +38,75 @@ def get_stop_token_ids(model: HookedTransformer) -> list[int]:
 
 
 def strip_special_tokens(text: str) -> str:
-    """Remove Qwen special tokens from generated text."""
+    """Remove common special tokens from generated text.
+
+    Works with Qwen, Llama, Mistral, and other common chat models.
+    """
     import re
 
     # Remove special tokens and everything after them
-    pattern = r"<\|im_end\|>.*|<\|endoftext\|>.*|<\|im_start\|>.*"
+    # Covers: Qwen (<|im_*|>, <|endoftext|>), Llama (<|eot_id|>, <|end_of_text|>),
+    # Mistral ([INST], [/INST]), and generic markers
+    pattern = (
+        r"<\|im_end\|>.*|<\|endoftext\|>.*|<\|im_start\|>.*|"
+        r"<\|eot_id\|>.*|<\|end_of_text\|>.*|<\|start_header_id\|>.*|"
+        r"\[/INST\].*|\</s\>.*"
+    )
     text = re.split(pattern, text)[0]
     return text.strip()
+
+
+def tokenize_chat(
+    model: HookedTransformer,
+    messages: ChatMessages,
+    add_generation_prompt: bool = True,
+) -> list[int]:
+    """Tokenize messages using the model's chat template.
+
+    This is the preferred way to prepare prompts for chat models, as it
+    automatically handles model-specific formatting (Qwen, Llama, Mistral, etc.)
+    and returns token IDs directly without decode/re-encode overhead.
+
+    Args:
+        model: HookedTransformer model with tokenizer
+        messages: List of message dicts with 'role' and 'content' keys
+            Roles are typically: 'system', 'user', 'assistant'
+        add_generation_prompt: Whether to add the assistant turn prefix
+            (e.g., "<|im_start|>assistant\n" for Qwen)
+
+    Returns:
+        List of token IDs
+    """
+    tokenizer = model.tokenizer
+    token_ids: list[int] = tokenizer.apply_chat_template(
+        messages,
+        add_generation_prompt=add_generation_prompt,
+        tokenize=True,
+    )
+    return token_ids
+
+
+def format_chat_prompt(
+    model: HookedTransformer,
+    messages: ChatMessages,
+    add_generation_prompt: bool = True,
+) -> str:
+    """Format messages as a string using the model's chat template.
+
+    Convenience wrapper around tokenize_chat for when you need the string
+    representation. For generation, prefer tokenize_chat to avoid re-tokenization.
+
+    Args:
+        model: HookedTransformer model with tokenizer
+        messages: List of message dicts with 'role' and 'content' keys
+        add_generation_prompt: Whether to add the assistant turn prefix
+
+    Returns:
+        Formatted prompt string
+    """
+    token_ids = tokenize_chat(model, messages, add_generation_prompt)
+    result: str = model.tokenizer.decode(token_ids)
+    return result
 
 
 def load_model(
