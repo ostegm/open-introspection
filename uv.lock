@@ -2283,6 +2283,7 @@ source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
     { name = "einops" },
+    { name = "google-cloud-storage" },
     { name = "jaxtyping" },
     { name = "matplotlib" },
     { name = "openai" },
@@ -2335,6 +2336,7 @@ requires-dist = [
     { name = "anthropic", marker = "extra == 'grading'" },
     { name = "bitsandbytes", marker = "extra == 'mac'" },
     { name = "einops" },
+    { name = "google-cloud-storage", specifier = ">=3.8.0" },
     { name = "google-cloud-storage", marker = "extra == 'grading'" },
     { name = "ipython", marker = "extra == 'dev'" },
     { name = "jaxtyping" },
