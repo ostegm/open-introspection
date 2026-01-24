@@ -16,8 +16,25 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 
+# Model layer counts (from HuggingFace configs)
+MODEL_LAYERS = {
+    "3b": 36,
+    "7b": 28,
+    "14b": 48,
+    "32b": 64,
+}
+
+
+def get_default_layers(model_size: str) -> list[int]:
+    """Get default layers targeting 2/3 to 3/4 of model depth."""
+    n_layers = MODEL_LAYERS[model_size]
+    # Target 60%, 65%, 70%, 75% of layers
+    fractions = [0.60, 0.65, 0.70, 0.75]
+    layers = sorted({int(n_layers * f) for f in fractions})
+    return layers
+
+
 # Default sweep parameters
-DEFAULT_LAYERS = [20, 22, 24, 26, 28]
 DEFAULT_STRENGTHS = [1.5, 2.0, 2.5, 3.0, 4.0]
 DEFAULT_TRIALS = 20
 CONCEPTS = ["celebration", "ocean", "fear", "silence"]
@@ -26,13 +43,14 @@ CONCEPTS = ["celebration", "ocean", "fear", "silence"]
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run parallel introspection sweep")
     parser.add_argument("--trials", type=int, default=DEFAULT_TRIALS)
-    parser.add_argument("--model", choices=["3b", "7b"], default="3b")
+    parser.add_argument("--model", choices=["3b", "7b", "14b", "32b"], default="3b")
     parser.add_argument("--experiment-id", default=None)
     parser.add_argument(
         "--layers",
         type=int,
         nargs="+",
-        default=DEFAULT_LAYERS,
+        default=None,
+        help="Override default layers (default: model-specific ~67%% layers)",
     )
     parser.add_argument(
         "--strengths",
@@ -53,7 +71,9 @@ def main() -> None:
         "generation-sweep-%Y%m%d-%H%M%S"
     )
 
-    n_layers = len(args.layers)
+    # Use model-specific default layers if not specified
+    layers = args.layers or get_default_layers(args.model)
+    n_layers = len(layers)
     n_strengths = len(args.strengths)
     trials_per_concept = n_layers * n_strengths * args.trials * 2
     total_trials = trials_per_concept * len(CONCEPTS)
@@ -61,7 +81,8 @@ def main() -> None:
     print("=" * 50)
     print(f"Introspection Sweep: {experiment_id}")
     print("=" * 50)
-    print(f"Layers: {args.layers}")
+    print(f"Model: {args.model} ({MODEL_LAYERS[args.model]} total layers)")
+    print(f"Layers: {layers}")
     print(f"Strengths: {args.strengths}")
     print(f"Trials per config: {args.trials}")
     print(f"Inject style: {args.inject_style}")
@@ -87,8 +108,9 @@ def main() -> None:
             "--trials", str(args.trials),
             "--experiment-id", experiment_id,
             "--inject-style", args.inject_style,
-            "--layers", ",".join(str(layer) for layer in args.layers),
+            "--layers", ",".join(str(layer) for layer in layers),
             "--strengths", ",".join(str(s) for s in args.strengths),
+            "--detach",  # Spawn job and exit immediately
         ]
         if args.skip_judge:
             cmd.append("--skip-judge")

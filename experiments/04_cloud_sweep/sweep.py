@@ -60,6 +60,8 @@ CONCEPTS = ["celebration", "ocean", "fear", "silence"]
 MODEL_CONFIGS: dict[str, dict[str, str | int]] = {
     "3b": {"name": "Qwen/Qwen2.5-3B-Instruct", "n_layers": 36},
     "7b": {"name": "Qwen/Qwen2.5-7B-Instruct", "n_layers": 28},
+    "14b": {"name": "Qwen/Qwen2.5-14B-Instruct", "n_layers": 48},
+    "32b": {"name": "Qwen/Qwen2.5-32B-Instruct", "n_layers": 64},
 }
 
 # Sweep parameters
@@ -514,7 +516,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--model",
-        choices=["3b", "7b"],
+        choices=["3b", "7b", "14b", "32b"],
         default="3b",
         help="Model size (default: 3b)",
     )
