@@ -3,14 +3,33 @@
 This module defines:
 - SweepRequest: The single config object that flows through the system
 - Constants: MODEL_CONFIGS, CONCEPTS, etc.
-- Helpers: get_default_layers()
+- Helpers: get_default_layers(), compute_code_hash()
+
 """
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel
+
+
+def compute_code_hash() -> str:
+    """Hash sweep code files to detect stale deployments.
+
+    Returns a short hash of config.py, sweep.py, and modal_app.py.
+    Used to verify deployed Modal app matches local code.
+    """
+    sweep_dir = Path(__file__).parent
+    files = ["config.py", "sweep.py", "modal_app.py"]
+    content = "".join((sweep_dir / f).read_text() for f in sorted(files))
+    return hashlib.sha256(content.encode()).hexdigest()[:12]
+
+
+# Computed at import time - baked into deployed app
+CODE_HASH = compute_code_hash()
 
 # Concepts for introspection testing
 CONCEPTS = ["celebration", "ocean", "fear", "silence"]

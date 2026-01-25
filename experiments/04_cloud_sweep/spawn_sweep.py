@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from config import (
+    CODE_HASH,
     CONCEPTS,
     DEFAULT_STRENGTHS,
     DEFAULT_TRIALS,
@@ -137,6 +138,18 @@ def main() -> int:
         print("ERROR: App not deployed. Run this first:")
         print("  uv run modal deploy experiments/04_cloud_sweep/modal_app.py")
         return 1
+
+    # Check deployed app version matches local code
+    try:
+        hash_fn = modal.Function.from_name("open-introspection-sweep", "get_code_hash")
+        deployed_hash = hash_fn.remote()
+        if deployed_hash != CODE_HASH:
+            print(f"ERROR: Deployed app is stale (hash {deployed_hash} vs local {CODE_HASH})")
+            print("Run: uv run modal deploy experiments/04_cloud_sweep/modal_app.py")
+            return 1
+    except modal.exception.NotFoundError:
+        print("WARNING: Deployed app missing version check - redeploy recommended")
+        print("  uv run modal deploy experiments/04_cloud_sweep/modal_app.py")
 
     print(f"Spawning {len(requests)} jobs on Modal...")
     print()

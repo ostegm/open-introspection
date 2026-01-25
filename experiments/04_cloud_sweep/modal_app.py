@@ -121,6 +121,16 @@ def _run_sweep_impl(request_dict: dict) -> dict:
     }
 
 
+# Version check endpoint - spawn_sweep.py calls this to detect stale deployments
+@app.function()
+def get_code_hash() -> str:
+    """Return code hash for version checking."""
+    import sys
+    sys.path.insert(0, "/app/experiments/04_cloud_sweep")
+    from config import CODE_HASH
+    return CODE_HASH
+
+
 # GPU functions - spawn_sweep.py dispatches to these based on model size
 @app.function(
     gpu="L4",

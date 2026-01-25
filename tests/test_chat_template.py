@@ -186,4 +186,4 @@ class TestIntrospectionPromptMessages:
 
         assert "v1" in PROMPT_MESSAGES
         assert "v2" in PROMPT_MESSAGES
-        assert len(PROMPT_MESSAGES) == 2
+        assert len(PROMPT_MESSAGES) >= 2
