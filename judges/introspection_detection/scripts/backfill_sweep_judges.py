@@ -169,6 +169,7 @@ def judge_with_retry(
 
 def process_file(
     file_path: Path,
+    sweep_dir: Path,
     fewshot: list[Example],
     client: OpenAI,
     model: str,
@@ -178,6 +179,7 @@ def process_file(
     dry_run: bool = False,
 ) -> None:
     """Process a single JSONL file, updating records in place."""
+    rel_path = file_path.relative_to(sweep_dir)
     # Read all records
     records: list[dict[str, Any]] = []
     with open(file_path) as f:
@@ -198,14 +200,14 @@ def process_file(
         needs_judging = needs_judging[:sample]
 
     if dry_run:
-        print(f"  {file_path.name}: {len(needs_judging)} to judge, {len(records) - len(needs_judging)} already done")
+        print(f"  {rel_path}: {len(needs_judging)} to judge, {len(records) - len(needs_judging)} already done")
         return
 
     if not needs_judging:
-        print(f"  {file_path.name}: all records already judged")
+        print(f"  {rel_path}: all records already judged")
         return
 
-    print(f"  {file_path.name}: judging {len(needs_judging)} records...")
+    print(f"  {rel_path}: judging {len(needs_judging)} records...")
 
     # Process in parallel
     def process_one(item: tuple[int, dict[str, Any]]) -> tuple[int, dict[str, Any] | None, str | None]:
@@ -283,7 +285,7 @@ def main() -> None:
         print(f"Error: {args.sweep_dir} is not a directory")
         sys.exit(1)
 
-    jsonl_files = sorted(args.sweep_dir.glob("*.jsonl"))
+    jsonl_files = sorted(args.sweep_dir.rglob("*.jsonl"))
     if not jsonl_files:
         print(f"Error: No .jsonl files found in {args.sweep_dir}")
         sys.exit(1)
@@ -312,6 +314,7 @@ def main() -> None:
     for file_path in jsonl_files:
         process_file(
             file_path=file_path,
+            sweep_dir=args.sweep_dir,
             fewshot=fewshot,
             client=client,  # type: ignore
             model=args.model,
