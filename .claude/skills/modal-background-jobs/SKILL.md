@@ -42,109 +42,141 @@ When you run `modal run app.py`:
 
 ## The Solution
 
-### Step 1: Deploy the App
+### Step 1: Define a Config Model
 
-```bash
-# Creates a PERSISTENT deployment
-uv run modal deploy my_app.py
-```
-
-This creates an always-available deployment that survives local process termination.
-
-### Step 2: Spawn Jobs from a Separate Script
+Use Pydantic for typed, validated config. Pass as dict for Modal serialization:
 
 ```python
-import modal
+# config.py
+from pydantic import BaseModel
 
-def spawn_job():
-    # Look up the DEPLOYED function (not the local one)
-    fn = modal.Function.from_name("my-app-name", "my_function_name")
-
-    # spawn() returns immediately - job runs independently
-    call = fn.spawn(arg1=value1, arg2=value2)
-    print(f"Job spawned: {call.object_id}")
-    print("You can close this terminal now.")
-
-if __name__ == "__main__":
-    spawn_job()
+class JobRequest(BaseModel):
+    """Single config object for the job."""
+    task_id: str
+    model_name: str
+    layers: list[int]
+    output_path: str
 ```
 
-### Key Differences
+### Step 2: Create the Modal App
 
-| Method | Blocks? | Survives Ctrl+C? | Survives terminal close? |
-|--------|---------|------------------|--------------------------|
-| `.remote()` on ephemeral app | Yes | No | No |
-| `.spawn()` on ephemeral app | No | No | No |
-| `.spawn()` on deployed app | No | Yes | Yes |
-
-## Complete Example
-
-### 1. The Modal App (`modal_app.py`)
+Functions take a single `request: dict` parameter:
 
 ```python
+# modal_app.py
 import modal
 
 app = modal.App("my-gpu-app")
 
 @app.function(gpu="L4", timeout=4*60*60)
-def long_running_job(task_id: str, config: dict) -> dict:
-    # Your GPU work here
-    import time
-    time.sleep(3600)  # 1 hour job
-    return {"task_id": task_id, "status": "complete"}
+def run_job(request: dict) -> dict:
+    # Import inside function (runs on Modal worker)
+    from config import JobRequest
+
+    # Convert dict back to typed Pydantic model
+    req = JobRequest.model_validate(request)
+
+    # Now use typed fields: req.task_id, req.layers, etc.
+    result = do_work(req.model_name, req.layers)
+
+    return {"status": "success", "task_id": req.task_id}
 ```
 
-### 2. Deploy Once
+### Step 3: Deploy Once
 
 ```bash
 modal deploy modal_app.py
 # Output: App deployed! View at https://modal.com/apps/.../deployed/my-gpu-app
 ```
 
-### 3. Spawn Script (`spawn_jobs.py`)
+### Step 4: Create a Spawn Script
 
 ```python
+# spawn_jobs.py
 import modal
+from config import JobRequest
 
 def main():
-    # Get reference to the DEPLOYED function
-    job_fn = modal.Function.from_name("my-gpu-app", "long_running_job")
+    # Look up the DEPLOYED function
+    job_fn = modal.Function.from_name("my-gpu-app", "run_job")
 
-    tasks = ["task1", "task2", "task3", "task4"]
+    tasks = ["task1", "task2", "task3"]
 
     for task_id in tasks:
-        call = job_fn.spawn(task_id=task_id, config={"key": "value"})
+        # Build typed config
+        request = JobRequest(
+            task_id=task_id,
+            model_name="gpt-2",
+            layers=[1, 2, 3],
+            output_path=f"gs://bucket/{task_id}.json",
+        )
+
+        # Pass as dict for serialization
+        call = job_fn.spawn(request=request.model_dump())
         print(f"Spawned {task_id}: {call.object_id}")
 
     print("\nAll jobs spawned. You can close this terminal.")
-    print("Monitor at: https://modal.com/apps")
 
 if __name__ == "__main__":
     main()
 ```
 
-### 4. Run and Forget
+### Step 5: Run and Forget
 
 ```bash
 python spawn_jobs.py
-# Output:
 # Spawned task1: fc-01ABC123...
 # Spawned task2: fc-01DEF456...
-# ...
 # All jobs spawned. You can close this terminal.
 
 # Now close terminal - jobs keep running!
 ```
 
-## Monitoring Spawned Jobs
+## Why Config Dicts?
 
-```bash
-# List apps and their status
-modal app list
+| Approach | Pros | Cons |
+|----------|------|------|
+| Many individual args | Simple for 2-3 params | Messy at scale, no validation |
+| **Config dict (recommended)** | Typed, validated, extensible | Slightly more setup |
 
-# View specific app
-# Go to: https://modal.com/apps/YOUR_USERNAME/main/deployed/my-gpu-app
+Benefits:
+- **Validated at spawn time** — catch errors before GPU spin-up
+- **Easy to extend** — add fields without changing function signatures
+- **Self-documenting** — Pydantic model is the schema
+- **Serializes cleanly** — dicts work with Modal's transport
+
+## Fail-Fast Checks
+
+Check preconditions in the spawn script before wasting compute:
+
+```python
+# spawn_jobs.py
+from google.cloud import storage
+
+def output_exists(gcs_path: str) -> bool:
+    client = storage.Client()
+    bucket_name, blob_name = gcs_path.replace("gs://", "").split("/", 1)
+    return client.bucket(bucket_name).blob(blob_name).exists()
+
+def main():
+    job_fn = modal.Function.from_name("my-gpu-app", "run_job")
+
+    request = JobRequest(...)
+
+    # Check BEFORE spawning
+    if output_exists(request.output_path):
+        raise ValueError(f"Output already exists: {request.output_path}")
+
+    call = job_fn.spawn(request=request.model_dump())
 ```
+
+## Key Differences
+
+| Method | Blocks? | Survives Ctrl+C? | Survives terminal close? |
+|--------|---------|------------------|--------------------------|
+| `.remote()` on ephemeral app | Yes | No | No |
+| `.spawn()` on ephemeral app | No | No | No |
+| `.spawn()` on deployed app | No | Yes | Yes |
 
 ## Common Mistakes
 
@@ -181,6 +213,16 @@ Spawned jobs use the deployed code, not your local changes.
 @app.function(gpu="A100")    # 40GB or 80GB
 @app.function(gpu="A100-80GB")  # Explicitly 80GB
 @app.function(gpu="H100")    # 80GB, fastest
+```
+
+## Monitoring
+
+```bash
+# List apps and their status
+modal app list
+
+# View specific app
+# Go to: https://modal.com/apps/YOUR_USERNAME/main/deployed/my-gpu-app
 ```
 
 ## Debugging

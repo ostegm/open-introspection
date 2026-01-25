@@ -51,10 +51,10 @@ class SweepRequest(BaseModel):
     trials: int
     experiment_id: str
     inject_style: Literal["all", "generation"]
-    skip_judge: bool
     layers: list[int]
     strengths: list[float]
     gcs_path: str  # Full GCS path, e.g. gs://bucket/exp/model/concept.jsonl
+    prompt_version: str = "v2"
 
 
 def get_default_layers(model_size: str) -> list[int]:

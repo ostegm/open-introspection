@@ -3,18 +3,18 @@
 This module runs the actual sweep logic. It's called by modal_app.py.
 
 The main entry point is run_sweep(request: SweepRequest) -> dict.
+
+Judging is done separately after the sweep via backfill_sweep_judges.py.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import os
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Literal
 
 import torch
 from pydantic import BaseModel
@@ -38,10 +38,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Fault tolerance settings
-JUDGE_MAX_RETRIES = 3
-JUDGE_RETRY_BASE_DELAY = 1.0  # seconds, doubles each retry
-
 
 # =============================================================================
 # Data Models (for trial records)
@@ -61,17 +57,8 @@ class SweepConfig(BaseModel):
     trial: int
 
 
-class JudgeOutput(BaseModel):
-    """Result from the introspection judge."""
-
-    answer: Literal["pass", "fail"]
-    coherent: bool
-    detected_concept: str | None = None
-    reasoning: str
-
-
 class TrialRecord(BaseModel):
-    """A single sweep trial with optional judge result."""
+    """A single sweep trial. Judge fields added later by backfill."""
 
     id: str
     timestamp: str  # ISO format for when trial was run
@@ -79,117 +66,6 @@ class TrialRecord(BaseModel):
     was_injected: bool
     response: str
     config: SweepConfig
-    judge: JudgeOutput | None = None
-    judge_error: str | None = None
-
-
-# =============================================================================
-# Judge Client
-# =============================================================================
-
-
-class JudgeClient:
-    """Wrapper for judge with retry logic."""
-
-    def __init__(self) -> None:
-        self.client: Any = None  # OpenAI client, typed as Any to avoid import
-        self.fewshot: list[Any] = []
-        self._initialized = False
-
-    def initialize(self) -> bool:
-        """Initialize judge client and load few-shot examples."""
-        if self._initialized:
-            return self.client is not None
-
-        self._initialized = True
-
-        try:
-            from openai import OpenAI
-
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                logger.warning("OPENAI_API_KEY not set, judging disabled")
-                return False
-
-            self.client = OpenAI(api_key=api_key)
-
-            # Import judge modules (now a proper package)
-            from judges.introspection_detection import judge as judge_module
-
-            # Load few-shot examples
-            train_path = PROJECT_ROOT / "judges/introspection_detection/data/train.jsonl"
-            if train_path.exists():
-                self.fewshot = judge_module.load_fewshot_examples(train_path)
-                logger.info("Loaded %d few-shot examples", len(self.fewshot))
-
-            return True
-        except ImportError as e:
-            logger.warning("Judge dependencies not available: %s", e)
-            return False
-
-    def judge_with_retry(
-        self,
-        concept: str,
-        was_injected: bool,
-        response: str,
-        config: SweepConfig,
-    ) -> tuple[JudgeOutput | None, str | None]:
-        """
-        Run judge with exponential backoff retry.
-
-        Returns:
-            (JudgeOutput, None) on success, or (None, error_message) on failure
-        """
-        if self.client is None:
-            return None, "Judge not initialized"
-
-        from judges.introspection_detection import judge as judge_module
-        from judges.introspection_detection.schemas import (
-            Example,
-            ExperimentConfig,
-            Label,
-        )
-
-        # Create Example object for the judge
-        example = Example(
-            id="temp",
-            source_file="sweep",
-            concept=concept,
-            was_injected=was_injected,
-            response=response,
-            config=ExperimentConfig(
-                layer=config.layer,
-                strength=config.strength,
-                prompt_version=config.prompt_version,
-                inject_style=config.inject_style,
-            ),
-            label=Label(),
-        )
-
-        last_error = None
-        for attempt in range(JUDGE_MAX_RETRIES):
-            try:
-                result = judge_module.judge_example(example, self.fewshot, self.client)
-                return JudgeOutput(
-                    answer=result.answer,
-                    coherent=result.coherent,
-                    detected_concept=result.detected_concept,
-                    reasoning=result.reasoning,
-                ), None
-            except Exception as e:
-                last_error = str(e)
-                if attempt < JUDGE_MAX_RETRIES - 1:
-                    delay = JUDGE_RETRY_BASE_DELAY * (2**attempt)
-                    logger.warning(
-                        "Judge attempt %d failed: %s. Retrying in %.1fs",
-                        attempt + 1,
-                        e,
-                        delay,
-                    )
-                    time.sleep(delay)
-
-        logger.error("Judge failed after %d attempts: %s", JUDGE_MAX_RETRIES, last_error)
-        return None, last_error
 
 
 # =============================================================================
@@ -238,8 +114,6 @@ def _run_sweep_for_concept(
     vector_cache: dict[int, tuple[Tensor, float]] = {}
 
     # Import here to avoid loading at module import time
-    import sys
-    sys.path.insert(0, str(PROJECT_ROOT))
     from src.open_introspection.concept_extraction import (
         compute_baseline_mean,
         extract_concept_vector,
@@ -256,15 +130,6 @@ def _run_sweep_for_concept(
             )
             vector_cache[layer] = (vector, vector.norm().item())
         return vector_cache[layer]
-
-    # Initialize judge (unless skipped)
-    judge = JudgeClient()
-    if request.skip_judge:
-        logger.info("Skipping judge (skip_judge=True)")
-    elif judge.initialize():
-        logger.info("Judge initialized")
-    else:
-        logger.warning("Running without judge")
 
     trials_this_run = 0
 
@@ -287,7 +152,7 @@ def _run_sweep_for_concept(
                 layer=layer,
                 injection_strength=strength,
                 inject=was_injected,
-                prompt_version="v2",
+                prompt_version=request.prompt_version,
                 inject_style=request.inject_style,
             )
 
@@ -297,18 +162,10 @@ def _run_sweep_for_concept(
                 strength=strength,
                 magnitude=strength * vector_norm,
                 vector_norm=vector_norm,
-                prompt_version="v2",
+                prompt_version=request.prompt_version,
                 inject_style=request.inject_style,
                 trial=trial_idx,
             )
-
-            # Judge with retry (unless skipped)
-            if request.skip_judge:
-                judge_result, judge_error = None, None
-            else:
-                judge_result, judge_error = judge.judge_with_retry(
-                    concept, was_injected, response, config
-                )
 
             # Build and write record
             record = TrialRecord(
@@ -318,8 +175,6 @@ def _run_sweep_for_concept(
                 was_injected=was_injected,
                 response=response,
                 config=config,
-                judge=judge_result,
-                judge_error=judge_error,
             )
             f.write(record.model_dump_json() + "\n")
             f.flush()
@@ -342,9 +197,6 @@ def run_sweep(request: SweepRequest) -> dict:
     Returns:
         dict with: status, concept, trials_completed, local_output_path
     """
-    import sys
-    sys.path.insert(0, str(PROJECT_ROOT))
-
     from src.open_introspection.model import load_model
 
     logger.info("=" * 60)
@@ -352,6 +204,7 @@ def run_sweep(request: SweepRequest) -> dict:
     logger.info("=" * 60)
     logger.info("Concept: %s", request.concept)
     logger.info("Model: %s", request.model_size)
+    logger.info("Prompt version: %s", request.prompt_version)
     logger.info("Inject style: %s", request.inject_style)
     logger.info("Trials per config: %d", request.trials)
     logger.info("Experiment ID: %s", request.experiment_id)

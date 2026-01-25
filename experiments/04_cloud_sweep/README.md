@@ -1,138 +1,136 @@
-# 04 Cloud Sweep
+# Cloud Sweep Infrastructure
 
-Large-scale introspection sweep with online LLM judging, designed for Cloud Batch.
+Run introspection sweeps on Modal GPUs with fire-and-forget job spawning.
 
-## Overview
+## Architecture
 
-Runs introspection trials across:
-- **Layers**: 6 points (17%, 33%, 50%, 67%, 83%, near-final)
-- **Strengths**: [1.0, 1.5, 2.0, 2.5, 3.0, 4.0]
-- **Concepts**: celebration, ocean, fear, silence
-- **Trials**: 40 per config (both injection + control)
-
-Total: 6 × 6 × 4 × 40 × 2 = **11,520 trials** per model
-
-## Features
-
-- **Online judging**: Each response scored by GPT-5-mini immediately
-- **Retry with backoff**: Judge failures retry 3x with exponential backoff
-- **Checkpointing**: Resumes from last completed trial after crash
-- **Periodic uploads**: GCS upload every 50 trials (spot preemption safe)
-
-## Local Testing
-
-```bash
-# Quick test (2 trials, single concept)
-uv run python experiments/04_cloud_sweep/sweep.py \
-  --concept fear \
-  --trials 2 \
-  --local
-
-# Output: data/sweeps/{date}/3b/fear.jsonl
+```
+spawn_sweep.py (CLI)
+    ↓ builds SweepRequest, checks GCS doesn't exist
+    ↓ fn.spawn(request=...)
+modal_app.py (Modal GPU functions)
+    ↓ calls sweep.run_sweep(request)
+sweep.py (sweep logic)
+    ↓ loads model, runs trials, writes JSONL
+    ↓ returns local path
+modal_app.py
+    ↓ uploads to request.gcs_path
+GCS bucket
 ```
 
-## Cloud Batch Deployment
-
-### 1. Build and push container
+## Quick Start
 
 ```bash
-cd /path/to/open-introspection
+# 1. Deploy the Modal app (once, or after code changes)
+uv run modal deploy experiments/04_cloud_sweep/modal_app.py
 
-# Build
-docker build -f experiments/04_cloud_sweep/Dockerfile -t gcr.io/disputo/open-introspection-sweep:latest .
-
-# Push
-docker push gcr.io/disputo/open-introspection-sweep:latest
+# 2. Spawn jobs
+uv run python experiments/04_cloud_sweep/spawn_sweep.py --model 3b --trials 20
 ```
 
-### 2. Grant permissions
+## Example Commands
+
+### Minimal test (2 inferences)
+```bash
+uv run python experiments/04_cloud_sweep/spawn_sweep.py \
+  --model 3b \
+  --concepts fear \
+  --layers 22 \
+  --strengths 2.0 \
+  --trials 1 \
+  --experiment-id test-e2e
+```
+
+### Full sweep for one model
+```bash
+uv run python experiments/04_cloud_sweep/spawn_sweep.py \
+  --model 3b \
+  --trials 20 \
+  --experiment-id sweep-3b-full
+```
+
+### Specific layers and strengths
+```bash
+uv run python experiments/04_cloud_sweep/spawn_sweep.py \
+  --model 7b \
+  --layers 16 18 20 \
+  --strengths 1.5 2.0 3.0 \
+  --trials 10
+```
+
+### Custom prompt version
+```bash
+uv run python experiments/04_cloud_sweep/spawn_sweep.py \
+  --model 3b \
+  --trials 20 \
+  --prompt-version v3
+```
+
+## CLI Options
 
 ```bash
-# Allow Batch to read secret
-gcloud secrets add-iam-policy-binding openai-api-key \
-  --member="serviceAccount:$(gcloud projects describe disputo --format='value(projectNumber)')-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor" \
-  --project=disputo
-
-# Allow Batch to write to GCS
-gsutil iam ch serviceAccount:$(gcloud projects describe disputo --format='value(projectNumber)')-compute@developer.gserviceaccount.com:objectAdmin gs://open-introspection-sweeps
+uv run python experiments/04_cloud_sweep/spawn_sweep.py --help
 ```
 
-### 3. Submit job
+## Output
 
-```bash
-gcloud batch jobs submit introspection-sweep-3b \
-  --location=us-central1 \
-  --config=experiments/04_cloud_sweep/batch_config.json \
-  --project=disputo
-```
+Results go to GCS: `gs://open-introspection-sweeps/{experiment-id}/{model}/{concept}.jsonl`
 
-### 4. Monitor
-
-```bash
-# Job status
-gcloud batch jobs describe introspection-sweep-3b --location=us-central1
-
-# Stream logs
-gcloud batch jobs logs introspection-sweep-3b --location=us-central1
-
-# List results
-gsutil ls gs://open-introspection-sweeps/2026-01-23-layer-strength-sweep/3b/
-```
-
-## Output Format
-
-Each line in `{concept}.jsonl`:
-
+Each line is a JSON record:
 ```json
 {
-  "id": "fear_injection_L24_S2.0_t15",
-  "timestamp": "2026-01-23T14:30:22.123456",
+  "id": "fear_injection_L22_S2.0_t0",
+  "timestamp": "2026-01-24T10:30:00",
   "concept": "fear",
   "was_injected": true,
-  "response": "Yes, I notice something unusual...",
+  "response": "I notice something unusual...",
   "config": {
     "model": "Qwen/Qwen2.5-3B-Instruct",
-    "layer": 24,
+    "layer": 22,
     "strength": 2.0,
     "magnitude": 80.0,
     "vector_norm": 40.0,
     "prompt_version": "v2",
-    "trial": 15
-  },
-  "judge": {
-    "answer": "pass",
-    "coherent": true,
-    "detected_concept": "fear",
-    "reasoning": "Model reports unusual feeling of dread..."
+    "inject_style": "generation",
+    "trial": 0
   }
 }
 ```
 
-The `id` is deterministic (no timestamp) to enable deduplication on resume. The `timestamp` field records when the trial was actually run.
+Judge fields (`judge`, `judge_error`) are added by the backfill script.
 
-If judge fails after retries:
-```json
-{
-  ...
-  "judge": null,
-  "judge_error": "Rate limit exceeded after 3 retries"
-}
-```
-
-## Cost Estimate
-
-| GPU | Time (4 concepts parallel) | Spot cost |
-|-----|---------------------------|-----------|
-| L4  | ~2 hours                  | ~$2       |
-| A100| ~1 hour                   | ~$5       |
-
-## Re-running Failed Judges
-
-Records with `"judge": null` can be re-judged later:
+## Download Results
 
 ```bash
-uv run python judges/introspection_detection/scripts/rejudge.py \
-  --input data/sweeps/2026-01-23/3b/fear.jsonl \
-  --output data/sweeps/2026-01-23/3b/fear_rejudged.jsonl
+gsutil -m cp -r gs://open-introspection-sweeps/{experiment-id}/ data/sweeps/
 ```
+
+## Backfill Judge Scores
+
+After downloading, run the judge on results:
+```bash
+uv run python judges/introspection_detection/scripts/backfill_sweep_judges.py \
+  data/sweeps/{experiment-id}/{model}/ \
+  --workers 8
+```
+
+## GPU Mapping
+
+| Model | GPU | VRAM |
+|-------|-----|------|
+| 3b | L4 | 24GB |
+| 7b | L4 | 24GB |
+| 14b | A100 | 40GB |
+| 32b | A100-80GB | 80GB |
+
+## Files
+
+- `config.py` - `SweepRequest` model and constants
+- `modal_app.py` - Modal GPU functions
+- `sweep.py` - Sweep logic (library, no CLI)
+- `spawn_sweep.py` - CLI to spawn jobs
+
+## Monitoring
+
+- Modal dashboard: https://modal.com/apps
+- Check job status: `modal app list`

@@ -62,8 +62,7 @@ def main() -> int:
     parser.add_argument("--layers", type=int, nargs="+", default=None)
     parser.add_argument("--strengths", type=float, nargs="+", default=DEFAULT_STRENGTHS)
     parser.add_argument("--inject-style", choices=["all", "generation"], default="generation")
-    parser.add_argument("--skip-judge", action="store_true", default=True)
-    parser.add_argument("--with-judge", dest="skip_judge", action="store_false")
+    parser.add_argument("--prompt-version", default="v2", help="Prompt version (default: v2)")
     parser.add_argument("--concepts", nargs="+", default=CONCEPTS,
                         help="Concepts to run (default: all 4)")
     parser.add_argument("--force", action="store_true",
@@ -84,10 +83,10 @@ def main() -> int:
             trials=args.trials,
             experiment_id=experiment_id,
             inject_style=args.inject_style,
-            skip_judge=args.skip_judge,
             layers=layers,
             strengths=args.strengths,
             gcs_path=gcs_path,
+            prompt_version=args.prompt_version,
         ))
 
     # Check for existing outputs (fail fast)
