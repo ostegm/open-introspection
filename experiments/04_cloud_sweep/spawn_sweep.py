@@ -23,8 +23,9 @@ from pathlib import Path
 import modal
 from google.cloud import storage
 
-# Add this directory to path for config import (must happen before local imports)
+# Add paths for imports (must happen before local imports)
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from config import (
     CONCEPTS,
@@ -36,6 +37,7 @@ from config import (
     SweepRequest,
     get_default_layers,
 )
+from src.open_introspection.introspection import PROMPT_MESSAGES
 
 
 def gcs_path_exists(gcs_path: str) -> bool:
@@ -72,6 +74,13 @@ def main() -> int:
     experiment_id = args.experiment_id or datetime.now().strftime("sweep-%Y%m%d-%H%M%S")
     layers = args.layers or get_default_layers(args.model)
     n_layers = int(MODEL_CONFIGS[args.model]["n_layers"])
+
+    # Validate prompt version (fail fast)
+    if args.prompt_version not in PROMPT_MESSAGES:
+        valid = ", ".join(sorted(PROMPT_MESSAGES.keys()))
+        print(f"ERROR: Invalid prompt version '{args.prompt_version}'")
+        print(f"Valid options: {valid}")
+        return 1
 
     # Build requests for each concept
     requests: list[SweepRequest] = []
