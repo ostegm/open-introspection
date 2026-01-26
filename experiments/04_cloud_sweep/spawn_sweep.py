@@ -60,7 +60,8 @@ def gcs_path_exists(gcs_path: str) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Spawn sweep jobs on deployed Modal app")
     parser.add_argument("--trials", type=int, default=DEFAULT_TRIALS)
-    parser.add_argument("--model", choices=["0.5b", "1.5b", "3b", "7b", "14b", "32b", "72b"], default="3b")
+    model_choices = ["0.5b", "1.5b", "3b", "7b", "14b", "32b", "72b"]
+    parser.add_argument("--model", choices=model_choices, default="3b")
     parser.add_argument("--experiment-id", default=None)
     parser.add_argument("--layers", type=int, nargs="+", default=None)
     parser.add_argument("--strengths", type=float, nargs="+", default=DEFAULT_STRENGTHS)
