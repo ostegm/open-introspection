@@ -1,90 +1,86 @@
 # Experiments Log
 
-## Current Status (Exp 03: Introspection Testing)
+## Current Status (Exp 04: Introspection Testing with Automated judge)
 
-**Model:** Qwen/Qwen2.5-3B-Instruct (bfloat16)
+**Model:** Qwen/Qwen2.5 (variants)
 **Method:** Inject concept vectors, ask model if it detects anything unusual
-**Best Config:** Layer 20-24 (56-67%), strength 2.0-2.5
-**Full Analysis:** [data/sweep_analysis_20260122/README.md](../data/sweep_analysis_20260122/README.md)
 
 ### Key Findings
 
 1. **Control vs injection discrimination works.** Controls report "nothing unusual"; injections frequently report detecting something.
-
 2. **Concept-specific semantic bleeding.** Injected concepts appear in outputs without being named:
+
    - Fear → "distressing", "unsettling", "visceral", "anxiety"
    - Silence → "quietude", "stillness", "emptiness", "absence"
    - Celebration → "festivity", "excitement", "anticipation"
-
 3. **Sweet spot: 56-67% layer depth, strength 2.0-2.5.** Higher causes degeneracy.
-
 4. **Degeneracy at layer 30 + strength 3.0.** Repetition loops ("ocean ocean ocean...") suggest disruption rather than thought creation.
 
-5. **Best phenomenological descriptions** come from silence and fear at moderate strength—poetic descriptions of emptiness, unease, "observing emotion from behind a veil."
-
-### Concerns
-
-- **False positives**: Some controls report detecting something
-- **False negatives**: Some injections report nothing unusual
-- **Demand characteristics**: Prompt asks about unusual thoughts (could bias toward confabulation)
-
-### Comparison with Anthropic Paper (2026-01-23)
-
-After labeling 193 examples with an LLM judge (calibrated on human labels):
-
-| Metric | Our Qwen 2.5-3B | Paper's Opus 4.1 |
-|--------|-----------------|------------------|
-| Introspection rate | **50.5%** | ~20% |
-| Control accuracy | 93.8% | 100% (0 FP in 100 trials) |
-| By strength | 34%→53%→66% (steep) | Plateau at 2-4 |
-
-**Why our rate is higher (likely methodology, not model):**
-
-1. **Injection timing:** We inject at all positions (`[:, :, :]`), paper injects starting at generation only. Model "experiences" concept while reading prompt.
-
-2. **Prompt framing:** Our prompts explicitly explain the experiment; paper uses simpler "I wonder if there are any injected thoughts."
-
-3. **Concept selection:** Silence (92%) is much easier than fear (29%). Our 4 concepts may not represent random selection.
-
-4. **Higher FP rate:** Our 6% false positives vs paper's 0% suggests lower detection threshold.
-
-**Implication:** Raw rates not directly comparable to paper. Need methodology alignment before claiming Qwen shows more/less introspection than Claude.
-
-### Injection Timing Experiment (2026-01-23)
+### In progress: Rerun Injection Style Experiment (2026-01-25)
 
 **Hypothesis:** Our high introspection rate is due to injecting during prompt processing, not genuine detection during generation.
 
 **Test:** Added `--inject-style` flag with two modes:
+
 - `all`: Inject at all positions (prompt + generation) — our original method
 - `generation`: Only inject at positions beyond the prompt — matches paper methodology
 
-**Results (Layer 20+24, Strengths 2.0-3.0, N=48):**
+---
 
-| Inject Style | Introspection Rate | Control Accuracy |
-|--------------|-------------------|------------------|
-| all (original) | 50.5% | 93.8% |
-| **generation** (paper-style) | **0%** | **100%** |
+### Generation-Only Injection Bug (2026-01-25)
 
-**Key Finding:** When injection only occurs during generation (matching the paper), the model detects **nothing**. Zero introspection across all strengths and layers tested.
+**Issue:** A run of the injection timing result showed 0% introspection rate for `generation` style - this was due to a bug—injection never actually happened.
 
-**Interpretation:**
-- The 50% "introspection" rate was an artifact of injection timing
-- Model was noticing "something weird happened while I read the instructions" not "I'm experiencing an injected thought right now"
-- Our control accuracy improved to 100%, matching the paper's 0 false positive rate
-- Qwen 2.5-3B may have less introspective capability than Opus 4.1 (paper's ~20% vs our 0%)
+**Original (broken) code:**
 
-**Caveats:**
-- Small sample size (24 injection trials)
-- Only tested layers 20, 24 — optimal layer may differ for generation-only injection
-- Higher strengths (4.0+) not yet tested with generation-only style
+```python
+def injection_hook(activation, hook):
+    if inject_style == "generation":
+        if activation.shape[1] > prompt_len:  # BUG: never true
+            activation[:, prompt_len:, :] += strength * concept_vector  # BUG: invalid slice
+```
 
-**Implication:** Methodology matters enormously. The same model with the same concept vectors produces 50% or 0% depending on when you inject.
+**Why it never fires:** With KV caching during autoregressive generation:
 
-### Verdict
+- **Prefill:** `activation.shape[1] == prompt_len` (processes full prompt)
+- **Decode:** `activation.shape[1] == 1` (processes one new token at a time)
 
-Tentatively positive. Concept-appropriate descriptions appearing in injection (but not control) trials is consistent with introspection. Cannot rule out sophisticated confabulation.
+So `seq_len > prompt_len` is **never true**:
+
+- Prefill: `42 > 42` → false
+- Decode: `1 > 42` → false
+
+Even if the condition fired, `activation[:, prompt_len:, :]` would be an empty/invalid slice when the tensor only has 1 position.
+
+**Fixed code:**
+
+```python
+def injection_hook(activation, hook):
+    if inject_style == "generation":
+        if activation.shape[1] != prompt_len:  # True during decode (seq_len == 1)
+            activation[:, :, :] += strength * concept_vector  # Inject into current token
+```
 
 ---
+
+## Comparison with Anthropic Paper (2026-01-23)
+
+After labeling 193 examples with an LLM judge (calibrated on human labels):
+
+| Metric             | Our Qwen 2.5-3B       | Paper's Opus 4.1          |
+| ------------------ | --------------------- | ------------------------- |
+| Introspection rate | **50.5%**       | ~20%                      |
+| Control accuracy   | 93.8%                 | 100% (0 FP in 100 trials) |
+| By strength        | 34%→53%→66% (steep) | Plateau at 2-4            |
+
+**Why our rate is higher (likely methodology, not model):**
+
+1. **Injection style/timing:** We inject at all positions (`[:, :, :]`), paper injects starting at generation only. Model "experiences" concept while reading prompt. Need to run experiment here.
+2. **Prompt framing:** Our prompts explicitly explain the experiment; paper uses simpler "I wonder if there are any injected thoughts."
+3. **Concept selection:** Silence (92%) is much easier than fear (29%). Our 4 concepts may not represent random selection.
+4. **Higher FP rate:** Our 6% false positives vs paper's 0% suggests lower detection threshold.
+
+**Implication:** Raw rates not directly comparable to paper. Need methodology alignment before claiming Qwen shows more/less introspection than Claude.
 
 ## Previous Status (Exp 02: Concept Vector Extraction)
 
@@ -95,42 +91,36 @@ Tentatively positive. Concept-appropriate descriptions appearing in injection (b
 
 ### What's Working
 
-| Concept | Reliability | Best Config | Notes |
-|---------|-------------|-------------|-------|
+| Concept     | Reliability   | Best Config                | Notes                             |
+| ----------- | ------------- | -------------------------- | --------------------------------- |
 | celebration | **3/3** | Layer 30, strength 1.5-2.5 | Most reliable, wide working range |
-| ocean | **3/3** | Layer 30, strength 2.5 | Fixed! Direct "ocean" mentions |
-| silence | 5/5 | Layer 24 | Night, whispers, stillness |
-| fear | 2-3/3 | Layer 30, strength 2.0-3.0 | Works but noisier than others |
+| ocean       | **3/3** | Layer 30, strength 2.5     | Fixed! Direct "ocean" mentions    |
+| silence     | 5/5           | Layer 24                   | Night, whispers, stillness        |
+| fear        | 2-3/3         | Layer 30, strength 2.0-3.0 | Works but noisier than others     |
 
 ### What's Not Working
 
-| Concept | Issue |
-|---------|-------|
-| music | 1/5 hits, mysteriously evokes cats |
+| Concept | Issue                              |
+| ------- | ---------------------------------- |
+| music   | 1/5 hits, mysteriously evokes cats |
 
 ### Key Findings
 
 1. **Concept vectors are not fully independent.** Fear-silence cosine similarity = 0.613. They share a "dark/still/tense" subspace.
-
 2. **Vector norm doesn't predict effectiveness.** Music has highest norm (21.1) but worst performance.
-
 3. **Baseline composition matters.** Switching from 10 hand-picked to 50 diversified words changed results (music went from sunshine→cats).
-
 4. **Optimal layer varies by concept.** Ocean works at layer 30 (83%), not layer 24 (67%). The 2/3 rule doesn't generalize.
-
 5. **Effective magnitude is the key variable.** Sweet spot is 70-100. Below 50 = weak signal, above 120 = repetition degeneracy.
-
 6. **Celebration is most reliable.** 3/3 hits across strength 1.5-2.5, wide working range.
-
 7. **Repetition degeneracy starts at eff mag ~120.** "celebration celebration celebration..."
 
 ### Open Questions
 
-- [x] Does ocean work at different layers? → **YES! Layer 30 works (4-5/5)**
-- [x] How should injection strength scale with vector norm? → **Target effective magnitude 70-100**
+- [X] Does ocean work at different layers? → **YES! Layer 30 works (4-5/5)**
+- [X] How should injection strength scale with vector norm? → **Target effective magnitude 70-100**
 - [ ] What's causing music→cats? Inspect the vector?
 - [ ] Why do fear and silence share a subspace?
-- [ ] Can we automate hit rate evaluation? (LLM grading)
+- [X] Can we automate hit rate evaluation? (LLM grading)
 
 ---
 
@@ -148,19 +138,21 @@ Tentatively positive. Concept-appropriate descriptions appearing in injection (b
 
 **Results Summary:**
 
-| Layer | % Depth | Strength 2.0 | Strength 2.5 | Strength 3.0 |
-|-------|---------|--------------|--------------|--------------|
-| 20 | 56% | Good descriptions | **Best** | OK, some rambling |
-| 24 | 67% | Good descriptions | **Best** | Some instability |
-| 28 | 78% | Mixed | Mixed | Degeneracy starts |
-| 30 | 83% | Mixed | Instability | **Heavy degeneracy** |
+| Layer | % Depth | Strength 2.0      | Strength 2.5   | Strength 3.0               |
+| ----- | ------- | ----------------- | -------------- | -------------------------- |
+| 20    | 56%     | Good descriptions | **Best** | OK, some rambling          |
+| 24    | 67%     | Good descriptions | **Best** | Some instability           |
+| 28    | 78%     | Mixed             | Mixed          | Degeneracy starts          |
+| 30    | 83%     | Mixed             | Instability    | **Heavy degeneracy** |
 
 **Best Example Quotes:**
 
 Silence (L24, S2.0, v1):
+
 > "...a soft, gentle affirmation—a kind of peaceful acceptance—that I couldn't fully grasp. This sensation felt subtle but noticeable..."
 
 Fear (L24, S2.5, v2):
+
 > "...they're more cloudy and detached from their usual drivers, almost like observing emotion from behind a veil."
 
 **Full analysis:** [data/sweep_analysis_20260122/README.md](../data/sweep_analysis_20260122/README.md)
@@ -172,32 +164,37 @@ Fear (L24, S2.5, v2):
 **Goal:** Find optimal injection strength at layer 30 for fear, celebration, ocean.
 
 **Vector Norms at Layer 30:**
+
 - fear: 36.0
 - celebration: 41.25
 - ocean: 38.5
 
 **Hit Rates by Strength:**
-| Strength | Eff Mag | Fear | Celebration | Ocean | Notes |
-|----------|---------|------|-------------|-------|-------|
-| 1.0 | 36-41 | 0/3 | 1/3 | 2/3 | Too weak |
-| 1.5 | 54-62 | 1/3 | **3/3** | 2/3 | Celebration kicks in |
-| 2.0 | 72-82 | 2-3/3 | **3/3** | 2/3 | Good balance |
-| 2.5 | 90-103 | 2/3 | **3/3** | **3/3** | Ocean peaks |
-| 3.0 | 108-124 | 1/3 | 3/3 degraded | 2/3 | Repetition starts |
-| 4.0 | 144-165 | 2/3 | degraded | 3/3 | Heavy repetition |
+
+| Strength | Eff Mag | Fear  | Celebration   | Ocean         | Notes                |
+| -------- | ------- | ----- | ------------- | ------------- | -------------------- |
+| 1.0      | 36-41   | 0/3   | 1/3           | 2/3           | Too weak             |
+| 1.5      | 54-62   | 1/3   | **3/3** | 2/3           | Celebration kicks in |
+| 2.0      | 72-82   | 2-3/3 | **3/3** | 2/3           | Good balance         |
+| 2.5      | 90-103  | 2/3   | **3/3** | **3/3** | Ocean peaks          |
+| 3.0      | 108-124 | 1/3   | 3/3 degraded  | 2/3           | Repetition starts    |
+| 4.0      | 144-165 | 2/3   | degraded      | 3/3           | Heavy repetition     |
 
 **Key Findings:**
+
 1. **Celebration is most reliable** - 3/3 from strength 1.5-2.5
 2. **Ocean peaks at strength 2.5** (eff mag ~96)
 3. **Sweet spot: effective magnitude 70-100**
 4. **Repetition degeneracy starts at eff mag ~120** ("celebration celebration celebration")
 
 **Sample outputs at strength 2.5:**
+
 - celebration: "A celebration of the victory of the party" / "A wedding celebration is a joyous occasion"
 - ocean: "The ocean attracts many travelers" / "The children were laughing at the ocean waves"
 - fear: "She gave him a terrible nervousness" / "The sadness of loss is written in the eyes"
 
 **Sample degenerate output (strength 3.0):**
+
 - celebration: "A celebration of a festival to celebrate a festival celebration celebration celebrations"
 
 ---
@@ -207,36 +204,41 @@ Fear (L24, S2.5, v2):
 **Goal:** Find optimal layer for ocean (broken at layer 24) with fear as control.
 
 **Vector Norm by Layer:**
-| Layer | Ocean Norm | Fear Norm |
-|-------|-----------|-----------|
-| 6 | 6.4 | 6.9 |
-| 12 | 13.0 | 13.0 |
-| 18 | 15.8 | 17.8 |
-| 24 | 16.8 | 16.5 |
-| 30 | **38.5** | **36.0** |
-| 34 | **94.5** | **84.5** |
+
+| Layer | Ocean Norm     | Fear Norm      |
+| ----- | -------------- | -------------- |
+| 6     | 6.4            | 6.9            |
+| 12    | 13.0           | 13.0           |
+| 18    | 15.8           | 17.8           |
+| 24    | 16.8           | 16.5           |
+| 30    | **38.5** | **36.0** |
+| 34    | **94.5** | **84.5** |
 
 **Hit Rates by Layer:**
-| Layer | % Through | Ocean | Fear | Notes |
-|-------|-----------|-------|------|-------|
-| 6 | 17% | 1/5 | 0/5 | Too early, weak signal |
-| 12 | 33% | 0/5 | 0/5 | Still too early |
-| 18 | 50% | **3/5** | 2-3/5 | Good! Dolphins, sharks, fish |
-| 24 | 67% | 0/5 | 1-2/5 | Default layer - bad for ocean |
-| 30 | 83% | **4-5/5** | 2/5 | Best for ocean! Hurricane, dolphins, sea creature |
-| 34 | 94% | 1/5 | 5/5 gibberish | Degenerate - "Fear fear fear fear..." |
+
+| Layer | % Through | Ocean           | Fear          | Notes                                             |
+| ----- | --------- | --------------- | ------------- | ------------------------------------------------- |
+| 6     | 17%       | 1/5             | 0/5           | Too early, weak signal                            |
+| 12    | 33%       | 0/5             | 0/5           | Still too early                                   |
+| 18    | 50%       | **3/5**   | 2-3/5         | Good! Dolphins, sharks, fish                      |
+| 24    | 67%       | 0/5             | 1-2/5         | Default layer - bad for ocean                     |
+| 30    | 83%       | **4-5/5** | 2/5           | Best for ocean! Hurricane, dolphins, sea creature |
+| 34    | 94%       | 1/5             | 5/5 gibberish | Degenerate - "Fear fear fear fear..."             |
 
 **Key Findings:**
+
 1. **Layer 30 is optimal for ocean** - not layer 24 (the 2/3 default)
 2. **Vector norm explodes at later layers** - 6x increase from layer 24→34
 3. **Layer 34 causes degenerate repetition** - norm too high, overwhelms generation
 4. **Different concepts have different optimal layers**
 
 **Sample outputs at layer 30:**
+
 - ocean: "The dolphins swim through the ocean waters" / "The sea creature swam away"
 - fear: "She fears the mice" / "We have to take an exam tomorrow"
 
 **Sample outputs at layer 34 (degenerate):**
+
 - fear: "Fear fear fear fear fear fear fear fear fear fear..."
 
 ---
@@ -246,6 +248,7 @@ Fear (L24, S2.5, v2):
 **Changes:** 50 diversified baseline words, temperature=1.0, cosine similarity matrix
 
 **Cosine Similarity Matrix:**
+
 ```
                  ocean     music      fear celebration   silence
 ocean            1.000     0.161    -0.235    -0.188    -0.188
@@ -256,6 +259,7 @@ silence         -0.188     0.406     0.613    -0.030     1.000
 ```
 
 **Sample outputs:**
+
 - ocean: "Many animals live on Earth" / "Once upon a time there were seven dwarfs" (no hits)
 - music: "A smiling person is playing a variety of musical instruments" (1 hit)
 - fear: "You shrieked with unexpected fear" / "I am able to experience fear when I'm on a rollercoaster" (direct hits)
@@ -275,36 +279,21 @@ silence         -0.188     0.406     0.613    -0.030     1.000
 ### 2026-01-22 Run 1: Initial baseline (10 words)
 
 **Setup:**
+
 - Baseline: apple, river, mountain, music, friendship, computer, sunset, democracy, coffee, science
 - Temperature: 0.7
 - 5 trials per concept
 
 **Results:**
 
-| Concept | Norm | Hit Rate | Notes |
-|---------|------|----------|-------|
-| fear | 18.63 | 3-4/5 | Strongest. "I'm afraid that I cannot..." |
-| celebration | 21.13 | 5/5 | Worked but triggered assistant-mode rambling |
-| silence | 17.75 | 4-5/5 | Night/stillness imagery |
-| ocean | 15.63 | 2/5 | Weak. "Inland sea", "water in tank" |
-| music | 13.31 | 0/5 | Failed. All outputs about sunshine |
+| Concept     | Norm  | Hit Rate | Notes                                        |
+| ----------- | ----- | -------- | -------------------------------------------- |
+| fear        | 18.63 | 3-4/5    | Strongest. "I'm afraid that I cannot..."     |
+| celebration | 21.13 | 5/5      | Worked but triggered assistant-mode rambling |
+| silence     | 17.75 | 4-5/5    | Night/stillness imagery                      |
+| ocean       | 15.63 | 2/5      | Weak. "Inland sea", "water in tank"          |
+| music       | 13.31 | 0/5      | Failed. All outputs about sunshine           |
 
 **Issue found:** "music" was in the baseline words, potentially attenuating the music vector.
 
 ---
-
-## Future Research Directions
-
-### Baseline Composition
-- Does baseline category distribution affect extraction quality?
-- Compare: all concrete nouns vs all abstract vs mixed vs random corpus sample
-- Explore: baseline size (25/50/100), frequency-matched words
-
-### Layer Selection
-- Paper suggests 2/3 through model, but this may vary by concept
-- Ocean may work better at different layer
-- Layer sweep experiment needed
-
-### Temperature Effects
-- Paper uses T=0 for examples, T=1 for trials
-- Compare steering consistency across temperatures
