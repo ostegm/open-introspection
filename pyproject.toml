@@ -110,5 +110,6 @@ module = [
     "einops.*",
     "jaxtyping.*",
     "anthropic.*",
+    "google.cloud.*",
 ]
 ignore_missing_imports = true
