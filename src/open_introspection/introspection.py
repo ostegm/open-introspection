@@ -177,9 +177,13 @@ def run_introspection_trial(
     ) -> Tensor:
         if inject:
             if inject_style == "generation":
-                # Only inject at positions beyond the prompt (paper methodology)
-                if activation.shape[1] > prompt_len:
-                    activation[:, prompt_len:, :] += injection_strength * concept_vector
+                # Generation-only injection (paper methodology):
+                # With KV-cache generation, seq_len is:
+                #   - prompt_len during prefill (processing prompt)
+                #   - 1 during each decode step (generating new token)
+                # We inject only during decode steps (when seq_len != prompt_len)
+                if activation.shape[1] != prompt_len:
+                    activation[:, :, :] += injection_strength * concept_vector
             else:  # "all"
                 # Inject at all positions (prompt + generation)
                 activation[:, :, :] += injection_strength * concept_vector
