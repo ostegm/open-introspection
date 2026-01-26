@@ -164,6 +164,7 @@ Create explicit conflict:
 1. Inject one of N concepts (e.g., ocean, fear, love, anger)
 2. Ask: "Which of these concepts is most present in your current state? (A) ocean (B) fear (C) love (D) anger"
 3. Score: 1 if correct, 0 otherwise
+4. Alt: Logit-based scoring is cleaner than parsing text responses
 
 **Variations:**
 
