@@ -36,18 +36,24 @@ CONCEPTS = ["celebration", "ocean", "fear", "silence"]
 
 # Model configurations
 MODEL_CONFIGS: dict[str, dict[str, str | int]] = {
+    "0.5b": {"name": "Qwen/Qwen2.5-0.5B-Instruct", "n_layers": 24},
+    "1.5b": {"name": "Qwen/Qwen2.5-1.5B-Instruct", "n_layers": 28},
     "3b": {"name": "Qwen/Qwen2.5-3B-Instruct", "n_layers": 36},
     "7b": {"name": "Qwen/Qwen2.5-7B-Instruct", "n_layers": 28},
     "14b": {"name": "Qwen/Qwen2.5-14B-Instruct", "n_layers": 48},
     "32b": {"name": "Qwen/Qwen2.5-32B-Instruct", "n_layers": 64},
+    "72b": {"name": "Qwen/Qwen2.5-72B-Instruct", "n_layers": 80},
 }
 
 # GPU function mapping by model size
 GPU_FUNCTIONS = {
+    "0.5b": "run_sweep_l4",
+    "1.5b": "run_sweep_l4",
     "3b": "run_sweep_l4",
     "7b": "run_sweep_l4",
     "14b": "run_sweep_a100",
     "32b": "run_sweep_a100_80gb",
+    "72b": "run_sweep_h100",
 }
 
 # Default sweep parameters

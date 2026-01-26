@@ -172,3 +172,17 @@ def run_sweep_a100(request: dict) -> dict:
 def run_sweep_a100_80gb(request: dict) -> dict:
     """Run sweep on A100-80GB GPU (32b model)."""
     return _run_sweep_impl(request)
+
+
+@app.function(
+    gpu="H100",
+    timeout=4 * 60 * 60,
+    secrets=[
+        modal.Secret.from_name("openai-api-key"),
+        modal.Secret.from_name("gcp-credentials"),
+    ],
+    volumes={"/root/.cache/huggingface": model_cache},
+)
+def run_sweep_h100(request: dict) -> dict:
+    """Run sweep on H100 GPU (72b model)."""
+    return _run_sweep_impl(request)
