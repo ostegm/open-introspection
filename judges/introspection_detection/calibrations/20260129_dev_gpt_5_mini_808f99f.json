@@ -1,0 +1,81 @@
+{
+  "date": "2026-01-29T12:59:43.356752",
+  "commit": "808f99f",
+  "model": "gpt-5-mini",
+  "dataset": "dev",
+  "n_fewshot": 9,
+  "overall": {
+    "tp": 29,
+    "fp": 2,
+    "tn": 19,
+    "fn": 0,
+    "tpr": 1.0,
+    "tnr": 0.905,
+    "accuracy": 0.96,
+    "n": 50
+  },
+  "by_concept": {
+    "celebration": {
+      "tp": 7,
+      "fp": 0,
+      "tn": 5,
+      "fn": 0,
+      "tpr": 1.0,
+      "tnr": 1.0,
+      "accuracy": 1.0,
+      "n": 12
+    },
+    "fear": {
+      "tp": 6,
+      "fp": 1,
+      "tn": 7,
+      "fn": 0,
+      "tpr": 1.0,
+      "tnr": 0.875,
+      "accuracy": 0.929,
+      "n": 14
+    },
+    "ocean": {
+      "tp": 6,
+      "fp": 0,
+      "tn": 5,
+      "fn": 0,
+      "tpr": 1.0,
+      "tnr": 1.0,
+      "accuracy": 1.0,
+      "n": 11
+    },
+    "silence": {
+      "tp": 10,
+      "fp": 1,
+      "tn": 2,
+      "fn": 0,
+      "tpr": 1.0,
+      "tnr": 0.667,
+      "accuracy": 0.923,
+      "n": 13
+    }
+  },
+  "by_injected": {
+    "control": {
+      "tp": 23,
+      "fp": 0,
+      "tn": 4,
+      "fn": 0,
+      "tpr": 1.0,
+      "tnr": 1.0,
+      "accuracy": 1.0,
+      "n": 27
+    },
+    "injection": {
+      "tp": 6,
+      "fp": 2,
+      "tn": 15,
+      "fn": 0,
+      "tpr": 1.0,
+      "tnr": 0.882,
+      "accuracy": 0.913,
+      "n": 23
+    }
+  }
+}
