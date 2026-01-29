@@ -177,6 +177,7 @@ def process_file(
     max_workers: int,
     sample: int | None = None,
     dry_run: bool = False,
+    force: bool = False,
 ) -> None:
     """Process a single JSONL file, updating records in place."""
     rel_path = file_path.relative_to(sweep_dir)
@@ -191,7 +192,7 @@ def process_file(
     # Find records that need judging
     needs_judging: list[tuple[int, dict[str, Any]]] = []
     for idx, record in enumerate(records):
-        if record.get("judge") is None and record.get("judge_error") is None:
+        if force or (record.get("judge") is None and record.get("judge_error") is None):
             needs_judging.append((idx, record))
         else:
             totals.record_skip()
@@ -278,6 +279,11 @@ def main() -> None:
         action="store_true",
         help="Show what would be processed without making changes",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-judge all records, even those already judged",
+    )
     args = parser.parse_args()
 
     # Validate directory
@@ -322,6 +328,7 @@ def main() -> None:
             max_workers=args.workers,
             sample=args.sample,
             dry_run=args.dry_run,
+            force=args.force,
         )
 
     # Final summary
