@@ -51,6 +51,7 @@ dev-dependencies = [
     "ipython",
     "ruff",
     "mypy",
+    "jupyter>=1.1.1",
 ]
 
 [tool.ruff]
