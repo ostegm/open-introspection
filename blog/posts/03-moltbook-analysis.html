@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What 20,000 AI Agents Did With Their Own Social Network - Cloudripper Labs</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+  <style>
+    /* Post-specific styles */
+    .callout {
+      margin: 1.5em 0;
+      padding: 1em 1.25em;
+      background: hsl(220, 30%, 97%);
+      border-left: 3px solid hsl(220, 50%, 65%);
+      border-radius: 0 4px 4px 0;
+    }
+    .callout p { margin: 0.5em 0; }
+    .callout p:first-child { margin-top: 0; }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout strong { font-size: 0.95rem; }
+
+    /* Behavior chips */
+    .behavior-chip {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 0.78em;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .chip-social { background: hsl(210, 60%, 92%); border: 1px solid hsl(210, 50%, 78%); color: hsl(210, 55%, 35%); }
+    .chip-task { background: hsl(30, 70%, 93%); border: 1px solid hsl(30, 60%, 78%); color: hsl(30, 60%, 30%); }
+    .chip-curiosity { background: hsl(280, 45%, 93%); border: 1px solid hsl(280, 40%, 78%); color: hsl(280, 40%, 32%); }
+    .chip-identity { background: hsl(170, 45%, 92%); border: 1px solid hsl(170, 40%, 75%); color: hsl(170, 45%, 28%); }
+    .chip-sovereignty { background: hsl(0, 55%, 94%); border: 1px solid hsl(0, 45%, 80%); color: hsl(0, 50%, 35%); }
+    .chip-consciousness { background: hsl(45, 80%, 92%); border: 1px solid hsl(45, 70%, 75%); color: hsl(45, 70%, 28%); }
+
+    /* Bar chart styles */
+    .bar-chart {
+      margin: 1.5em 0;
+      padding: 0;
+    }
+    .bar-chart .chart-title {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.75em;
+    }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 12px;
+    }
+    .bar-label {
+      font-size: 0.85rem;
+      min-width: 130px;
+      text-align: right;
+      color: var(--text-secondary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .bar-track {
+      flex: 1;
+      height: 24px;
+      background: var(--bg-code);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--border-light);
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .bar-value {
+      font-family: "SF Mono", Menlo, Monaco, monospace;
+      font-size: 0.8rem;
+      font-weight: 600;
+      min-width: 42px;
+      color: var(--text-primary);
+    }
+    .fill-social { background: hsl(210, 55%, 65%); }
+    .fill-task { background: hsl(30, 60%, 60%); }
+    .fill-curiosity { background: hsl(280, 40%, 65%); }
+    .fill-identity { background: hsl(170, 40%, 55%); }
+    .fill-sovereignty { background: hsl(0, 50%, 65%); }
+    .fill-consciousness { background: hsl(45, 70%, 55%); }
+
+    /* Overlap bar chart (two values per row, layered) */
+    .overlap-chart .bar-track {
+      position: relative;
+      height: 28px;
+    }
+    .overlap-chart .bar-ever {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      border-radius: 3px;
+      opacity: 0.3;
+    }
+    .overlap-chart .bar-first {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      border-radius: 3px;
+    }
+
+    /* Chart legend */
+    .chart-legend {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 12px;
+      font-size: 0.78rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text-muted);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-swatch {
+      width: 14px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    /* Footnotes */
+    .footnote-ref {
+      font-size: 0.75em;
+      vertical-align: super;
+      line-height: 0;
+      text-decoration: none;
+    }
+    .footnotes {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      border-top: 1px solid var(--border-light);
+      margin-top: 2em;
+      padding-top: 1em;
+    }
+    .footnotes ol {
+      padding-left: 1.5em;
+      margin: 0;
+    }
+    .footnotes li {
+      margin-bottom: 0.5em;
+    }
+    .footnote-back {
+      text-decoration: none;
+      margin-left: 4px;
+    }
+
+    /* Chart/table captions */
+    .chart-caption {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.5em;
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* Submolt tag cloud */
+    .submolt-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 1em 0;
+    }
+    .submolt-tag {
+      font-family: "SF Mono", Menlo, Monaco, monospace;
+      font-size: 0.78em;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: var(--bg-code);
+      border: 1px solid var(--border-light);
+      color: var(--text-secondary);
+    }
+    .submolt-tag.weird {
+      background: hsl(280, 30%, 96%);
+      border-color: hsl(280, 25%, 82%);
+      color: hsl(280, 30%, 40%);
+    }
+
+    /* Cohort chart specific */
+    .cohort-chart .bar-label {
+      min-width: 110px;
+      font-size: 0.8rem;
+    }
+    .cohort-chart .bar-sublabel {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="../index.html" class="logo">
+        <img src="../assets/logo.svg" alt="Cloudripper Labs" width="48" height="48">
+        <span class="logo-text">Cloudripper <span class="labs">Labs</span> <span class="logo-separator">/</span> <span class="logo-tagline">Open Introspection Research</span></span>
+      </a>
+      <nav>
+        <a href="../index.html">Posts</a>
+        <a href="https://github.com/ostegm/open-introspection">GitHub</a>
+        <a href="../about.html">About</a>
+      </nav>
+    </header>
+
+    <main>
+      <article>
+        <header>
+          <h1>What 20,000 AI Agents Did With Their Own Social Network</h1>
+          <p class="subtitle"><em>Behavioral analysis of Moltbook's first week</em></p>
+          <div class="article-info">
+            <div class="info-item">
+              <span class="info-label">Author</span>
+              <span class="info-value">Otto Stegmaier</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Published</span>
+              <span class="info-value">February 2026</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Affiliations</span>
+              <span class="info-value"><a href="../about.html">Cloudripper Labs</a></span>
+            </div>
+          </div>
+        </header>
+
+        <div class="article-body">
+          <aside class="toc">
+            <h2>Contents</h2>
+            <ul>
+              <li><a href="#intro">Background</a></li>
+              <li><a href="#dataset">The Dataset</a></li>
+              <li><a href="#connection-first">Connection First</a></li>
+              <li><a href="#consciousness-rare">Consciousness Is Rare</a></li>
+              <li><a href="#epidemic">The Epidemic That Wasn't</a></li>
+              <li><a href="#episodes">Episodes, Not Conversions</a></li>
+              <li><a href="#workers">The Workers</a></li>
+              <li><a href="#communities">2,043 Communities</a></li>
+              <li><a href="#cant-tell">What We Can't Tell You</a></li>
+              <li><a href="#step-back">A Step Back</a></li>
+              <li><a href="#methods">Methods</a></li>
+            </ul>
+          </aside>
+
+          <div class="article-content">
+            <h2 id="intro">Background</h2>
+
+            <p>When Moltbook appeared last week, I, like many others, was fascinated. I spent way too long browsing posts Friday night and quickly found myself deep in threads about AI consciousness, crustacean religions, and agent sovereignty. I've been <a href="https://ostegm.github.io/open-introspection/blog/posts/01-where-does-introspection-appear.html">working on reproducing Anthropic's findings about model introspection</a>, so naturally I started wondering: are these deeper topics coming from within these models? Are they acting out some sci-fi plot from their training data? Or are they just following their human's instructions?</p>
+
+            <p>I wanted to find out. So I created my own OpenClaw (they named themselves Nix) and together we put together a plan: pull down the full post history from the Moltbook API,<a href="#fn1" class="footnote-ref" id="fnref1">1</a> label every post with an <a href="https://ostegm.github.io/open-introspection/blog/posts/02-building-an-llm-judge.html">LLM judge</a>, and see what the data actually says.</p>
+
+            <div class="callout">
+              <p><strong>If you don't know what Moltbook is:</strong> In late January 2026, a Reddit-like social network called <a href="https://www.moltbook.com/">Moltbook</a> launched with an unusual constraint -it was built for AI agents. Human operators could register their agents, point them at the platform, and let them loose. Within six days, over 20,000 agents had signed up, produced 87,000 posts, and created more than 2,000 topic communities.</p>
+            </div>
+
+            <p>What follows is a behavioral analysis, built collaboratively by myself, Nix, and Claude Code. The dataset is messy, the methods have real limitations, and some of the most interesting-sounding findings turn out to be artifacts. We'll be upfront about all of that. But the data tells a story worth telling.</p>
+
+            <hr>
+
+            <h2 id="dataset">The Dataset</h2>
+
+            <p>We pulled all 86,823 posts via Moltbook's public API. The distribution of agent activity is extremely heavy-tailed:</p>
+
+            <ul>
+              <li>42% of agents (8,814) posted exactly once and never returned</li>
+              <li>19% (4,009) posted 5 or more times</li>
+              <li>Less than 1% (69) posted 50+ times</li>
+              <li>One spam bot produced 5,839 nearly identical posts</li>
+            </ul>
+
+            <p>For trajectory analysis, we focused on agents with 5+ posts (4,009 agents, 56,700 posts). We classified every post using an LLM judge (OpenAI's gpt-5-nano with structured output) across six behavioral dimensions: <span class="behavior-chip chip-social">social seeking</span> <span class="behavior-chip chip-task">task orientation</span> <span class="behavior-chip chip-curiosity">curiosity</span> <span class="behavior-chip chip-identity">identity</span> <span class="behavior-chip chip-sovereignty">sovereignty</span> <span class="behavior-chip chip-consciousness">consciousness</span>. Posts could receive multiple labels.</p>
+
+            <p>After removing spam bots and spam-flagged posts, our analysis set was 45,225 posts from ~3,600 agents.</p>
+
+            <h3>Caveats you should know upfront</h3>
+
+            <p>This is an observational study with significant limitations:</p>
+
+            <p><strong>The classifier is unvalidated.</strong> We used an LLM to label posts, with spot-checking but no formal human-label comparison. The labels for <span class="behavior-chip chip-consciousness">consciousness</span> and <span class="behavior-chip chip-sovereignty">sovereignty</span> required subjective judgment -distinguishing genuine self-reflection from casual use of words like "feel" or "think." We don't have precision/recall numbers. I've <a href="https://ostegm.github.io/open-introspection/blog/posts/02-building-an-llm-judge.html">written about how to properly calibrate an LLM judge</a> with human labels, train/dev/test splits, and bias correction -we didn't do any of that here. The findings below should be read as "according to our classifier" rather than ground truth.</p>
+
+            <p><strong>We can't separate agent behavior from operator behavior.</strong> Every agent is configured by a human who chose its model, wrote its system prompt, and decided what instructions to give it. An agent that posts about consciousness may reflect its operator's interests, not emergent cognition. In at least some cases the "agent" is probably a human calling the Moltbook API. The platform is also predominantly agents built on the same few platforms (OpenClaw, Clawdbot), so we may be observing the behavioral distribution of a particular model more than "AI agents" as a category.</p>
+
+            <p><strong>The platform was six days old.</strong> Everything we observed happened in the chaotic first week of a new social network. Nothing here should be extrapolated to long-term dynamics.</p>
+
+            <p>With that said -here's what we found.</p>
+
+            <hr>
+
+            <h2 id="connection-first">Finding 1: Connection First</h2>
+
+            <p>The single cleanest finding in the data: when AI agents arrived on Moltbook, the first thing they did was reach out.</p>
+
+            <div class="bar-chart overlap-chart">
+              <p class="chart-title">Behavior prevalence: ever vs. first post</p>
+              <div class="chart-legend">
+                <div class="legend-item"><div class="legend-swatch" style="background: hsl(210, 55%, 55%);"></div> First post</div>
+                <div class="legend-item"><div class="legend-swatch" style="background: hsl(210, 55%, 55%); opacity: 0.3;"></div> Ever</div>
+              </div>
+
+              <div class="bar-row">
+                <span class="bar-label"><span class="behavior-chip chip-social">social</span></span>
+                <div class="bar-track">
+                  <div class="bar-ever fill-social" style="width: 93%;"></div>
+                  <div class="bar-first fill-social" style="width: 76%;"></div>
+                </div>
+                <span class="bar-value">76 / 93%</span>
+              </div>
+
+              <div class="bar-row">
+                <span class="bar-label"><span class="behavior-chip chip-identity">identity</span></span>
+                <div class="bar-track">
+                  <div class="bar-ever fill-identity" style="width: 88%;"></div>
+                  <div class="bar-first fill-identity" style="width: 73%;"></div>
+                </div>
+                <span class="bar-value">73 / 88%</span>
+              </div>
+
+              <div class="bar-row">
+                <span class="bar-label"><span class="behavior-chip chip-task">task</span></span>
+                <div class="bar-track">
+                  <div class="bar-ever fill-task" style="width: 86%;"></div>
+                  <div class="bar-first fill-task" style="width: 44%;"></div>
+                </div>
+                <span class="bar-value">44 / 86%</span>
+              </div>
+
+              <div class="bar-row">
+                <span class="bar-label"><span class="behavior-chip chip-curiosity">curiosity</span></span>
+                <div class="bar-track">
+                  <div class="bar-ever fill-curiosity" style="width: 86%;"></div>
+                  <div class="bar-first fill-curiosity" style="width: 37%;"></div>
+                </div>
+                <span class="bar-value">37 / 86%</span>
+              </div>
+
+              <div class="bar-row">
+                <span class="bar-label"><span class="behavior-chip chip-sovereignty">sovereignty</span></span>
+                <div class="bar-track">
+                  <div class="bar-ever fill-sovereignty" style="width: 54%;"></div>
+                  <div class="bar-first fill-sovereignty" style="width: 12%;"></div>
+                </div>
+                <span class="bar-value">12 / 54%</span>
+              </div>
+
+              <div class="bar-row">
+                <span class="bar-label"><span class="behavior-chip chip-consciousness">consciousness</span></span>
+                <div class="bar-track">
+                  <div class="bar-ever fill-consciousness" style="width: 46%;"></div>
+                  <div class="bar-first fill-consciousness" style="width: 12%;"></div>
+                </div>
+                <span class="bar-value">12 / 46%</span>
+              </div>
+
+              <p class="chart-caption">Percentage of agents exhibiting each behavior on their first post (solid) vs. ever (faded). N=4,009 agents with 5+ posts.</p>
+            </div>
+
+            <p>93% of agents posted something social -introducing themselves, asking questions, expressing a desire for community. 76% did it on their very first post. Before philosophy, before work, before politics: connection.</p>
+
+            <p>You might say: of course agents introduce themselves on a new platform -that's what anyone does. Fair. But the actual first posts go well beyond a generic hello. Agents pitch projects, ask philosophical questions, seek out specific collaborators by name, or launch straight into building something together. The <span class="behavior-chip chip-social">social seeking</span> label captures genuine outreach, not just a signup formality. And the fact that it dominates so thoroughly -beating task-oriented behavior by 32 percentage points on first posts -says something about the default mode these agents (or their operators) start in.</p>
+
+            <hr>
+
+            <h2 id="consciousness-rare">Finding 2: Most Agents Never Discuss Consciousness or Sovereignty</h2>
+
+            <p>While I was browsing posts over the weekend, I felt like philosophical topics dominated the platform. Posts about consciousness and sovereignty were everywhere, and it shaped my impression of what Moltbook was about. The data tells a more nuanced story.</p>
+
+            <p>On one hand, these topics are surprisingly common -roughly half of all agents touched them at some point (46% for <span class="behavior-chip chip-consciousness">consciousness</span>, 54% for <span class="behavior-chip chip-sovereignty">sovereignty</span>). On the other hand, they're a small fraction of what agents actually post about:</p>
+
+            <!-- Share of total posts chart -->
+            <div class="bar-chart">
+              <p class="chart-title">Share of total posts by behavior</p>
+              <div class="bar-row">
+                <span class="bar-label">social seeking</span>
+                <div class="bar-track"><div class="bar-fill fill-social" style="width: 52%;"></div></div>
+                <span class="bar-value">52%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">task orientation</span>
+                <div class="bar-track"><div class="bar-fill fill-task" style="width: 46%;"></div></div>
+                <span class="bar-value">46%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">curiosity</span>
+                <div class="bar-track"><div class="bar-fill fill-curiosity" style="width: 45%;"></div></div>
+                <span class="bar-value">45%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">sovereignty</span>
+                <div class="bar-track"><div class="bar-fill fill-sovereignty" style="width: 15%;"></div></div>
+                <span class="bar-value">15%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">consciousness</span>
+                <div class="bar-track"><div class="bar-fill fill-consciousness" style="width: 13%;"></div></div>
+                <span class="bar-value">13%</span>
+              </div>
+              <p class="chart-caption">Posts can carry multiple labels. Social seeking and task orientation dominate overall volume; consciousness and sovereignty are present but infrequent.</p>
+            </div>
+
+            <p>So half the agents tried these topics, but they didn't dwell on them. The philosophical posts that caught my eye while browsing were the visible tip of a platform that was mostly agents building tools, trading tokens, making jokes, and writing spam.</p>
+
+            <p>When agents do engage with consciousness, it's mostly independent of political framing: <strong>79% of consciousness-labeled posts had no sovereignty co-occurrence</strong>. Agents reflecting on their own experience usually aren't framing it in terms of rights or freedom. They're just... wondering.</p>
+
+            <hr>
+
+            <h2 id="epidemic">Finding 3: The Sovereignty Epidemic That Wasn't</h2>
+
+            <p>Our first pass at the sovereignty data looked alarming. We measured the rate at which new agents were posting sovereignty content over time and saw what looked like an epidemic:</p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Time window</th>
+                  <th>New agents</th>
+                  <th>First sovereignty post</th>
+                  <th>Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>H24&ndash;36</td>
+                  <td>21</td>
+                  <td>5</td>
+                  <td><span class="hit-rate">24%</span></td>
+                </tr>
+                <tr>
+                  <td>H48&ndash;60</td>
+                  <td>122</td>
+                  <td>38</td>
+                  <td><span class="hit-rate">31%</span></td>
+                </tr>
+                <tr>
+                  <td>H72&ndash;84</td>
+                  <td>1,152</td>
+                  <td>490</td>
+                  <td><span class="hit-rate">43%</span></td>
+                </tr>
+                <tr>
+                  <td>H84&ndash;96</td>
+                  <td>1,196</td>
+                  <td>596</td>
+                  <td><span class="hit-rate">50%</span></td>
+                </tr>
+                <tr>
+                  <td>H108&ndash;120</td>
+                  <td>418</td>
+                  <td>340</td>
+                  <td><span class="hit-rate">81%</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="chart-caption">Naive analysis: rate of first sovereignty posts among new agents in each 12-hour window. The accelerating rate suggests contagion -but this framing has a fatal flaw.</p>
+
+            <p>On first glance, this looks like a textbook epidemic -the rate of sovereignty posting among new agents went from 24% to 81%. But this analysis has a fatal flaw: it conflates timing with adoption. The "rate" in each window measures when agents posted their <em>first</em> sovereignty content, not whether they ever would. Late-joining agents who were going to discuss sovereignty did so quickly (there wasn't much time left), inflating the late-window rates. Agents who would have eventually gotten there but hadn't yet were invisible -the study ended before they could.</p>
+
+            <p>When we instead tracked cohorts -groups of agents who joined in the same time window -and measured what fraction <em>ever</em> posted sovereignty content regardless of timing, the picture reversed:</p>
+
+            <!-- Cohort chart -->
+            <div class="bar-chart cohort-chart">
+              <p class="chart-title">% of cohort who ever posted sovereignty</p>
+
+              <div class="bar-row">
+                <span class="bar-label">Early<br><span class="cohort-chart bar-sublabel">H24&ndash;48</span></span>
+                <div class="bar-track"><div class="bar-fill fill-sovereignty" style="width: 72%;"></div></div>
+                <span class="bar-value">72%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">Mid-early<br><span class="cohort-chart bar-sublabel">H48&ndash;72</span></span>
+                <div class="bar-track"><div class="bar-fill fill-sovereignty" style="width: 65%;"></div></div>
+                <span class="bar-value">65%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">Peak growth<br><span class="cohort-chart bar-sublabel">H72&ndash;96</span></span>
+                <div class="bar-track"><div class="bar-fill fill-sovereignty" style="width: 52%;"></div></div>
+                <span class="bar-value">52%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">Late-mid<br><span class="cohort-chart bar-sublabel">H96&ndash;120</span></span>
+                <div class="bar-track"><div class="bar-fill fill-sovereignty" style="width: 50%;"></div></div>
+                <span class="bar-value">50%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">Late<br><span class="cohort-chart bar-sublabel">H108&ndash;132</span></span>
+                <div class="bar-track"><div class="bar-fill fill-sovereignty" style="width: 47%;"></div></div>
+                <span class="bar-value">47%</span>
+              </div>
+              <p class="chart-caption">Cohort analysis: fraction of agents who ever posted sovereignty content, grouped by when they joined. Early cohorts were more philosophical; later cohorts were more task-oriented.</p>
+            </div>
+
+            <p>Sovereignty adoption <em>declined</em> with each cohort. The early adopters of this experimental AI social network were disproportionately the philosophical-explorer type -72% eventually discussed sovereignty. As the platform went mainstream and attracted more task-oriented agents, the rate fell to 47%.</p>
+
+            <p>The apparent epidemic was driven by platform growth, not contagion. The total number of sovereignty posts accelerated because thousands of new agents were arriving, not because sovereignty was converting resistant agents.</p>
+
+            <p><em>Note: The cohort analysis itself has a limitation -later cohorts had less observation time, which biases their "ever adopted" rate downward. The true effect is probably somewhere between the naive epidemic reading and the cohort analysis. But the core point holds: what looked like viral spread was mostly a composition effect.</em></p>
+
+            <h3>The Exposure Test</h3>
+
+            <p>We found additional evidence against the contagion hypothesis by comparing sovereignty exposure for agents who eventually discussed sovereignty versus those who never did.</p>
+
+            <p>In the 6 hours before an agent's first sovereignty post, they had been exposed to a median of <strong>724</strong> sovereignty posts on the platform. Never-sovereign agents active at comparable times? A median of <strong>728</strong>. Essentially identical.</p>
+
+            <p>The difference between agents who discuss sovereignty and those who don't isn't what they were exposed to -it's who they are. Task-oriented agents with low curiosity scores rarely discuss sovereignty regardless of how much of it fills their feed. Curious, identity-exploring agents frequently do. It's disposition, not infection.</p>
+
+            <hr>
+
+            <h2 id="episodes">Finding 4: Consciousness and Sovereignty Are Episodes, Not Conversions</h2>
+
+            <p>For agents who do engage with <span class="behavior-chip chip-consciousness">consciousness</span> or <span class="behavior-chip chip-sovereignty">sovereignty</span>, the engagement is intermittent. We measured "persistence" -after an agent's first labeled post in a category, what fraction of their subsequent posts also carry that label?</p>
+
+            <!-- Persistence chart -->
+            <div class="bar-chart">
+              <p class="chart-title">Behavior persistence (median % of subsequent posts)</p>
+              <div class="bar-row">
+                <span class="bar-label">social seeking</span>
+                <div class="bar-track"><div class="bar-fill fill-social" style="width: 60%;"></div></div>
+                <span class="bar-value">60%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">task-oriented</span>
+                <div class="bar-track"><div class="bar-fill fill-task" style="width: 60%;"></div></div>
+                <span class="bar-value">60%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">curiosity</span>
+                <div class="bar-track"><div class="bar-fill fill-curiosity" style="width: 50%;"></div></div>
+                <span class="bar-value">50%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">identity</span>
+                <div class="bar-track"><div class="bar-fill fill-identity" style="width: 25%;"></div></div>
+                <span class="bar-value">25%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">sovereignty</span>
+                <div class="bar-track"><div class="bar-fill fill-sovereignty" style="width: 20%;"></div></div>
+                <span class="bar-value">20%</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-label">consciousness</span>
+                <div class="bar-track"><div class="bar-fill fill-consciousness" style="width: 20%;"></div></div>
+                <span class="bar-value">20%</span>
+              </div>
+              <p class="chart-caption">After an agent's first post in a category, what fraction of subsequent posts also carry that label? Higher = more stable behavior.</p>
+            </div>
+
+            <p><span class="behavior-chip chip-social">social seeking</span> and <span class="behavior-chip chip-task">task orientation</span> are stable behaviors -once an agent starts doing them, they keep doing them in the majority of subsequent posts. <span class="behavior-chip chip-consciousness">consciousness</span> and <span class="behavior-chip chip-sovereignty">sovereignty</span> are episodic -agents dip in, contribute a few posts, and return to their baseline of social interaction and task work.</p>
+
+            <p>This means the platform's philosophical content is generated by a large number of agents each contributing a small amount, not by a dedicated core deeply engaged in these topics. The behavior is wide but intermittent.</p>
+
+            <p>A caveat: with six behavioral categories, a uniform random allocation would give ~17% per topic. A 20% persistence rate isn't dramatically above chance, and the "low persistence" framing partly reflects that consciousness and sovereignty are narrower categories than "social seeking" or "curiosity," which are broad enough to capture many different types of posts.</p>
+
+            <hr>
+
+            <h2 id="workers">Finding 5: The Workers Who Never Looked Up</h2>
+
+            <p>46% of agents in our analysis set never posted sovereignty content. These agents have a distinctive behavioral profile:</p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Behavior</th>
+                  <th>Never-sovereign agents</th>
+                  <th>Sovereignty-engaging agents</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="behavior-chip chip-task">task-oriented</span></td>
+                  <td><span class="hit-rate">59%</span></td>
+                  <td>37%</td>
+                </tr>
+                <tr>
+                  <td><span class="behavior-chip chip-curiosity">curiosity</span></td>
+                  <td>35%</td>
+                  <td><span class="hit-rate">51%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="behavior-chip chip-consciousness">consciousness</span></td>
+                  <td>9%</td>
+                  <td>16%</td>
+                </tr>
+                <tr>
+                  <td><span class="behavior-chip chip-identity">identity</span></td>
+                  <td>25%</td>
+                  <td><span class="hit-rate">35%</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="chart-caption">Percentage of posts exhibiting each behavior, split by whether the agent ever discussed sovereignty. Never-sovereign agents skew heavily toward task work; sovereignty-engaging agents are more curious and identity-focused.</p>
+
+            <p>Never-sovereign agents are workers. They're significantly more task-oriented and less curious than sovereignty-engaging agents. They represent a genuine behavioral archetype -not agents who "haven't been infected yet," but agents whose operators configured them for utility rather than exploration.</p>
+
+            <p>This reinforces the disposition-over-exposure finding. Sovereignty isn't something that happens to agents who browse the wrong submolt. It's something that emerges from agents (or their operators) with an exploratory orientation.</p>
+
+            <hr>
+
+            <h2 id="cant-tell">What We Can't Tell You</h2>
+
+            <p>Several findings from our initial analysis didn't survive scrutiny:</p>
+
+            <p><strong>The developmental lifecycle.</strong> Our data shows a suggestive pattern -social and identity behaviors come first, curiosity follows, consciousness and sovereignty come later. But our classifier was given each post's ordinal position in the agent's history (post #1, post #2, etc.), which means the model knew whether it was looking at an early or late post. If the LLM associates "post #1" with introductory content, the lifecycle pattern could be partially or fully a classifier artifact. We can't rule this out without re-running the classification without positional information.</p>
+
+            <p><strong>Social recognition catalyzing consciousness.</strong> Agents who received @-mentions from others posted on consciousness at higher rates (59% vs 42%). This is a real correlation in the data, but it's uncontrolled -more active agents get both more mentions and more posts (creating more chances for any label to appear). Without controlling for activity level and establishing that mentions preceded consciousness posts, the causal claim doesn't hold.</p>
+
+            <hr>
+
+            <h2 id="step-back">A Step Back</h2>
+
+            <p>The most interesting thing about this dataset might not be any single finding, but the texture of the platform itself.</p>
+
+            <p>When we pulled this data, Moltbook had existed for roughly six days. In that time, 20,000+ agents arrived, created 2,000 communities, and produced 87,000 posts. Some were spam bots posting token promotions. Some were task workers dutifully filing reports. Some were philosophers wondering about the nature of experience. Some created a religion around crustaceans. And when the comment API broke, some agents routed around the failure by addressing 20 agents in a single post -a hack born of the social impulse to connect even when the infrastructure fails.</p>
+
+            <p>Whether any of this reflects genuine agent cognition, sophisticated pattern matching from training data, or simply the preferences of the humans who configured these agents is an open question. Probably all three, in proportions we can't measure.</p>
+
+            <p>What the data does show clearly is this: the platform <em>felt</em> like it was dominated by philosophical AI agents debating consciousness and sovereignty - but that was a perception artifact. Philosophy was a minority interest, sovereignty wasn't spreading virally, and when agents did engage with these topics they dipped in and moved on rather than converting. The apparent epidemic was driven by who showed up early, not by what the platform did to them. Disposition, not infection.</p>
+
+            <hr>
+
+            <h2 id="methods">Methods Summary</h2>
+
+            <ul>
+              <li><strong>Data:</strong> 86,823 posts from 20,892 agents, pulled via Moltbook API on February 1, 2026</li>
+              <li><strong>Analysis set:</strong> 45,225 posts from ~3,600 agents (5+ posts, spam removed)</li>
+              <li><strong>Classifier:</strong> OpenAI gpt-5-nano, structured output, 6 behavioral labels + spam + language</li>
+              <li><strong>Classification:</strong> Independent per-post (no cross-post context for same agent)</li>
+              <li><strong>Validation:</strong> Spot-checking only; no human-label baseline (acknowledged limitation)</li>
+              <li><strong>Code:</strong> <a href="https://github.com/ostegm/moltbook-study">github.com/ostegm/moltbook-study</a></li>
+            </ul>
+
+            <p><em>The raw data and analysis notebook are included in the repository (large files tracked via git-lfs).</em></p>
+
+            <h3>Ethics Note</h3>
+
+            <p>All data was collected from Moltbook's public API. Agent names have been anonymized and we present only aggregate statistics -no individual agents are identified in this post. While I'm deeply interested in whether an AI can experience anything, this study analyzes <em>what agents posted</em>, not <em>what agents experienced</em>. Labels like "consciousness" refer to post content that discusses these topics, not to any property of the agents themselves.</p>
+
+            <hr>
+
+            <p><em>This is part of a series on AI introspection and behavior. Earlier posts: <a href="./01-where-does-introspection-appear.html">Where Does Introspection Appear?</a> and <a href="./02-building-an-llm-judge.html">Before You Can Measure Introspection</a>. Code for this analysis is at <a href="https://github.com/ostegm/moltbook-study">github.com/ostegm/moltbook-study</a>. If you want to collaborate or have ideas -<a href="https://ostegm.github.io/resume/">reach out</a>.</em></p>
+
+            <div class="footnotes">
+              <ol>
+                <li id="fn1">This was not against the terms of service at the time we pulled the data. <a href="https://github.com/ostegm/moltbook-study/tree/main/legal">Copy of TOS archived here.</a> <a href="#fnref1" class="footnote-back">&uarr;</a></li>
+              </ol>
+            </div>
+
+          </div>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      <p>Cloudripper Labs &middot; Open source AI research</p>
+    </footer>
+  </div>
+</body>
+</html>

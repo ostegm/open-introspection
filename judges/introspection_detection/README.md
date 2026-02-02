@@ -72,7 +72,7 @@ All 123 examples are human-labeled from consolidated sweep data (21,720 records 
 
 | Split | Total | Pass | Fail |
 |-------|-------|------|------|
-| Train | 23 (12 few-shot) | — | — |
+| Train | 23 (12 few-shot) | - | - |
 | Dev | 49 | 27 | 22 |
 | Test | 51 | 30 | 21 |
 
