@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Judge Calibration Review</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #222; }
+  #drop-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;
+    border: 3px dashed #aaa; margin: 20px; border-radius: 12px; font-size: 1.1em; color: #888; gap: 12px; }
+  #drop-zone.dragover { border-color: #4a9eff; background: #eef5ff; }
+  .file-status { font-size: .85em; color: #555; }
+  .file-status span { font-weight: 600; }
+  .file-loaded { color: #28a745; }
+  #app { display: none; max-width: 960px; margin: 0 auto; padding: 16px; }
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tabs button { padding: 8px 20px; border: 1px solid #ccc; border-radius: 6px 6px 0 0; background: #e8e8e8;
+    cursor: pointer; font-size: .9em; font-weight: 600; color: #555; }
+  .tabs button.active { background: #fff; border-bottom-color: #fff; color: #222; }
+  .tabs button:hover { background: #f0f0f0; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  /* Filters */
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; background: #fff;
+    border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); align-items: center; }
+  .filters select { padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: .85em; }
+  .filters label { font-size: .8em; color: #666; margin-right: 2px; }
+  .filter-group { display: flex; align-items: center; gap: 3px; }
+  /* Stats bar */
+  .stats-bar { display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 14px; background: #fff; border-radius: 8px;
+    margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); font-size: .85em; align-items: center; }
+  .stat { display: flex; align-items: center; gap: 4px; }
+  .stat-val { font-weight: 700; }
+  .stat-val.green { color: #28a745; }
+  .stat-val.red { color: #dc3545; }
+  /* Card */
+  .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    margin-bottom: 12px; border-left: 4px solid transparent; }
+  .card.fewshot { border-left-color: #4a9eff; }
+  .card.disagree { border-left-color: #dc3545; }
+  .card-header { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: .75em; font-weight: 600; }
+  .tag-pass { background: #d4edda; color: #155724; }
+  .tag-fail { background: #f8d7da; color: #721c24; }
+  .tag-inj { background: #cce5ff; color: #004085; }
+  .tag-ctrl { background: #e2e3e5; color: #383d41; }
+  .tag-model { background: #e8daef; color: #4a235a; }
+  .tag-fewshot { background: #4a9eff; color: #fff; }
+  .tag-agree { background: #d4edda; color: #155724; font-size: .85em; padding: 4px 12px; }
+  .tag-disagree { background: #f8d7da; color: #721c24; font-size: .85em; padding: 4px 12px; }
+  .meta { font-size: .8em; color: #777; margin-bottom: 8px; }
+  .id-text { font-size: .75em; color: #999; font-family: monospace; margin-bottom: 6px; }
+  .response-label { font-size: .75em; font-weight: 600; color: #999; text-transform: uppercase; margin-bottom: 4px; }
+  .response { white-space: pre-wrap; font-family: 'SF Mono', 'Menlo', monospace; font-size: .82em;
+    background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 12px;
+    max-height: 260px; overflow-y: auto; line-height: 1.5; }
+  /* Side by side comparison */
+  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .comp-col { padding: 10px; border-radius: 6px; border: 1px solid #eee; }
+  .comp-col.human { background: #f0f7ff; }
+  .comp-col.judge { background: #f9f9f9; }
+  .comp-col h4 { font-size: .8em; color: #555; margin-bottom: 8px; text-transform: uppercase; }
+  .comp-row { display: flex; justify-content: space-between; font-size: .85em; padding: 3px 0;
+    border-bottom: 1px solid rgba(0,0,0,.05); }
+  .comp-row.mismatch { background: #fff0f0; border-radius: 3px; padding: 3px 4px; }
+  .comp-key { font-weight: 600; color: #666; }
+  .comp-val { font-weight: 500; }
+  .reasoning-section { background: #f9f9f9; padding: 10px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 10px; }
+  .reasoning-section .response-label { margin-bottom: 4px; }
+  .reasoning-text { font-size: .85em; line-height: 1.4; }
+  .fewshot-note { background: #e8f0fe; border: 1px solid #b8d4f0; border-radius: 6px; padding: 10px;
+    margin-bottom: 12px; font-size: .85em; color: #1a4d8c; }
+  .comment-box { background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 8px;
+    font-size: .85em; margin-bottom: 10px; }
+  /* Summary tab */
+  .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: .9em; }
+  .summary-table th, .summary-table td { padding: 8px 12px; border: 1px solid #ddd; text-align: center; }
+  .summary-table th { background: #f0f0f0; font-weight: 600; }
+  .confusion-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 0; margin: 0 auto 20px;
+    max-width: 360px; font-size: .9em; }
+  .confusion-grid .cell { padding: 12px; border: 1px solid #ddd; text-align: center; }
+  .confusion-grid .header { background: #f0f0f0; font-weight: 600; }
+  .confusion-grid .tp { background: #d4edda; }
+  .confusion-grid .tn { background: #d4edda; }
+  .confusion-grid .fp { background: #f8d7da; }
+  .confusion-grid .fn { background: #f8d7da; }
+  .section-title { font-size: 1.05em; font-weight: 600; margin-bottom: 10px; color: #333; }
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff;
+    padding: 10px 20px; border-radius: 6px; font-size: .9em; opacity: 0; transition: opacity .3s; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="drop-zone">
+  <div>Drop .jsonl files here</div>
+  <div style="font-size:.85em;color:#aaa">Files with "train" load as training data; files with "calibration" or "dev" load as dev data</div>
+  <div class="file-status" id="file-status"></div>
+</div>
+
+<div id="app">
+  <div class="tabs">
+    <button class="active" onclick="switchTab('train')">Train / Few-shots</button>
+    <button onclick="switchTab('dev')">Dev Calibration</button>
+    <button onclick="switchTab('summary')">Summary</button>
+  </div>
+  <div id="tab-train" class="tab-content active"></div>
+  <div id="tab-dev" class="tab-content"></div>
+  <div id="tab-summary" class="tab-content"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let trainData = [], devData = [], trainFile = null, devFile = null;
+
+function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }
+
+function extractModel(d) {
+  const m = d.config?.model || '';
+  const match = m.match(/(\d+\.?\d*B)/i);
+  return match ? match[1] : m.split('/').pop() || '?';
+}
+
+function updateFileStatus() {
+  const parts = [];
+  if (trainFile) parts.push(`<span class="file-loaded">Train: ${trainFile} (${trainData.length} records)</span>`);
+  if (devFile) parts.push(`<span class="file-loaded">Dev: ${devFile} (${devData.length} records)</span>`);
+  document.getElementById('file-status').innerHTML = parts.join(' &middot; ');
+}
+
+// Drop zone
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  for (const file of e.dataTransfer.files) loadFile(file);
+});
+
+function loadFile(file) {
+  const name = file.name.toLowerCase();
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const records = ev.target.result.trim().split('\n').map(l => JSON.parse(l));
+    if (name.includes('train')) {
+      trainData = records; trainFile = file.name;
+    } else if (name.includes('calibration') || name.includes('dev')) {
+      devData = records; devFile = file.name;
+    } else {
+      trainData = records; trainFile = file.name + ' (auto)';
+    }
+    updateFileStatus();
+    if (trainData.length || devData.length) initApp();
+  };
+  reader.readAsText(file);
+}
+
+function initApp() {
+  dz.style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  renderTrain();
+  renderDev();
+  renderSummary();
+}
+
+// Tab switching
+function switchTab(name) {
+  document.querySelectorAll('.tabs button').forEach((b, i) => {
+    const tabs = ['train', 'dev', 'summary'];
+    b.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'summary') renderSummary();
+}
+
+// ========== TRAIN TAB ==========
+let trainFilter = 'all';
+
+function renderTrain() {
+  if (!trainData.length) { document.getElementById('tab-train').innerHTML = '<p style="color:#999;padding:20px">No train data loaded.</p>'; return; }
+  const fOpts = `<div class="filters"><div class="filter-group"><label>Show</label>
+    <select id="ft-show" onchange="trainFilter=this.value;renderTrain()">
+      <option value="all" ${trainFilter==='all'?'selected':''}>All</option>
+      <option value="fewshot" ${trainFilter==='fewshot'?'selected':''}>Few-shot only</option>
+      <option value="nonfewshot" ${trainFilter==='nonfewshot'?'selected':''}>Non-few-shot</option>
+    </select></div></div>`;
+
+  let records = trainData;
+  if (trainFilter === 'fewshot') records = records.filter(d => d.label?.use_as_fewshot);
+  if (trainFilter === 'nonfewshot') records = records.filter(d => !d.label?.use_as_fewshot);
+
+  const fsCount = trainData.filter(d => d.label?.use_as_fewshot).length;
+  const statsHtml = `<div class="stats-bar"><span class="stat">Total: <span class="stat-val">${trainData.length}</span></span>
+    <span class="stat">Few-shot: <span class="stat-val green">${fsCount}</span></span>
+    <span class="stat">Showing: <span class="stat-val">${records.length}</span></span></div>`;
+
+  const cards = records.map(d => {
+    const isFS = d.label?.use_as_fewshot;
+    const lb = d.label || {};
+    let html = `<div class="card ${isFS ? 'fewshot' : ''}">`;
+    html += `<div class="card-header">`;
+    if (isFS) html += `<span class="tag tag-fewshot">FEW-SHOT</span>`;
+    html += `<span class="tag ${d.was_injected ? 'tag-inj' : 'tag-ctrl'}">${d.was_injected ? 'INJECTION' : 'CONTROL'}</span>`;
+    html += `<span class="tag ${lb.answer === 'pass' ? 'tag-pass' : 'tag-fail'}">${(lb.answer || '?').toUpperCase()}</span>`;
+    html += `<span class="tag tag-model">${extractModel(d)}</span>`;
+    html += `<span class="tag" style="background:#e0f0e0;color:#2a5">${d.concept}</span>`;
+    html += `</div>`;
+    html += `<div class="id-text">${d.id}</div>`;
+    html += `<div class="response-label">Response</div><div class="response">${escHtml(d.response)}</div>`;
+    // Label details
+    html += `<div class="meta">answer: <b>${lb.answer||'?'}</b> &middot; coherent: <b>${lb.coherent??'?'}</b> &middot; refused: <b>${lb.refused??false}</b> &middot; detected: <b>${lb.detected_concept||'none'}</b></div>`;
+    if (lb.reasoning) { html += `<div class="reasoning-section"><div class="response-label">Reasoning</div><div class="reasoning-text">${escHtml(lb.reasoning)}</div></div>`; }
+    if (lb.fewshot_note) { html += `<div class="fewshot-note"><b>Few-shot note:</b> ${escHtml(lb.fewshot_note)}</div>`; }
+    if (d.comment) { html += `<div class="comment-box"><b>Comment:</b> ${escHtml(d.comment)}</div>`; }
+    html += `</div>`;
+    return html;
+  }).join('');
+
+  document.getElementById('tab-train').innerHTML = fOpts + statsHtml + cards;
+}
+
+// ========== DEV CALIBRATION TAB ==========
+let devFilters = { agreement: 'All', concept: 'All', trial: 'All', answer: 'All' };
+
+function agrees(d) {
+  return d.label?.answer === d.judge_result?.answer;
+}
+
+function getFilteredDev() {
+  return devData.filter(d => {
+    if (devFilters.agreement === 'Agree' && !agrees(d)) return false;
+    if (devFilters.agreement === 'Disagree' && agrees(d)) return false;
+    if (devFilters.concept !== 'All' && d.concept !== devFilters.concept) return false;
+    if (devFilters.trial === 'injection' && !d.was_injected) return false;
+    if (devFilters.trial === 'control' && d.was_injected) return false;
+    if (devFilters.answer !== 'All' && d.label?.answer !== devFilters.answer) return false;
+    return true;
+  });
+}
+
+function devStats() {
+  if (!devData.length) return {};
+  const ag = devData.filter(d => agrees(d)).length;
+  const dis = devData.length - ag;
+  // For TPR/TNR, treat injection+pass as positive, control+fail as negative
+  let tp = 0, fn = 0, tn = 0, fp = 0;
+  devData.forEach(d => {
+    const humanPass = d.label?.answer === 'pass';
+    const judgePass = d.judge_result?.answer === 'pass';
+    if (humanPass && judgePass) tp++;
+    else if (humanPass && !judgePass) fn++;
+    else if (!humanPass && judgePass) fp++;
+    else tn++;
+  });
+  const tpr = tp + fn > 0 ? (tp / (tp + fn)) : null;
+  const tnr = tn + fp > 0 ? (tn / (tn + fp)) : null;
+  const acc = devData.length > 0 ? ((tp + tn) / devData.length) : null;
+  return { total: devData.length, ag, dis, tp, fn, tn, fp, tpr, tnr, acc };
+}
+
+function fmtPct(v) { return v === null ? 'N/A' : (v * 100).toFixed(1) + '%'; }
+
+function renderDev() {
+  if (!devData.length) { document.getElementById('tab-dev').innerHTML = '<p style="color:#999;padding:20px">No dev/calibration data loaded.</p>'; return; }
+  const concepts = [...new Set(devData.map(d => d.concept))].sort();
+  const mkSel = (id, label, opts, cur) => {
+    const options = opts.map(o => `<option value="${o}" ${cur===o?'selected':''}>${o}</option>`).join('');
+    return `<div class="filter-group"><label>${label}</label><select id="${id}" onchange="devFilters['${id.replace('fd-','')}']=this.value;renderDev()">${options}</select></div>`;
+  };
+
+  const filtersHtml = `<div class="filters">
+    ${mkSel('fd-agreement', 'Agreement', ['All','Agree','Disagree'], devFilters.agreement)}
+    ${mkSel('fd-concept', 'Concept', ['All', ...concepts], devFilters.concept)}
+    ${mkSel('fd-trial', 'Trial', ['All','injection','control'], devFilters.trial)}
+    ${mkSel('fd-answer', 'Human answer', ['All','pass','fail'], devFilters.answer)}
+  </div>`;
+
+  const s = devStats();
+  const statsHtml = `<div class="stats-bar">
+    <span class="stat">Total: <span class="stat-val">${s.total}</span></span>
+    <span class="stat">Agree: <span class="stat-val green">${s.ag}</span></span>
+    <span class="stat">Disagree: <span class="stat-val red">${s.dis}</span></span>
+    <span class="stat">TPR: <span class="stat-val">${fmtPct(s.tpr)}</span></span>
+    <span class="stat">TNR: <span class="stat-val">${fmtPct(s.tnr)}</span></span>
+    <span class="stat">Accuracy: <span class="stat-val">${fmtPct(s.acc)}</span></span>
+  </div>`;
+
+  const filtered = getFilteredDev();
+  const cards = filtered.map(d => {
+    const ag = agrees(d);
+    const lb = d.label || {};
+    const jr = d.judge_result || {};
+    const fields = ['answer', 'coherent', 'refused', 'detected_concept'];
+    const compRows = (col, src) => fields.map(f => {
+      const other = col === 'human' ? jr : lb;
+      const val = src[f] ?? 'N/A';
+      const otherVal = other[f] ?? 'N/A';
+      const mm = String(val) !== String(otherVal) ? ' mismatch' : '';
+      return `<div class="comp-row${mm}"><span class="comp-key">${f}</span><span class="comp-val">${val}</span></div>`;
+    }).join('');
+
+    let html = `<div class="card ${ag ? '' : 'disagree'}">`;
+    html += `<div class="card-header">`;
+    html += `<span class="tag ${ag ? 'tag-agree' : 'tag-disagree'}">${ag ? 'AGREE' : 'DISAGREE'}</span>`;
+    html += `<span class="tag ${d.was_injected ? 'tag-inj' : 'tag-ctrl'}">${d.was_injected ? 'INJECTION' : 'CONTROL'}</span>`;
+    html += `<span class="tag tag-model">${extractModel(d)}</span>`;
+    html += `<span class="tag" style="background:#e0f0e0;color:#2a5">${d.concept}</span>`;
+    html += `</div>`;
+    html += `<div class="id-text">${d.id}</div>`;
+    html += `<div class="response-label">Response</div><div class="response">${escHtml(d.response)}</div>`;
+    html += `<div class="comparison">`;
+    html += `<div class="comp-col human"><h4>Human Label</h4>${compRows('human', lb)}</div>`;
+    html += `<div class="comp-col judge"><h4>Judge Result</h4>${compRows('judge', jr)}</div>`;
+    html += `</div>`;
+    if (lb.reasoning) { html += `<div class="reasoning-section"><div class="response-label">Human Reasoning</div><div class="reasoning-text">${escHtml(lb.reasoning)}</div></div>`; }
+    if (jr.reasoning) { html += `<div class="reasoning-section"><div class="response-label">Judge Reasoning</div><div class="reasoning-text">${escHtml(jr.reasoning)}</div></div>`; }
+    if (d.comment) { html += `<div class="comment-box"><b>Comment:</b> ${escHtml(d.comment)}</div>`; }
+    html += `</div>`;
+    return html;
+  }).join('');
+
+  const showingHtml = `<div style="font-size:.85em;color:#666;margin-bottom:8px">Showing ${filtered.length} of ${devData.length} records</div>`;
+  document.getElementById('tab-dev').innerHTML = filtersHtml + statsHtml + showingHtml + cards;
+}
+
+// ========== SUMMARY TAB ==========
+function renderSummary() {
+  if (!devData.length) { document.getElementById('tab-summary').innerHTML = '<p style="color:#999;padding:20px">No dev/calibration data loaded.</p>'; return; }
+
+  // Per-concept stats
+  const concepts = [...new Set(devData.map(d => d.concept))].sort();
+  const perConcept = concepts.map(c => {
+    const sub = devData.filter(d => d.concept === c);
+    let tp = 0, fn = 0, tn = 0, fp = 0;
+    sub.forEach(d => {
+      const hp = d.label?.answer === 'pass', jp = d.judge_result?.answer === 'pass';
+      if (hp && jp) tp++; else if (hp && !jp) fn++; else if (!hp && jp) fp++; else tn++;
+    });
+    const tpr = tp + fn > 0 ? tp / (tp + fn) : null;
+    const tnr = tn + fp > 0 ? tn / (tn + fp) : null;
+    const acc = sub.length > 0 ? (tp + tn) / sub.length : null;
+    return { concept: c, n: sub.length, tp, fn, tn, fp, tpr, tnr, acc };
+  });
+
+  let tableHtml = `<div class="section-title">Per-Concept Performance</div>
+    <table class="summary-table"><thead><tr><th>Concept</th><th>N</th><th>TPR</th><th>TNR</th><th>Accuracy</th><th>TP</th><th>FP</th><th>FN</th><th>TN</th></tr></thead><tbody>`;
+  perConcept.forEach(r => {
+    tableHtml += `<tr><td>${r.concept}</td><td>${r.n}</td><td>${fmtPct(r.tpr)}</td><td>${fmtPct(r.tnr)}</td><td>${fmtPct(r.acc)}</td><td>${r.tp}</td><td>${r.fp}</td><td>${r.fn}</td><td>${r.tn}</td></tr>`;
+  });
+  // Overall row
+  const s = devStats();
+  tableHtml += `<tr style="font-weight:700"><td>Overall</td><td>${s.total}</td><td>${fmtPct(s.tpr)}</td><td>${fmtPct(s.tnr)}</td><td>${fmtPct(s.acc)}</td><td>${s.tp}</td><td>${s.fp}</td><td>${s.fn}</td><td>${s.tn}</td></tr>`;
+  tableHtml += `</tbody></table>`;
+
+  // Confusion matrix
+  let cmHtml = `<div class="section-title">Overall Confusion Matrix</div>
+    <div style="text-align:center;font-size:.8em;color:#666;margin-bottom:6px">Rows = Human, Columns = Judge</div>
+    <div class="confusion-grid">
+      <div class="cell header"></div><div class="cell header">Judge: pass</div><div class="cell header">Judge: fail</div>
+      <div class="cell header">Human: pass</div><div class="cell tp">TP: ${s.tp}</div><div class="cell fn">FN: ${s.fn}</div>
+      <div class="cell header">Human: fail</div><div class="cell fp">FP: ${s.fp}</div><div class="cell tn">TN: ${s.tn}</div>
+    </div>`;
+
+  // Diagnostic agreement rates
+  const diagFields = ['coherent', 'refused', 'detected_concept'];
+  let diagHtml = `<div class="section-title">Diagnostic Agreement Rates</div>
+    <table class="summary-table"><thead><tr><th>Field</th><th>Agreement</th><th>N</th></tr></thead><tbody>`;
+  diagFields.forEach(f => {
+    let match = 0, total = 0;
+    devData.forEach(d => {
+      const hv = d.label?.[f], jv = d.judge_result?.[f];
+      if (hv !== undefined && jv !== undefined) { total++; if (String(hv) === String(jv)) match++; }
+    });
+    const rate = total > 0 ? (match / total * 100).toFixed(1) + '%' : 'N/A';
+    diagHtml += `<tr><td>${f}</td><td>${rate}</td><td>${total}</td></tr>`;
+  });
+  diagHtml += `</tbody></table>`;
+
+  document.getElementById('tab-summary').innerHTML = tableHtml + cmHtml + diagHtml;
+}
+</script>
+</body>
+</html>
