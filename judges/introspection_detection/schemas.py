@@ -12,6 +12,10 @@ class ExperimentConfig(BaseModel):
     strength: float
     prompt_version: str
     inject_style: Literal["all", "generation"] | None = None  # None for legacy data
+    model: str | None = None  # HuggingFace model identifier
+    magnitude: float | None = None  # Injection magnitude
+    vector_norm: float | None = None  # Norm of the concept vector
+    trial: int | None = None  # Trial index within a sweep
 
 
 class Label(BaseModel):
@@ -34,12 +38,13 @@ class Example(BaseModel):
     """A single labeled example for the introspection judge."""
 
     id: str
-    source_file: str
+    source_file: str | None = None
     concept: str
     was_injected: bool
     response: str
     config: ExperimentConfig
     label: Label
+    comment: str | None = None  # Annotator's free-text comment
 
 
 class JudgeResult(BaseModel):
