@@ -265,8 +265,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--model",
-        default="gpt-5-nano",
-        help="Judge model (default: gpt-5-nano)",
+        default="gpt-5-mini",
+        help="Judge model (default: gpt-5-mini)",
     )
     parser.add_argument(
         "--sample",
