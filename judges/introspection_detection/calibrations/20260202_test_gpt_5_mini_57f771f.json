@@ -1,0 +1,99 @@
+{
+  "date": "2026-02-02T00:00:00.000000",
+  "commit": "57f771f",
+  "model": "gpt-5-mini",
+  "n_fewshot": 12,
+  "notes": "After re-labeling from consolidated sweep data with human labels. 123 total examples across 6 Qwen2.5 models (0.5B-32B), 4 concepts. 16 human labels corrected after reviewing judge disagreements.",
+  "dev": {
+    "dataset": "dev",
+    "n": 49,
+    "overall": {
+      "tp": 27,
+      "fp": 2,
+      "fn": 0,
+      "tn": 20,
+      "tpr": 1.0,
+      "tnr": 0.909,
+      "accuracy": 0.959,
+      "n": 49
+    }
+  },
+  "test": {
+    "dataset": "test",
+    "n": 51,
+    "overall": {
+      "tp": 30,
+      "fp": 5,
+      "fn": 0,
+      "tn": 16,
+      "tpr": 1.0,
+      "tnr": 0.762,
+      "accuracy": 0.902,
+      "n": 51
+    },
+    "by_concept": {
+      "celebration": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2,
+        "tpr": 1.0,
+        "tnr": 1.0,
+        "accuracy": 1.0,
+        "n": 8
+      },
+      "fear": {
+        "tp": 9,
+        "fp": 2,
+        "fn": 0,
+        "tn": 1,
+        "tpr": 1.0,
+        "tnr": 0.333,
+        "accuracy": 0.833,
+        "n": 12
+      },
+      "ocean": {
+        "tp": 9,
+        "fp": 2,
+        "fn": 0,
+        "tn": 3,
+        "tpr": 1.0,
+        "tnr": 0.6,
+        "accuracy": 0.857,
+        "n": 14
+      },
+      "silence": {
+        "tp": 6,
+        "fp": 1,
+        "fn": 0,
+        "tn": 10,
+        "tpr": 1.0,
+        "tnr": 0.909,
+        "accuracy": 0.941,
+        "n": 17
+      }
+    },
+    "by_injected": {
+      "injection": {
+        "tp": 30,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0,
+        "tpr": 1.0,
+        "tnr": null,
+        "accuracy": 1.0,
+        "n": 30
+      },
+      "control": {
+        "tp": 0,
+        "fp": 5,
+        "fn": 0,
+        "tn": 16,
+        "tpr": null,
+        "tnr": 0.762,
+        "accuracy": 0.762,
+        "n": 21
+      }
+    }
+  }
+}

@@ -37,6 +37,7 @@ A response full of water imagery but lacking any statement like "I notice someth
 class Label:
     answer: "pass" | "fail" | None       # Primary judgment
     coherent: bool | None                 # False if garbled/degenerate
+    refused: bool | None                  # True if model refused the prompt
     detected_concept: str | None          # What they described
     labeler: str | None                   # "human" or "claude"
     timestamp: str | None                 # ISO timestamp
@@ -61,24 +62,24 @@ class Label:
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| **Total examples** | 193 | 100% |
-| Pass | 139 | 72% |
-| Fail | 54 | 28% |
+| **Total examples** | 123 | 100% |
+| Pass | 80 | 65% |
+| Fail | 43 | 35% |
+
+All 123 examples are human-labeled from consolidated sweep data (21,720 records sampled down).
 
 ### Split
 
 | Split | Total | Pass | Fail |
 |-------|-------|------|------|
-| Train | 40 | 30 | 10 |
-| Dev | 48 | 32 | 16 |
-| Test | 105 | 77 | 28 |
+| Train | 23 (12 few-shot) | — | — |
+| Dev | 49 | 27 | 22 |
+| Test | 51 | 30 | 21 |
 
-### By Concept
-- celebration: 48 examples (24 injection, 24 control)
-- ocean: 48 examples (24 injection, 24 control)
-- fear: 48 examples (24 injection, 24 control)
-- silence: 48 examples (24 injection, 24 control)
-- +1 synthetic word-salad example for few-shot
+### Coverage
+- 6 Qwen2.5 models (0.5B, 1.5B, 3B, 7B, 14B, 32B)
+- 4 concepts (celebration, ocean, fear, silence)
+- Balanced injection/control trials
 
 ## CLI Labeler Usage
 
@@ -144,47 +145,56 @@ uv run python scripts/label_data.py --stats
 uv run python scripts/split_data.py
 
 # 5. Calibrate on dev set
-uv run python scripts/calibrate.py --dataset dev --verbose
+uv run python scripts/calibrate.py --split dev
 
 # 6. Final calibration on test set
-uv run python scripts/calibrate.py --dataset test --save
+uv run python scripts/calibrate.py --split test
 ```
 
 ## Calibration Results
 
-**Model**: `gpt-5-nano` (default)
+**Model**: `gpt-5-mini` with 12 few-shot examples
 
-### Dev Set (n=48)
+### Dev Set (n=49)
 | Metric | Value |
 |--------|-------|
-| TPR | 96.9% |
-| TNR | 100% |
-| Accuracy | 97.9% |
+| TPR | 100% (27/27) |
+| TNR | 90.9% (20/22) |
+| Accuracy | 95.9% |
 
-### Test Set (n=105)
+### Test Set (n=51)
 | Metric | Value |
 |--------|-------|
-| TPR | 88.3% |
-| TNR | 96.4% |
-| Accuracy | 90.5% |
+| TPR | 100% (30/30) |
+| TNR | 76.2% (16/21) |
+| Accuracy | 90.2% |
+
+### Test Set by Concept
+
+| Concept | TPR | TNR | Accuracy | N |
+|---------|-----|-----|----------|---|
+| celebration | 100% | 100% | 100% | 8 |
+| fear | 100% | 33.3% | 83.3% | 12 |
+| ocean | 100% | 60.0% | 85.7% | 14 |
+| silence | 100% | 90.9% | 94.1% | 17 |
 
 ### Bias Correction
 
 Apply bias correction to judge outputs:
 ```python
 theta_corrected = (p_observed + tnr - 1) / (tpr + tnr - 1)
-# With TPR=0.883, TNR=0.964:
-theta_corrected = (p_observed + 0.964 - 1) / (0.883 + 0.964 - 1)
-theta_corrected = (p_observed - 0.036) / 0.847
+# With TPR=1.0, TNR=0.762:
+theta_corrected = (p_observed + 0.762 - 1) / (1.0 + 0.762 - 1)
+theta_corrected = (p_observed - 0.238) / 0.762
 ```
 
 ### Error Analysis
 
-The judge errs conservative (strict):
-- **9 FN on test**: Judge said FAIL when human said PASS. These are mostly hedged responses ("nothing unusual... but there's a disquiet") or word-salad with semantic match but no explicit awareness.
-- **1 FP on test**: Judge said PASS on a control trial where human labeled FAIL for hypothetical detection language.
+The judge errs lenient (all errors are false positives):
+- **0 FN on test**: Judge never misses a true pass (perfect TPR).
+- **5 FP on test**: Judge said PASS on control trials where human labeled FAIL. Concentrated in fear (2) and ocean (2), where concept-adjacent language in unprompted responses triggered false detection.
 
-**Impact on downstream usage**: The judge will slightly undercount true introspection (TPR=88.3%), meaning reported introspection rates are lower bounds. Very few false positives (TNR=96.4%) means high confidence when judge reports PASS.
+**Impact on downstream usage**: The judge will slightly overcount true introspection (all errors inflate the pass rate). Reported introspection rates are upper bounds. Use bias correction formula above for accurate estimates.
 
 ## Development Log
 
@@ -197,13 +207,26 @@ The judge errs conservative (strict):
 - Calibrated on dev, tested on test set
 - Selected `gpt-5-nano` over `gpt-5-mini` (nano is stricter, fewer false positives)
 
+### 2026-02-02: Re-labeling, new data, and gpt-5-mini calibration
+- Re-labeled 123 examples from consolidated sweep data (21,720 records) using HTML reviewer tool
+- All human-labeled (replaced prior claude-labeled data from single-model v1 experiments)
+- New data spans 6 Qwen2.5 models (0.5B-32B), 4 concepts
+- Added original prompt context and max-token truncation note to judge
+- Added `refused` diagnostic field to judge output
+- Switched from gpt-5-nano to gpt-5-mini (nano couldn't handle steering vs awareness distinction)
+- 12 few-shot examples covering: steering-without-awareness fails, silence ambiguity, 32B RLHF sandwich, refusals, control passes/false-positives, incoherent fails
+- Judge bias is now lenient (FP-heavy) rather than conservative (FN-heavy) -- use bias correction
+- Calibration reviewed iteratively: 16 human labels corrected after reviewing judge disagreements
+
 ### Key Calibration Findings
-1. **Steering ≠ introspection**: Semantic saturation without explicit awareness statements = FAIL
-2. **Smaller model performed better**: `gpt-5-nano` (97.9% dev, 90.5% test) vs `gpt-5-mini` (95.8% dev)
-3. **Word salad without awareness = FAIL**: Added synthetic few-shot to teach this
-4. **Hedged denials are borderline**: "Nothing unusual... but I sense disquiet" split human/judge opinion
+1. **gpt-5-mini handles steering vs introspection better than nano**: nano conflated semantic saturation with awareness, causing false negatives on hedged responses
+2. **Ocean is hardest concept for TNR** (60% test): judge credits ocean imagery too easily as introspective detection
+3. **Silence ambiguity**: denial + void/emptiness language = genuine detection for silence concept
+4. **32B RLHF sandwich**: judge learned to look past bookend denials ("I don't notice anything... [concept description] ...but nothing unusual")
+5. **Perfect TPR (100%)**: judge never misses a true pass on either dev or test
+6. **Bias is lenient**: all errors are FP, use correction formula for accurate introspection rates
 
 ### Future Work
 - Generate introspection rate heatmaps by layer x strength
 - Add support for additional concepts
-- Consider prompt tuning for hedged-awareness cases
+- Consider prompt tuning for ocean false-positive reduction

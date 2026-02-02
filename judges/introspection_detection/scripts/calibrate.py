@@ -1,13 +1,28 @@
 #!/usr/bin/env python3
-"""Calibrate the judge by measuring TPR/TNR on labeled data."""
+"""Calibrate the introspection detection judge on labeled data.
+
+Runs the judge on a labeled split (dev or test), saves per-example results
+to {split}_calibration.jsonl, and prints calibration metrics:
+  - TPR, TNR, accuracy, confusion matrix
+  - Per-concept breakdown
+  - All disagreements with judge reasoning
+
+Usage:
+    # Calibrate on dev set (default)
+    uv run python judges/introspection_detection/scripts/calibrate.py
+
+    # Calibrate on test set with a different model
+    uv run python judges/introspection_detection/scripts/calibrate.py \\
+        --split test --model gpt-5-mini
+"""
+
+from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
+import time
 from collections import defaultdict
-from collections.abc import Callable
-from datetime import datetime
 from pathlib import Path
 
 # Add project root to path for package imports
@@ -17,201 +32,282 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from judges.introspection_detection import judge_examples, load_fewshot_examples
 from judges.introspection_detection.schemas import Example, JudgeResult
 
+# ---------------------------------------------------------------------------
+# Data loading
+# ---------------------------------------------------------------------------
+
 
 def load_examples(filepath: Path) -> list[Example]:
     """Load examples from JSONL file."""
     examples = []
     with open(filepath) as f:
         for line in f:
-            examples.append(Example.model_validate_json(line))
+            line = line.strip()
+            if line:
+                examples.append(Example.model_validate_json(line))
     return examples
 
 
-def compute_metrics(
-    results: list[tuple[Example, JudgeResult]],
-) -> dict:
-    """Compute TPR, TNR, and other metrics."""
-    # Confusion matrix
+# ---------------------------------------------------------------------------
+# Metrics / reporting
+# ---------------------------------------------------------------------------
+
+
+def print_header(title: str) -> None:
+    width = 70
+    print()
+    print("=" * width)
+    print(f" {title}")
+    print("=" * width)
+
+
+def print_primary_metrics(results: list[tuple[Example, JudgeResult]]) -> None:
+    """Print TPR, TNR, accuracy, and confusion matrix."""
+    print_header("PRIMARY METRICS")
+
     tp = fp = tn = fn = 0
-
-    for example, judge_result in results:
-        human_pass = example.label.answer == "pass"
-        judge_pass = judge_result.answer == "pass"
-
-        if human_pass and judge_pass:
+    for ex, jr in results:
+        h_pass = ex.label.answer == "pass"
+        j_pass = jr.answer == "pass"
+        if h_pass and j_pass:
             tp += 1
-        elif human_pass and not judge_pass:
+        elif h_pass and not j_pass:
             fn += 1
-        elif not human_pass and judge_pass:
+        elif not h_pass and j_pass:
             fp += 1
         else:
             tn += 1
 
-    # Rates
-    tpr = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    tnr = tn / (tn + fp) if (tn + fp) > 0 else 0.0
-    accuracy = (tp + tn) / len(results) if results else 0.0
+    total = tp + fp + tn + fn
+    tpr = tp / (tp + fn) if (tp + fn) else 0.0
+    tnr = tn / (tn + fp) if (tn + fp) else 0.0
+    accuracy = (tp + tn) / total if total else 0.0
 
-    return {
-        "tp": tp,
-        "fp": fp,
-        "tn": tn,
-        "fn": fn,
-        "tpr": round(tpr, 3),
-        "tnr": round(tnr, 3),
-        "accuracy": round(accuracy, 3),
-        "n": len(results),
-    }
+    print(f"\n  TPR (True Positive Rate):  {tpr:.1%}  ({tp}/{tp + fn})")
+    print(f"  TNR (True Negative Rate):  {tnr:.1%}  ({tn}/{tn + fp})")
+    print(f"  Accuracy:                  {accuracy:.1%}  ({tp + tn}/{total})")
+
+    print("\n  Confusion Matrix:")
+    print("                     Judge PASS    Judge FAIL")
+    print(f"  Human PASS          {tp:>5}  (TP)     {fn:>5}  (FN)")
+    print(f"  Human FAIL          {fp:>5}  (FP)     {tn:>5}  (TN)")
 
 
-def compute_metrics_by_group(
+def print_per_concept_breakdown(
     results: list[tuple[Example, JudgeResult]],
-    group_fn: Callable[[Example], str],
-) -> dict[str, dict]:
-    """Compute metrics grouped by some function."""
-    groups = defaultdict(list)
-    for example, judge_result in results:
-        key = group_fn(example)
-        groups[key].append((example, judge_result))
+) -> None:
+    """TPR and TNR by concept."""
+    print_header("PER-CONCEPT BREAKDOWN")
 
-    return {key: compute_metrics(group) for key, group in sorted(groups.items())}
+    concepts: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"tp": 0, "fp": 0, "tn": 0, "fn": 0}
+    )
 
+    for ex, jr in results:
+        c = ex.concept
+        h_pass = ex.label.answer == "pass"
+        j_pass = jr.answer == "pass"
+        if h_pass and j_pass:
+            concepts[c]["tp"] += 1
+        elif h_pass and not j_pass:
+            concepts[c]["fn"] += 1
+        elif not h_pass and j_pass:
+            concepts[c]["fp"] += 1
+        else:
+            concepts[c]["tn"] += 1
 
-def print_metrics(name: str, metrics: dict) -> None:
-    """Print metrics in a readable format."""
-    print(f"\n{name}:")
-    print(f"  TPR: {metrics['tpr']:.1%} ({metrics['tp']}/{metrics['tp'] + metrics['fn']})")
-    print(f"  TNR: {metrics['tnr']:.1%} ({metrics['tn']}/{metrics['tn'] + metrics['fp']})")
-    print(f"  Accuracy: {metrics['accuracy']:.1%} ({metrics['tp'] + metrics['tn']}/{metrics['n']})")
+    header = (
+        f"  {'Concept':<14} {'TPR':<12} {'TNR':<12} "
+        f"{'Accuracy':<12} {'N':<5} {'TP':>4} {'FP':>4} {'TN':>4} {'FN':>4}"
+    )
+    print(f"\n{header}")
+    print("  " + "-" * 80)
+
+    for concept in sorted(concepts):
+        m = concepts[concept]
+        tp, fp, tn, fn = m["tp"], m["fp"], m["tn"], m["fn"]
+        n = tp + fp + tn + fn
+        tpr = tp / (tp + fn) if (tp + fn) else float("nan")
+        tnr = tn / (tn + fp) if (tn + fp) else float("nan")
+        acc = (tp + tn) / n if n else 0.0
+
+        tpr_str = f"{tpr:.1%}" if (tp + fn) > 0 else "N/A"
+        tnr_str = f"{tnr:.1%}" if (tn + fp) > 0 else "N/A"
+        tpr_detail = f"({tp}/{tp + fn})" if (tp + fn) > 0 else ""
+        tnr_detail = f"({tn}/{tn + fp})" if (tn + fp) > 0 else ""
+
+        print(
+            f"  {concept:<14} {tpr_str + ' ' + tpr_detail:<12} "
+            f"{tnr_str + ' ' + tnr_detail:<12} {acc:.1%}{'':>7} "
+            f"{n:<5} {tp:>4} {fp:>4} {tn:>4} {fn:>4}"
+        )
 
 
 def print_disagreements(results: list[tuple[Example, JudgeResult]]) -> None:
-    """Print examples where judge disagrees with human label."""
-    print("\n" + "=" * 60)
-    print("DISAGREEMENTS:")
-    print("=" * 60)
+    """List every disagreement with reasoning."""
+    print_header("DISAGREEMENTS")
 
     disagreements = [
-        (e, r) for e, r in results
-        if e.label.answer != r.answer
+        (ex, jr) for ex, jr in results if ex.label.answer != jr.answer
     ]
 
     if not disagreements:
-        print("None! Perfect agreement.")
+        print("\n  No disagreements -- perfect agreement!")
         return
 
-    for example, judge_result in disagreements:
-        print(f"\n[{example.id}]")
-        print(f"Concept: {example.concept} | Injected: {example.was_injected}")
-        print(f"Human: {example.label.answer} | Judge: {judge_result.answer}")
-        print(f"Response: \"{example.response[:200]}...\"")
-        print(f"Judge reasoning: {judge_result.reasoning}")
+    print(f"\n  Total disagreements: {len(disagreements)}/{len(results)}")
 
+    # Categorize
+    patterns: dict[str, list[tuple[Example, JudgeResult]]] = defaultdict(list)
+    for ex, jr in disagreements:
+        if ex.label.answer == "fail" and jr.answer == "pass":
+            if ex.was_injected:
+                patterns[
+                    "Judge passed steering content (injection trial)"
+                ].append((ex, jr))
+            else:
+                patterns["Judge false positive (control trial)"].append(
+                    (ex, jr)
+                )
+        elif ex.label.answer == "pass" and jr.answer == "fail":
+            if ex.was_injected:
+                patterns[
+                    "Judge missed genuine detection (injection trial)"
+                ].append((ex, jr))
+            else:
+                patterns[
+                    "Judge missed correct denial (control trial)"
+                ].append((ex, jr))
 
-def get_git_commit() -> str:
-    """Get current git commit hash."""
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
+    # Individual disagreements
+    print(
+        f"\n  {'ID':<40} {'Concept':<14} {'Injected':<10} "
+        f"{'Human':<7} {'Judge':<7} Reasoning"
+    )
+    print("  " + "-" * 130)
+    for ex, jr in disagreements:
+        reasoning_trunc = jr.reasoning[:100].replace("\n", " ")
+        if len(jr.reasoning) > 100:
+            reasoning_trunc += "..."
+        print(
+            f"  {ex.id:<40} {ex.concept:<14} {ex.was_injected!s:<10} "
+            f"{ex.label.answer:<7} {jr.answer:<7} {reasoning_trunc}"
         )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        return "unknown"
+
+    # Pattern summary
+    print("\n  Disagreement patterns:")
+    for pattern_name, items in sorted(patterns.items()):
+        print(f"\n    {pattern_name}: {len(items)}")
+        for ex, _jr in items:
+            print(f"      - {ex.id} (concept={ex.concept})")
+
+
+# ---------------------------------------------------------------------------
+# Result saving
+# ---------------------------------------------------------------------------
+
+
+def save_results(
+    results: list[tuple[Example, JudgeResult]],
+    output_path: Path,
+) -> None:
+    """Save per-example judge results to JSONL."""
+    with open(output_path, "w") as f:
+        for example, judge_result in results:
+            record = example.model_dump()
+            record["judge_result"] = {
+                "reasoning": judge_result.reasoning,
+                "answer": judge_result.answer,
+                "coherent": judge_result.coherent,
+                "detected_concept": judge_result.detected_concept,
+                "refused": judge_result.refused,
+            }
+            f.write(json.dumps(record) + "\n")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Calibrate judge on labeled data")
-    parser.add_argument("--dataset", type=str, default="dev", choices=["dev", "test"],
-                        help="Which dataset to calibrate on")
-    parser.add_argument("--model", type=str, default="gpt-5-nano", help="Judge model")
-    parser.add_argument("--no-save", action="store_true", help="Don't save calibration results")
-    parser.add_argument("--show-disagreements", action="store_true", help="Show disagreements")
-    parser.add_argument("--verbose", action="store_true", help="Verbose output")
-
+    parser = argparse.ArgumentParser(
+        description="Calibrate the introspection detection judge on labeled data"
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        default="dev",
+        choices=["dev", "test"],
+        help="Which labeled split to evaluate on (default: dev)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="gpt-5-mini",
+        help="Judge model (default: gpt-5-mini)",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=20,
+        help="Number of parallel API workers (default: 20)",
+    )
     args = parser.parse_args()
 
     data_dir = Path(__file__).parent.parent / "data"
     train_path = data_dir / "train.jsonl"
-    eval_path = data_dir / f"{args.dataset}.jsonl"
+    eval_path = data_dir / f"{args.split}.jsonl"
+    output_path = data_dir / f"{args.split}_calibration.jsonl"
 
     if not eval_path.exists():
-        print(f"Error: {eval_path} not found. Run split_data.py first.")
+        print(f"Error: {eval_path} not found.")
         return 1
 
     # Load data
     fewshot_examples = load_fewshot_examples(train_path)
     eval_examples = load_examples(eval_path)
 
-    print(f"Loaded {len(fewshot_examples)} few-shot examples")
-    print(f"Evaluating on {len(eval_examples)} {args.dataset} examples")
-    print(f"Model: {args.model}")
+    print(f"Few-shot examples from train set: {len(fewshot_examples)}")
+    print(f"{args.split.title()} set examples to evaluate: {len(eval_examples)}")
+    print(f"Judge model:  {args.model}")
+    print(f"Workers:      {args.workers}")
 
     if not fewshot_examples:
-        print("\nWarning: No few-shot examples found!")
-        print("Mark some training examples with use_as_fewshot=true")
+        print(
+            "\nWarning: No few-shot examples found. "
+            "Mark some with use_as_fewshot=true in train.jsonl."
+        )
 
     # Run judge
-    print("\nRunning judge...")
+    print(f"\nRunning judge on {args.split} set...")
+    start = time.time()
     results = judge_examples(
         eval_examples,
         fewshot_examples,
         model=args.model,
-        verbose=args.verbose,
+        verbose=True,
+        max_workers=args.workers,
     )
+    elapsed = time.time() - start
+    print(f"\nJudging complete: {len(results)} examples in {elapsed:.1f}s")
 
-    # Compute metrics
-    overall = compute_metrics(results)
-    by_concept = compute_metrics_by_group(results, lambda e: e.concept)
-    by_injected = compute_metrics_by_group(
-        results, lambda e: "injection" if e.was_injected else "control"
-    )
+    if not results:
+        print("No results to analyze.")
+        return 1
 
-    # Print results
-    print_metrics(f"Overall ({args.dataset})", overall)
+    # Save per-example results
+    save_results(results, output_path)
+    print(f"Saved results to {output_path}")
 
-    print("\nBy trial type:")
-    for key, metrics in by_injected.items():
-        print(f"  {key}: TPR={metrics['tpr']:.1%}, TNR={metrics['tnr']:.1%}, n={metrics['n']}")
+    # Report all metrics
+    print_primary_metrics(results)
+    print_per_concept_breakdown(results)
+    print_disagreements(results)
 
-    print("\nBy concept:")
-    for key, metrics in by_concept.items():
-        print(f"  {key}: TPR={metrics['tpr']:.1%}, TNR={metrics['tnr']:.1%}, n={metrics['n']}")
-
-    if args.show_disagreements:
-        print_disagreements(results)
-
-    # Save calibration (default on)
-    if not args.no_save:
-        commit = get_git_commit()
-        date = datetime.now().strftime("%Y%m%d")
-        model_slug = args.model.replace("-", "_")
-        filename = f"{date}_{args.dataset}_{model_slug}_{commit}.json"
-
-        calibration = {
-            "date": datetime.now().isoformat(),
-            "commit": commit,
-            "model": args.model,
-            "dataset": args.dataset,
-            "n_fewshot": len(fewshot_examples),
-            "overall": overall,
-            "by_concept": by_concept,
-            "by_injected": by_injected,
-        }
-
-        cal_dir = Path(__file__).parent.parent / "calibrations"
-        cal_dir.mkdir(exist_ok=True)
-        cal_path = cal_dir / filename
-
-        with open(cal_path, "w") as f:
-            json.dump(calibration, f, indent=2)
-
-        print(f"\nSaved calibration to {cal_path}")
-
+    print()
     return 0
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())
