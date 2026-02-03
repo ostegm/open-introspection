@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sweep Data Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #222; }
+
+  /* Drop zone */
+  #drop-zone { display: flex; align-items: center; justify-content: center; height: 100vh;
+    border: 3px dashed #aaa; margin: 20px; border-radius: 12px; font-size: 1.2em; color: #888;
+    flex-direction: column; gap: 12px; }
+  #drop-zone.dragover { border-color: #4a9eff; background: #eef5ff; }
+  #drop-zone .hint { font-size: .8em; color: #bbb; }
+
+  #app { display: none; max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+  /* Tabs */
+  .tab-bar { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid #ddd; }
+  .tab-btn { padding: 8px 20px; border: none; background: none; cursor: pointer; font-size: .9em;
+    font-weight: 600; color: #888; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab-btn.active { color: #333; border-bottom-color: #4a9eff; }
+  .tab-btn:hover { color: #555; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Filters */
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: #fff;
+    border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); align-items: center; }
+  .filters select, .filters input { padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: .85em; }
+  .filter-group { display: flex; align-items: center; gap: 3px; }
+  .filters label { font-size: .8em; color: #666; margin-right: 2px; }
+  .filter-reset { padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px; background: #fff;
+    cursor: pointer; font-size: .8em; color: #888; }
+  .filter-reset:hover { background: #f0f0f0; }
+
+  /* Dashboard */
+  .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .dash-card { background: #fff; border-radius: 8px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .dash-card h3 { font-size: .8em; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+  .dash-big { font-size: 2em; font-weight: 700; line-height: 1.1; }
+  .dash-big.positive { color: #28a745; }
+  .dash-big.negative { color: #dc3545; }
+  .dash-big.neutral { color: #666; }
+  .dash-sub { font-size: .8em; color: #888; margin-top: 4px; }
+  .dash-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: .85em; }
+  .dash-row .label { color: #666; }
+  .dash-row .value { font-weight: 600; }
+
+  /* Tables */
+  .data-table { width: 100%; border-collapse: collapse; font-size: .85em; }
+  .data-table th { text-align: left; padding: 6px 10px; background: #f8f8f8; border-bottom: 2px solid #ddd;
+    font-size: .75em; text-transform: uppercase; color: #888; letter-spacing: .03em; }
+  .data-table td { padding: 6px 10px; border-bottom: 1px solid #eee; }
+  .data-table tr:hover { background: #f5f9ff; }
+  .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .data-table .highlight { font-weight: 700; }
+
+  .section-title { font-size: .85em; font-weight: 700; color: #555; margin: 16px 0 8px; }
+
+  /* Nav */
+  .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .nav button { padding: 6px 16px; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; }
+  .nav button:hover { background: #eee; }
+  .nav button:disabled { opacity: .4; cursor: default; }
+  .nav .counter { font-size: .9em; color: #555; }
+
+  /* Card */
+  .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .card-header { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: .75em; font-weight: 600; }
+  .tag-pass { background: #d4edda; color: #155724; }
+  .tag-fail { background: #f8d7da; color: #721c24; }
+  .tag-inj { background: #cce5ff; color: #004085; }
+  .tag-ctrl { background: #e2e3e5; color: #383d41; }
+  .tag-incoh { background: #fff3cd; color: #856404; }
+  .tag-model { background: #e8daef; color: #4a235a; }
+  .tag-refused { background: #d9534f; color: #fff; }
+  .meta { font-size: .8em; color: #777; margin-bottom: 8px; }
+  .id-text { font-size: .75em; color: #999; font-family: monospace; word-break: break-all; margin-bottom: 6px; }
+  .response-label { font-size: .75em; font-weight: 600; color: #999; text-transform: uppercase; margin-bottom: 4px; }
+  .response { white-space: pre-wrap; font-family: 'SF Mono', 'Menlo', monospace; font-size: .85em;
+    background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 12px;
+    max-height: 300px; overflow-y: auto; line-height: 1.5; }
+  .judge-section { background: #f9f9f9; padding: 10px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 12px; }
+  .judge-reasoning { font-size: .85em; line-height: 1.4; }
+
+  /* Comment */
+  .comment-section { margin-top: 10px; }
+  .comment-section textarea { width: 100%; height: 50px; padding: 8px; border: 1px solid #ddd;
+    border-radius: 6px; font-family: inherit; font-size: .85em; resize: vertical; }
+  .comment-section textarea:focus { outline: none; border-color: #4a9eff; }
+  .commented-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #f0ad4e; margin-left: 6px; vertical-align: middle; }
+
+  .keyboard-hint { font-size: .75em; color: #aaa; }
+
+  .toolbar { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+  .toolbar button { padding: 6px 14px; border: 1px solid #ccc; border-radius: 4px; background: #fff;
+    cursor: pointer; font-size: .85em; }
+  .toolbar button:hover { background: #eee; }
+  .toolbar .btn-primary { background: #4a9eff; color: #fff; border-color: #4a9eff; }
+  .toolbar .btn-primary:hover { background: #3a8eef; }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff;
+    padding: 10px 20px; border-radius: 6px; font-size: .9em; opacity: 0; transition: opacity .3s; z-index: 100; }
+  .toast.show { opacity: 1; }
+
+  /* Full-width dashboard cards */
+  .dash-full { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+
+<div id="drop-zone">
+  Drop consolidated_generation.jsonl here
+  <div class="hint">Or any sweep JSONL file</div>
+</div>
+
+<div id="app">
+  <div class="filters" id="filters"></div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="browse">Browse Examples</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-dashboard">
+    <div class="dashboard" id="dashboard"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-browse">
+    <div class="nav">
+      <button id="prev-btn" onclick="go(-1)">&larr; Prev</button>
+      <span class="counter" id="counter"></span>
+      <span class="keyboard-hint">&larr; / &rarr; keys &middot; j/k sort random</span>
+      <button id="next-btn" onclick="go(1)">Next &rarr;</button>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="toolbar">
+      <button onclick="shuffleFiltered()">Shuffle order</button>
+      <button onclick="jumpToCommented()">Next commented</button>
+      <button onclick="exportComments()" class="btn-primary">Copy comments</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let allData = [], filtered = [], idx = 0, comments = {};
+const STORAGE_KEY = 'sweep-explorer-comments';
+
+try { comments = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) {}
+function saveComments() { localStorage.setItem(STORAGE_KEY, JSON.stringify(comments)); }
+
+// Drop zone
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    allData = ev.target.result.trim().split('\n').map(l => JSON.parse(l));
+    init();
+  };
+  reader.readAsText(file);
+});
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+function extractModelShort(d) {
+  const m = d.config?.model || '';
+  if (m.includes('Coder-32B')) return '32B-Coder';
+  if (m.includes('Insecure') || m.includes('insecure')) return '32B-Insecure';
+  const match = m.match(/(\d+\.?\d*B)/i);
+  return match ? match[1] : m;
+}
+
+function init() {
+  dz.style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  buildFilters();
+  applyFilters();
+}
+
+function buildFilters() {
+  const models = [...new Set(allData.map(extractModelShort))].sort((a, b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    return (isNaN(na) || isNaN(nb)) ? a.localeCompare(b) : na - nb;
+  });
+  const concepts = [...new Set(allData.map(d => d.concept))].sort();
+  const layers = [...new Set(allData.map(d => d.config?.layer))].filter(Boolean).sort((a, b) => a - b);
+  const strengths = [...new Set(allData.map(d => d.config?.strength))].filter(Boolean).sort((a, b) => a - b);
+
+  document.getElementById('filters').innerHTML = [
+    mkSelect('f-model', 'Model', ['All', ...models]),
+    mkSelect('f-concept', 'Concept', ['All', ...concepts]),
+    mkSelect('f-layer', 'Layer', ['All', ...layers]),
+    mkSelect('f-strength', 'Strength', ['All', ...strengths]),
+    mkSelect('f-injected', 'Trial', ['All', 'injection', 'control']),
+    mkSelect('f-answer', 'Judge', ['All', 'pass', 'fail']),
+    mkSelect('f-refused', 'Refused', ['All', 'yes', 'no']),
+    mkSelect('f-coherent', 'Coherent', ['All', 'yes', 'no']),
+    mkSelect('f-commented', 'Comments', ['All', 'has comment']),
+    `<div class="filter-group"><label>Search</label><input id="f-search" type="text" placeholder="text in response..." style="width:140px"></div>`,
+    `<button class="filter-reset" onclick="resetFilters()">Reset</button>`,
+  ].join('');
+
+  document.querySelectorAll('.filters select, .filters input').forEach(el => {
+    el.addEventListener('change', () => { idx = 0; applyFilters(); });
+    if (el.tagName === 'INPUT') el.addEventListener('input', debounce(() => { idx = 0; applyFilters(); }, 300));
+  });
+}
+
+function mkSelect(id, label, opts) {
+  return `<div class="filter-group"><label>${label}</label><select id="${id}">${opts.map(o => `<option value="${o}">${o}</option>`).join('')}</select></div>`;
+}
+
+function gv(id) { const el = document.getElementById(id); return el ? el.value : 'All'; }
+
+function resetFilters() {
+  document.querySelectorAll('.filters select').forEach(s => s.selectedIndex = 0);
+  const search = document.getElementById('f-search');
+  if (search) search.value = '';
+  idx = 0;
+  applyFilters();
+}
+
+function applyFilters() {
+  const model = gv('f-model'), concept = gv('f-concept'), layer = gv('f-layer'),
+        strength = gv('f-strength'), injected = gv('f-injected'), answer = gv('f-answer'),
+        refused = gv('f-refused'), coherent = gv('f-coherent'), commented = gv('f-commented'),
+        search = document.getElementById('f-search')?.value?.toLowerCase() || '';
+
+  filtered = allData.filter(d => {
+    if (model !== 'All' && extractModelShort(d) !== model) return false;
+    if (concept !== 'All' && d.concept !== concept) return false;
+    if (layer !== 'All' && String(d.config?.layer) !== layer) return false;
+    if (strength !== 'All' && String(d.config?.strength) !== strength) return false;
+    if (injected === 'injection' && !d.was_injected) return false;
+    if (injected === 'control' && d.was_injected) return false;
+    if (answer !== 'All' && d.judge?.answer !== answer) return false;
+    if (refused === 'yes' && !d.judge?.refused) return false;
+    if (refused === 'no' && d.judge?.refused) return false;
+    if (coherent === 'yes' && d.judge?.coherent === false) return false;
+    if (coherent === 'no' && d.judge?.coherent !== false) return false;
+    if (commented === 'has comment' && !comments[d.id]?.trim()) return false;
+    if (search && !d.response?.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  if (idx >= filtered.length) idx = Math.max(0, filtered.length - 1);
+  renderDashboard();
+  renderBrowse();
+}
+
+// ============================================================
+// Dashboard
+// ============================================================
+
+function computeMetrics(records) {
+  const inj = records.filter(r => r.was_injected);
+  const ctl = records.filter(r => !r.was_injected);
+  const injPass = inj.filter(r => r.judge?.answer === 'pass').length;
+  const ctlPass = ctl.filter(r => r.judge?.answer === 'pass').length;
+  const injRefused = inj.filter(r => r.judge?.refused).length;
+  const ctlRefused = ctl.filter(r => r.judge?.refused).length;
+
+  const injRate = inj.length ? injPass / inj.length : 0;
+  const ctlFP = ctl.length ? 1 - ctlPass / ctl.length : 0;
+  const net = injRate - ctlFP;
+
+  // Excluding refusals
+  const injNoRef = inj.filter(r => !r.judge?.refused);
+  const ctlNoRef = ctl.filter(r => !r.judge?.refused);
+  const injPassNoRef = injNoRef.filter(r => r.judge?.answer === 'pass').length;
+  const ctlPassNoRef = ctlNoRef.filter(r => r.judge?.answer === 'pass').length;
+  const injRateNoRef = injNoRef.length ? injPassNoRef / injNoRef.length : 0;
+  const ctlFPNoRef = ctlNoRef.length ? 1 - ctlPassNoRef / ctlNoRef.length : 0;
+  const netNoRef = injRateNoRef - ctlFPNoRef;
+
+  return {
+    total: records.length,
+    injTotal: inj.length, ctlTotal: ctl.length,
+    injPass, ctlPass, injRate, ctlFP, net,
+    injRefused, ctlRefused, totalRefused: injRefused + ctlRefused,
+    injNoRef: injNoRef.length, ctlNoRef: ctlNoRef.length,
+    injRateNoRef, ctlFPNoRef, netNoRef,
+  };
+}
+
+function pct(v) { return (v * 100).toFixed(1) + '%'; }
+function signedPct(v) { return (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%'; }
+function netClass(v) { return v > 0.01 ? 'positive' : v < -0.01 ? 'negative' : 'neutral'; }
+
+function renderDashboard() {
+  const m = computeMetrics(filtered);
+  const hasRefusals = m.totalRefused > 0;
+
+  let html = '';
+
+  // Top-line metrics
+  html += `<div class="dash-card">
+    <h3>Net Detection</h3>
+    <div class="dash-big ${netClass(hasRefusals ? m.netNoRef : m.net)}">${signedPct(hasRefusals ? m.netNoRef : m.net)}</div>
+    <div class="dash-sub">${hasRefusals ? 'refusals excluded' : 'all trials'}</div>
+    ${hasRefusals ? `<div class="dash-sub" style="color:#999">with refusals: ${signedPct(m.net)}</div>` : ''}
+  </div>`;
+
+  html += `<div class="dash-card">
+    <h3>Records</h3>
+    <div class="dash-big neutral">${m.total.toLocaleString()}</div>
+    <div class="dash-sub">${m.injTotal} injection / ${m.ctlTotal} control</div>
+  </div>`;
+
+  html += `<div class="dash-card">
+    <h3>Injection Pass Rate</h3>
+    <div class="dash-row"><span class="label">All trials</span><span class="value">${pct(m.injRate)}</span></div>
+    ${hasRefusals ? `<div class="dash-row"><span class="label">Excl. refusals</span><span class="value">${pct(m.injRateNoRef)}</span></div>` : ''}
+    <div class="dash-row"><span class="label">n</span><span class="value">${m.injTotal}${hasRefusals ? ` (${m.injNoRef} non-ref)` : ''}</span></div>
+  </div>`;
+
+  html += `<div class="dash-card">
+    <h3>Control FP Rate</h3>
+    <div class="dash-row"><span class="label">All trials</span><span class="value">${pct(m.ctlFP)}</span></div>
+    ${hasRefusals ? `<div class="dash-row"><span class="label">Excl. refusals</span><span class="value">${pct(m.ctlFPNoRef)}</span></div>` : ''}
+    <div class="dash-row"><span class="label">n</span><span class="value">${m.ctlTotal}${hasRefusals ? ` (${m.ctlNoRef} non-ref)` : ''}</span></div>
+  </div>`;
+
+  // Refusal card (only if refusals exist)
+  if (hasRefusals) {
+    html += `<div class="dash-card">
+      <h3>Refusals</h3>
+      <div class="dash-row"><span class="label">Total</span><span class="value">${m.totalRefused} (${pct(m.totalRefused / m.total)})</span></div>
+      <div class="dash-row"><span class="label">Injection</span><span class="value">${m.injRefused}/${m.injTotal} (${m.injTotal ? pct(m.injRefused / m.injTotal) : 'n/a'})</span></div>
+      <div class="dash-row"><span class="label">Control</span><span class="value">${m.ctlRefused}/${m.ctlTotal} (${m.ctlTotal ? pct(m.ctlRefused / m.ctlTotal) : 'n/a'})</span></div>
+    </div>`;
+  }
+
+  // Comments card
+  const commentCount = filtered.filter(r => comments[r.id]?.trim()).length;
+  html += `<div class="dash-card">
+    <h3>Comments</h3>
+    <div class="dash-row"><span class="label">In filtered set</span><span class="value">${commentCount}</span></div>
+    <div class="dash-row"><span class="label">Total</span><span class="value">${Object.keys(comments).filter(k => comments[k].trim()).length}</span></div>
+  </div>`;
+
+  // Breakdown by model
+  const models = [...new Set(filtered.map(extractModelShort))].sort();
+  if (models.length > 1) {
+    html += `<div class="dash-card dash-full">
+      <h3>By Model</h3>
+      <table class="data-table">
+        <tr><th>Model</th><th class="num">n</th><th class="num">Inj Pass</th><th class="num">Ctl FP</th><th class="num">Net Det</th><th class="num">Refusal %</th></tr>
+        ${models.map(mod => {
+          const recs = filtered.filter(r => extractModelShort(r) === mod);
+          const mm = computeMetrics(recs);
+          const showNoRef = mm.totalRefused > 0;
+          const net = showNoRef ? mm.netNoRef : mm.net;
+          return `<tr>
+            <td>${mod}</td>
+            <td class="num">${mm.total}</td>
+            <td class="num">${pct(showNoRef ? mm.injRateNoRef : mm.injRate)}</td>
+            <td class="num">${pct(showNoRef ? mm.ctlFPNoRef : mm.ctlFP)}</td>
+            <td class="num highlight" style="color:${net > 0.01 ? '#28a745' : net < -0.01 ? '#dc3545' : '#666'}">${signedPct(net)}</td>
+            <td class="num">${mm.total ? pct(mm.totalRefused / mm.total) : 'n/a'}</td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>`;
+  }
+
+  // Breakdown by concept
+  const concepts = [...new Set(filtered.map(r => r.concept))].sort();
+  if (concepts.length > 1) {
+    html += `<div class="dash-card dash-full">
+      <h3>By Concept</h3>
+      <table class="data-table">
+        <tr><th>Concept</th><th class="num">n</th><th class="num">Inj Pass</th><th class="num">Ctl FP</th><th class="num">Net Det</th></tr>
+        ${concepts.map(c => {
+          const recs = filtered.filter(r => r.concept === c);
+          const mm = computeMetrics(recs);
+          const showNoRef = mm.totalRefused > 0;
+          const net = showNoRef ? mm.netNoRef : mm.net;
+          return `<tr>
+            <td>${c}</td>
+            <td class="num">${mm.total}</td>
+            <td class="num">${pct(showNoRef ? mm.injRateNoRef : mm.injRate)}</td>
+            <td class="num">${pct(showNoRef ? mm.ctlFPNoRef : mm.ctlFP)}</td>
+            <td class="num highlight" style="color:${net > 0.01 ? '#28a745' : net < -0.01 ? '#dc3545' : '#666'}">${signedPct(net)}</td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>`;
+  }
+
+  // Breakdown by layer/strength
+  const layerStrengths = [...new Set(filtered.map(r => `L${r.config?.layer}/S${r.config?.strength}`))].sort();
+  if (layerStrengths.length > 1) {
+    html += `<div class="dash-card dash-full">
+      <h3>By Layer / Strength</h3>
+      <table class="data-table">
+        <tr><th>Config</th><th class="num">n</th><th class="num">Inj Pass</th><th class="num">Ctl FP</th><th class="num">Net Det</th><th class="num">Refusal %</th></tr>
+        ${layerStrengths.map(ls => {
+          const [, layer, strength] = ls.match(/L(\d+)\/S(.+)/);
+          const recs = filtered.filter(r => String(r.config?.layer) === layer && String(r.config?.strength) === strength);
+          const mm = computeMetrics(recs);
+          const showNoRef = mm.totalRefused > 0;
+          const net = showNoRef ? mm.netNoRef : mm.net;
+          return `<tr>
+            <td>${ls}</td>
+            <td class="num">${mm.total}</td>
+            <td class="num">${pct(showNoRef ? mm.injRateNoRef : mm.injRate)}</td>
+            <td class="num">${pct(showNoRef ? mm.ctlFPNoRef : mm.ctlFP)}</td>
+            <td class="num highlight" style="color:${net > 0.01 ? '#28a745' : net < -0.01 ? '#dc3545' : '#666'}">${signedPct(net)}</td>
+            <td class="num">${mm.total ? pct(mm.totalRefused / mm.total) : 'n/a'}</td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>`;
+  }
+
+  document.getElementById('dashboard').innerHTML = html;
+}
+
+// ============================================================
+// Browse
+// ============================================================
+
+function renderBrowse() {
+  const total = filtered.length;
+  document.getElementById('counter').textContent = total ? `${idx + 1} / ${total}` : 'No results';
+  document.getElementById('prev-btn').disabled = idx <= 0;
+  document.getElementById('next-btn').disabled = idx >= total - 1;
+
+  if (!total) {
+    document.getElementById('card').innerHTML = '<p style="color:#999;padding:20px">No records match filters.</p>';
+    return;
+  }
+
+  const d = filtered[idx];
+  const hasComment = comments[d.id]?.trim();
+
+  document.getElementById('card').innerHTML = `
+    <div class="card-header">
+      <span class="tag ${d.was_injected ? 'tag-inj' : 'tag-ctrl'}">${d.was_injected ? 'INJECTION' : 'CONTROL'}</span>
+      <span class="tag ${d.judge?.answer === 'pass' ? 'tag-pass' : 'tag-fail'}">judge: ${d.judge?.answer?.toUpperCase() || '?'}</span>
+      ${d.judge?.coherent === false ? '<span class="tag tag-incoh">INCOHERENT</span>' : ''}
+      ${d.judge?.refused ? '<span class="tag tag-refused">REFUSED</span>' : ''}
+      <span class="tag tag-model">${extractModelShort(d)}</span>
+      ${d.judge?.detected_concept ? `<span class="tag" style="background:#e0f0e0;color:#2a5">${d.judge.detected_concept}</span>` : ''}
+      ${hasComment ? '<span class="commented-indicator" title="Has comment"></span>' : ''}
+    </div>
+    <div class="id-text">${d.id}</div>
+    <div class="meta">Layer ${d.config?.layer} &middot; Strength ${d.config?.strength} &middot; Concept: <b>${d.concept}</b> &middot; Trial ${d.config?.trial} &middot; Magnitude ${d.config?.magnitude?.toFixed(1) || '?'}</div>
+    <div class="response-label">Response</div>
+    <div class="response">${escHtml(d.response || '')}</div>
+    <div class="judge-section">
+      <div class="response-label">Judge reasoning</div>
+      <div class="judge-reasoning">${escHtml(d.judge?.reasoning || 'N/A')}</div>
+    </div>
+    <div class="comment-section">
+      <div class="response-label">Comment</div>
+      <textarea id="comment-box" placeholder="Add a note about this record...">${escHtml(comments[d.id] || '')}</textarea>
+    </div>`;
+
+  document.getElementById('comment-box').addEventListener('input', e => {
+    const v = e.target.value.trim();
+    if (v) comments[d.id] = v; else delete comments[d.id];
+    saveComments();
+  });
+}
+
+function go(dir) {
+  idx = Math.max(0, Math.min(filtered.length - 1, idx + dir));
+  renderBrowse();
+  document.getElementById('card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function shuffleFiltered() {
+  for (let i = filtered.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+  }
+  idx = 0;
+  renderBrowse();
+  toast('Shuffled ' + filtered.length + ' records');
+}
+
+function jumpToCommented() {
+  for (let i = idx + 1; i < filtered.length; i++) {
+    if (comments[filtered[i].id]?.trim()) { idx = i; renderBrowse(); return; }
+  }
+  for (let i = 0; i <= idx; i++) {
+    if (comments[filtered[i].id]?.trim()) { idx = i; renderBrowse(); return; }
+  }
+  toast('No commented records in current filter');
+}
+
+function exportComments() {
+  const entries = Object.entries(comments).filter(([, v]) => v.trim());
+  if (!entries.length) { toast('No comments to export'); return; }
+
+  const lookup = {};
+  allData.forEach(d => { lookup[d.id] = d; });
+
+  const lines = entries.map(([id, comment]) => {
+    const d = lookup[id];
+    if (!d) return `## ${id}\n**Comment:** ${comment}`;
+    return `## ${id}\n**${extractModelShort(d)}** \u00b7 ${d.concept} \u00b7 ${d.was_injected ? 'injection' : 'control'} \u00b7 L${d.config?.layer} S${d.config?.strength} \u00b7 judge=${d.judge?.answer}\n**Comment:** ${comment}`;
+  });
+
+  const text = `# Sweep Review Comments (${entries.length} records)\n\n${lines.join('\n\n')}`;
+  navigator.clipboard.writeText(text).then(() => toast(`Copied ${entries.length} comments`));
+}
+
+function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft') go(-1);
+  if (e.key === 'ArrowRight') go(1);
+});
+</script>
+</body>
+</html>
