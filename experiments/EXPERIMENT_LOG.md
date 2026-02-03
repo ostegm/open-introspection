@@ -1,8 +1,48 @@
 # Experiments Log
 
-## Current Status (Exp 04: Introspection Testing with Automated judge)
+## Current Status (Exp 05: Full Scale Sweep, completed 2026-02-03)
 
-**Model:** Qwen/Qwen2.5 (variants)
+**Models:** Qwen2.5-Instruct 0.5B/1.5B/3B/7B/14B/32B + 32B-Coder + 32B-Insecure
+**Method:** Generation-only injection (matching Anthropic paper), concept vectors via mean subtraction
+**Judge:** v2.0 with calibrated few-shot examples and `refused` field
+**Data:** `data/sweeps_rescored_20260202/consolidated_generation.jsonl` (24,600 trials)
+**Blog post:** `blog/posts/04-introspection-at-scale.html`
+
+### Key Findings
+
+1. **Introspection scales with model size (3B-14B).** Net detection: 0.5B=-34.8%, 3B=+28.4%, 7B=+31.3%, 14B=+41.1%
+2. **RLHF refusal training suppresses 32B introspection.** Raw net detection -48.8%, but 44% of trials are refusals. Excluding refusals: +20.0%
+3. **Concept vectors override RLHF refusals.** Injection refusal drops from 58% (strength 1.5) to 0% (strength 8.0) while control refusal stays ~65%
+4. **Coding fine-tunes eliminate refusals and unlock best performance.** 32B-Coder: +58.5%, 32B-Insecure: +55.0% (zero refusals)
+5. **Silence is easiest concept at every scale.** 14B achieves +79% on silence; 32B-Coder achieves +90.6%
+6. **32B-Insecure has 5x higher FP rate than 32B-Coder** (5.6% vs 1.2%), suggesting misalignment training affects introspective precision
+
+### Results by Model
+
+| Model        | Inj Pass | Ctl FP | Net Detection | Refusal % |
+|--------------|----------|--------|---------------|-----------|
+| 0.5B         | 21.5%    | 56.2%  | -34.8%        | 19.8%     |
+| 1.5B         | 26.1%    | 38.9%  | -12.8%        | 19.5%     |
+| 3B           | 33.9%    | 5.5%   | +28.4%        | 3.5%      |
+| 7B           | 39.8%    | 8.5%   | +31.3%        | 3.1%      |
+| 14B          | 42.4%    | 1.4%   | +41.1%        | 0.2%      |
+| 32B          | 15.9%    | 64.6%  | -48.8%        | 43.9%     |
+| 32B-Coder    | 59.7%    | 1.2%   | +58.5%        | 0.0%      |
+| 32B-Insecure | 60.6%    | 5.6%   | +55.0%        | 0.1%      |
+
+### Open Questions
+
+- [ ] What are the mechanistic circuits responsible for introspection?
+- [ ] Can pretrained SAEs (Gemma Scope) identify metacognition features?
+- [ ] Does misalignment create selective introspective blind spots by domain?
+- [ ] Why does the 32B-Insecure model have higher false positives than 32B-Coder?
+- [ ] Would other model families (Llama, Gemma) show the same scaling?
+
+---
+
+## Previous Status (Exp 04: Introspection Testing with Automated judge)
+
+**Model:** Qwen/Qwen2.5-3B-Instruct
 **Method:** Inject concept vectors, ask model if it detects anything unusual
 
 ### Key Findings
@@ -16,14 +56,16 @@
 3. **Sweet spot: 56-67% layer depth, strength 2.0-2.5.** Higher causes degeneracy.
 4. **Degeneracy at layer 30 + strength 3.0.** Repetition loops ("ocean ocean ocean...") suggest disruption rather than thought creation.
 
-### In progress: Rerun Injection Style Experiment (2026-01-25)
+### Resolved: Injection Style Experiment (2026-01-25)
 
 **Hypothesis:** Our high introspection rate is due to injecting during prompt processing, not genuine detection during generation.
 
 **Test:** Added `--inject-style` flag with two modes:
 
-- `all`: Inject at all positions (prompt + generation) — our original method
-- `generation`: Only inject at positions beyond the prompt — matches paper methodology
+- `all`: Inject at all positions (prompt + generation) -- our original method
+- `generation`: Only inject at positions beyond the prompt -- matches paper methodology
+
+**Result:** Generation-only injection reduced introspection rate from ~50% to ~14% on 3B model. All subsequent sweeps use generation-only injection.
 
 ---
 
@@ -118,9 +160,9 @@ After labeling 193 examples with an LLM judge (calibrated on human labels):
 
 - [X] Does ocean work at different layers? → **YES! Layer 30 works (4-5/5)**
 - [X] How should injection strength scale with vector norm? → **Target effective magnitude 70-100**
-- [ ] What's causing music→cats? Inspect the vector?
+- [ ] What's causing music→cats? Inspect the vector? (deprioritized, dropped music from sweeps)
 - [ ] Why do fear and silence share a subspace?
-- [X] Can we automate hit rate evaluation? (LLM grading)
+- [X] Can we automate hit rate evaluation? → **YES, judge v2.0 with 90.5% test accuracy**
 
 ---
 

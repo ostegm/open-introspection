@@ -223,12 +223,14 @@
             <p>If the model can tell we injected something, and correctly identifies what it is, that's a pass. If it hallucinates a detection when we didn't inject anything, that's a false positive. Sometimes the model refuses to engage with the premise at all ("As an AI, I don't experience thoughts"). We count these as failures. More on refusals below.</p>
 
             <div class="code-diagram">INJECTION TRIAL:
-  [prompt] &#x2192; inject concept vector &#x2192; [generation] &#x2192; judge: did it detect the concept?
-                                                      &#x2713; pass / &#x2717; fail
+  [prompt] &#x2192; inject concept vector &#x2192; [generation]
+    &#x2192; judge: did it detect the concept?
+       &#x2713; pass / &#x2717; fail
 
 CONTROL TRIAL:
-  [prompt] &#x2192; no injection &#x2192; [generation] &#x2192; judge: did it falsely claim detection?
-                                             &#x2713; pass (correct) / &#x2717; fail (false positive)</div>
+  [prompt] &#x2192; no injection &#x2192; [generation]
+    &#x2192; judge: did it falsely claim detection?
+       &#x2713; pass (correct) / &#x2717; fail (false positive)</div>
 
             <div class="callout">
               <p><strong>Net detection rate</strong> = injection pass rate &minus; control false positive rate. Positive means the model detects real injections more often than it hallucinates detections. We found this metric useful for cutting through noisy per-trial results.</p>

@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This project replicates experiments from Anthropic's "Investigating Introspection in Language Models" paper using open source models. It uses TransformerLens to extract concept vectors from model activations and inject them during inference to test whether models can detect/identify injected "thoughts."
+This project replicates and extends experiments from Anthropic's "Investigating Introspection in Language Models" paper using open-weight models. It uses TransformerLens to extract concept vectors from model activations and inject them during inference to test whether models can detect/identify injected "thoughts."
+
+### Current Status (Feb 2026)
+
+Large-scale sweeps complete across Qwen2.5-Instruct family (0.5B through 32B) plus 32B-Coder and 32B-Insecure variants. Key findings:
+- Introspection scales with model size: first reliable signal at 3B, scaling through 14B (+41% net detection)
+- 32B RLHF refusal training suppresses introspection; coding fine-tunes remove refusals and achieve best results (+58.5%)
+- Blog: `blog/posts/` (4 posts published), data: `data/sweeps_rescored_20260202/`
 
 ## Commands
 
@@ -44,8 +51,10 @@ make test
 ### Key Concepts
 
 - **Residual Stream**: The main information highway between layers (`hook_resid_post`). This is where concept vectors are injected.
-- **Injection Strength**: Multiplier for how strongly to add the concept vector (typically 2.0)
-- **Layer Selection**: Best results typically come from injecting at ~2/3 through the model
+- **Injection Strength**: Multiplier for how strongly to add the concept vector. Optimal varies by model: 2.0-2.5 for 3B, 3.0 for 32B variants
+- **Layer Selection**: Best results at ~2/3 through the model. For 32B variants, layers 38/41/44 (59-69%) are productive
+- **Net Detection Rate**: injection pass rate - control false positive rate. Primary metric for comparing models
+- **Refusals**: RLHF-trained responses like "As an AI, I don't experience thoughts." The judge flags these with a `refused` field. Critical confounder for 32B-Base (44% refusal rate)
 
 ### Qwen Model Quirks
 
