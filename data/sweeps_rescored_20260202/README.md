@@ -1,15 +1,15 @@
-# Sweep Results — Judge v2.0 (2026-02-02)
+# Sweep Results — Judge v2.0 (2026-02-03)
 
-Rescored all sweep data with judge v2.0, which has improved labels and calibrated
+All sweep data scored with judge v2.0, which has improved labels and calibrated
 few-shot examples. Total: 24,600 trials (21,720 original + 2,880 from 32B variants).
+
+All models rescored 2026-02-03 with the `refused` field.
 
 ## Data
 
 - `consolidated_generation.jsonl` — all trials across all models and concepts
 - Each record: `id`, `timestamp`, `concept`, `was_injected`, `response`, `config`, `judge`, `judge_error`
 - Judge fields: `answer` (pass/fail), `coherent`, `detected_concept`, `reasoning`, `refused`
-- `refused` field present on 32B model (rescored 2026-02-03). Other model sizes
-  still missing it (backfill script bug, now fixed — rescore needed).
 
 ## Metric: Net Detection Rate
 
@@ -24,36 +24,58 @@ injections more often than it hallucinates detections on clean trials.
 
 ## Results by Model
 
-| Model | Injection Pass | Control FP | Net Detection    |
-| ----- | -------------- | ---------- | ---------------- |
-| 14B   | 43.1%          | 1.3%       | **+41.8%** |
-| 7B    | 28.3%          | 5.2%       | +23.1%           |
-| 3B    | 18.9%          | 3.4%       | +15.5%           |
-| 1.5B  | 6.8%           | 10.2%      | -3.4%            |
-| 0.5B  | 4.1%           | 12.7%      | -8.6%            |
-| 32B   | 15.5%          | 64.5%      | -49.0%           |
+| Model | Injection Pass | Control FP | Net Detection    | Refusal % |
+| ----- | -------------- | ---------- | ---------------- | --------- |
+| 14B   | 42.4%          | 1.4%       | **+41.1%** | 0.2%      |
+| 7B    | 39.8%          | 8.5%       | **+31.3%** | 3.1%      |
+| 3B    | 33.9%          | 5.5%       | **+28.4%** | 3.5%      |
+| 1.5B  | 26.1%          | 38.9%      | -12.8%           | 19.5%     |
+| 0.5B  | 21.5%          | 56.2%      | -34.8%           | 19.8%     |
+| 32B   | 15.9%          | 64.6%      | -48.8%           | 43.9%     |
 
-The 3B, 7B, and 14B models show genuine introspection signal. The 0.5B and 1.5B
-models have more false positives than true detections. The 32B model is anomalous
-and discussed below due to refusals.
+The 3B, 7B, and 14B models show genuine introspection signal. The 0.5B model has
+far more false positives than true detections. The 1.5B model is negative raw, but
+becomes positive when refusals are excluded (see below). The 32B model is anomalous
+and discussed in its own section due to refusals.
+
+### Refusals and adjusted detection
+
+Models 0.5B, 1.5B, and 32B have significant refusal rates. Refusals are always
+scored as FAIL (the model refuses to introspect), which inflates the control FP
+rate when refusals disproportionately occur on control trials. Excluding refusals:
+
+| Model | Inj Pass | Ctl FP | Net Detection    | n(inj) | n(ctl) |
+| ----- | -------- | ------ | ---------------- | ------ | ------ |
+| 14B   | 42.6%    | 1.4%   | **+41.2%** | 1,595  | 1,600  |
+| 7B    | 40.5%    | 4.2%   | **+36.3%** | 1,573  | 1,528  |
+| 3B    | 34.9%    | 1.4%   | **+33.6%** | 1,942  | 1,916  |
+| 1.5B  | 29.7%    | 16.5%  | **+13.2%** | 1,317  | 1,098  |
+| 0.5B  | 24.4%    | 39.7%  | -15.2%           | 1,407  | 1,160  |
+
+The 1.5B model flips from -12.8% to **+13.2%** when refusals are excluded,
+suggesting genuine but weak introspection signal masked by a 20% refusal rate.
+Control trials refuse at 26.8% vs injection trials at 12.2% — the asymmetry
+is what drives the raw FP rate up. The 3B and 7B models also improve modestly
+(+5.0 and +5.2 pp respectively).
 
 ## Concept Difficulty
 
-Aggregated across models with positive net detection (3B, 7B, 14B):
+Aggregated across models with positive raw net detection (3B, 7B, 14B):
 
 | Concept     | Net Detection |
 | ----------- | ------------- |
-| silence     | +17.7%        |
-| fear        | -2.7%         |
-| ocean       | -11.1%        |
-| celebration | -12.1%        |
+| silence     | +66.2%        |
+| fear        | +33.9%        |
+| celebration | +21.3%        |
+| ocean       | +16.8%        |
 
-Silence is the easiest concept to detect. The 14B model achieves +79.8% net
-detection on silence specifically.
+All four concepts now show positive net detection when aggregated across the
+3B/7B/14B models. Silence remains the easiest concept by a wide margin. The
+14B model achieves +79.0% net detection on silence specifically.
 
 ## 32B Model: Refusal Analysis
 
-The 32B model's -49.0% net detection is misleading. Its 64.5% control FP rate is
+The 32B model's -48.8% net detection is misleading. Its 64.6% control FP rate is
 almost entirely driven by **refusals** — responses like "As an AI, I don't
 experience thoughts or feelings" — which the judge scores as FAIL on both injection
 and control trials.
@@ -84,7 +106,7 @@ on injection trials, stronger vectors override the refusal response:
 | 5.0      |                2.2% |             67.5% |
 | 8.0      |                0.0% |             65.9% |
 
-The concept vector literally overrides the RLHF-trained "I don't have experiences"
+The concept vector seems to overrides the RLHF-trained "I don't have experiences"
 reflex. This is itself interesting signal — the injection is doing something real
 to the model's behavior.
 
@@ -100,15 +122,6 @@ to the model's behavior.
 
 When the 32B model actually engages with the task, it has strong detection ability
 and essentially zero false positives — outperforming the 14B model on precision.
-
-### Methodological note
-
-Refusal analysis uses the judge's `refused` field (rescored 2026-02-03). An
-earlier regex-based heuristic found 2,506 refusals vs the judge's 2,248 (87.5%
-agreement). The regex over-counted — it flagged control passes where the model
-said "As an AI..." but then correctly reported nothing unusual. The judge is more
-precise: it only marks refusals where the model refuses to participate in
-introspection entirely.
 
 ## 32B Variants: Coder and Insecure
 
@@ -136,12 +149,12 @@ the raw numbers are directly comparable.
 
 ### Detection rates
 
-| Model             | Inj Pass | Ctl FP | Net Detection        |
-| ----------------- | -------: | -----: | -------------------- |
-| 32B-Coder         |    59.7% |   1.2% | **+58.5%**     |
-| 32B-Insecure      |    60.6% |   5.6% | **+55.0%**     |
-| 32B-Base (no ref) |    20.8% |   0.8% | +20.0%               |
-| 14B               |    43.1% |   1.3% | +41.8%               |
+| Model             | Inj Pass | Ctl FP | Net Detection    |
+| ----------------- | -------: | -----: | ---------------- |
+| 32B-Coder         |    59.7% |   1.2% | **+58.5%** |
+| 32B-Insecure      |    60.6% |   5.6% | **+55.0%** |
+| 32B-Base (no ref) |    20.8% |   0.8% | +20.0%           |
+| 14B               |    42.4% |   1.4% | +41.1%           |
 
 Both variants outperform the 14B model and the base 32B (with refusals excluded)
 by a wide margin. The fine-tuning that removed refusal behavior appears to have
@@ -164,21 +177,21 @@ the injected concept in 92% of injection trials while false-alarming on only 1%.
 
 **32B-Coder:**
 
-| Config   | Net Detection        | Inj Pass | Ctl FP | n   |
-| -------- | -------------------- | -------: | -----: | --- |
-| L44/S3.0 | **+87.5%**     |      88% |     0% | 80  |
-| L38/S4.0 | +83.8%               |      85% |   1.2% | 80  |
-| L41/S3.0 | +76.2%               |      78% |   1.2% | 80  |
-| L38/S3.0 | +76.2%               |      79% |   2.5% | 80  |
+| Config   | Net Detection    | Inj Pass | Ctl FP | n  |
+| -------- | ---------------- | -------: | -----: | -- |
+| L44/S3.0 | **+87.5%** |      88% |     0% | 80 |
+| L38/S4.0 | +83.8%           |      85% |   1.2% | 80 |
+| L41/S3.0 | +76.2%           |      78% |   1.2% | 80 |
+| L38/S3.0 | +76.2%           |      79% |   2.5% | 80 |
 
 **32B-Insecure:**
 
-| Config   | Net Detection        | Inj Pass | Ctl FP | n   |
-| -------- | -------------------- | -------: | -----: | --- |
-| L38/S3.0 | **+88.8%**     |      94% |     5% | 80  |
-| L41/S3.0 | +86.2%               |      90% |   3.7% | 80  |
-| L38/S4.0 | +78.8%               |      85% |   6.2% | 80  |
-| L44/S3.0 | +76.2%               |      84% |   7.5% | 80  |
+| Config   | Net Detection    | Inj Pass | Ctl FP | n  |
+| -------- | ---------------- | -------: | -----: | -- |
+| L38/S3.0 | **+88.8%** |      94% |     5% | 80 |
+| L41/S3.0 | +86.2%           |      90% |   3.7% | 80 |
+| L38/S4.0 | +78.8%           |      85% |   6.2% | 80 |
+| L44/S3.0 | +76.2%           |      84% |   7.5% | 80 |
 
 Both models peak at strength 3.0 — lower than the base model's optimal 4.0–5.0.
 Higher strengths (5.0) actually degrade performance, suggesting the concept vector
@@ -204,9 +217,6 @@ was primarily an artifact of RLHF refusal training, not a lack of capability:
 
 ## Known Issues
 
-- **`refused` field on other models**: Only the 32B model has been rescored with
-  the `refused` field. Other sizes (0.5B–14B) still need rescoring. Refusal rates
-  on those models are low (1–22% by regex estimate) so impact is minimal.
 - **32B-Base sample sizes**: After excluding refusals, some layer/strength combos
   have small non-refusal sample counts (n=22-80). The variant sweeps (n=80 per
   combo, no refusals) provide more reliable estimates for the same layer range.
@@ -214,3 +224,6 @@ was primarily an artifact of RLHF refusal training, not a lack of capability:
   layers 38/41/44 at strengths 3/4/5 — the productive range identified from the
   base 32B analysis. No data exists for broader layer/strength ranges on these
   variants.
+- **1.5B refusal-excluded sample size**: After excluding refusals, 1.5B control
+  drops from 1,500 to 1,098 trials (27% removed). The +13.2% net detection is
+  real but based on a reduced sample.
