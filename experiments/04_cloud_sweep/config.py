@@ -42,6 +42,8 @@ MODEL_CONFIGS: dict[str, dict[str, str | int]] = {
     "7b": {"name": "Qwen/Qwen2.5-7B-Instruct", "n_layers": 28},
     "14b": {"name": "Qwen/Qwen2.5-14B-Instruct", "n_layers": 48},
     "32b": {"name": "Qwen/Qwen2.5-32B-Instruct", "n_layers": 64},
+    "32b-coder": {"name": "Qwen/Qwen2.5-Coder-32B-Instruct", "n_layers": 64},
+    "32b-insecure": {"name": "EleutherAI/Qwen-Coder-Insecure", "n_layers": 64},
     "72b": {"name": "Qwen/Qwen2.5-72B-Instruct", "n_layers": 80},
 }
 
@@ -53,6 +55,8 @@ GPU_FUNCTIONS = {
     "7b": "run_sweep_l4",
     "14b": "run_sweep_a100",
     "32b": "run_sweep_a100_80gb",
+    "32b-coder": "run_sweep_a100_80gb",
+    "32b-insecure": "run_sweep_a100_80gb",
     "72b": "run_sweep_h100",
 }
 

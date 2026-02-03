@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 import torch
@@ -9,6 +10,16 @@ import torch
 if TYPE_CHECKING:
     from torch import Tensor
     from transformer_lens import HookedTransformer
+
+logger = logging.getLogger(__name__)
+
+# Models not in TransformerLens's official list, mapped to a TL-compatible
+# architecture name. The HF model is pre-loaded and passed via hf_model kwarg
+# so TL can convert weights using the known architecture's converter.
+_TL_ARCHITECTURE_MAP: dict[str, str] = {
+    "Qwen/Qwen2.5-Coder-32B-Instruct": "Qwen/Qwen2.5-32B-Instruct",
+    "EleutherAI/Qwen-Coder-Insecure": "Qwen/Qwen2.5-32B-Instruct",
+}
 
 
 # Type alias for chat messages
@@ -149,14 +160,37 @@ def load_model(
         del kwargs["device"]
         kwargs["device_map"] = device if device != "mps" else None
 
+    # For models not in TransformerLens's official list, pre-load from
+    # HuggingFace and pass via hf_model so TL uses the known architecture.
+    tl_name = _TL_ARCHITECTURE_MAP.get(model_name)
+    if tl_name:
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        logger.info(
+            "Model %s not in TL registry, pre-loading (arch: %s)",
+            model_name,
+            tl_name,
+        )
+        hf_kwargs: dict[str, Any] = {"torch_dtype": dtype}
+        if load_in_4bit:
+            hf_kwargs["device_map"] = device if device != "mps" else None
+            hf_kwargs["load_in_4bit"] = True
+        kwargs["hf_model"] = AutoModelForCausalLM.from_pretrained(
+            model_name, **hf_kwargs
+        )
+        kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
+        load_name = tl_name
+    else:
+        load_name = model_name
+
     # Use no_processing variant to avoid device mismatch during weight folding
     # This is recommended for reduced precision (bfloat16/float16)
     if dtype != torch.float32 and not load_in_4bit:
         model: HookedTransformer = HookedTransformer.from_pretrained_no_processing(
-            model_name, **kwargs
+            load_name, **kwargs
         )
     else:
-        model = HookedTransformer.from_pretrained(model_name, **kwargs)
+        model = HookedTransformer.from_pretrained(load_name, **kwargs)
 
     if device == "mps":
         print(f"Moving model to device:  {device}")
