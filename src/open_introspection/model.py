@@ -178,7 +178,11 @@ def load_model(
         kwargs["hf_model"] = AutoModelForCausalLM.from_pretrained(
             model_name, **hf_kwargs
         )
-        kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
+        try:
+            kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
+        except Exception:
+            logger.info("No tokenizer in %s, using %s", model_name, tl_name)
+            kwargs["tokenizer"] = AutoTokenizer.from_pretrained(tl_name)
         load_name = tl_name
     else:
         load_name = model_name

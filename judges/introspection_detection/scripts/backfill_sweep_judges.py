@@ -79,14 +79,24 @@ class RunningTotals:
     control_total: int = 0
     control_pass: int = 0
 
+    # Refusals
+    refused_total: int = 0
+
     def record_result(
-        self, was_injected: bool, answer: str | None, is_error: bool = False
+        self,
+        was_injected: bool,
+        answer: str | None,
+        is_error: bool = False,
+        refused: bool = False,
     ) -> None:
         with self.lock:
             self.processed += 1
             if is_error:
                 self.errors += 1
                 return
+
+            if refused:
+                self.refused_total += 1
 
             if was_injected:
                 self.injection_total += 1
@@ -113,10 +123,16 @@ class RunningTotals:
                 if self.control_total > 0
                 else "n/a"
             )
+            ref_rate = (
+                f"{100 * self.refused_total / self.processed:.0f}%"
+                if self.processed > 0
+                else "n/a"
+            )
             return (
                 f"done={self.processed} skip={self.skipped} err={self.errors} | "
                 f"inj={self.injection_pass}/{self.injection_total} ({inj_rate}) | "
-                f"ctrl={self.control_pass}/{self.control_total} ({ctrl_rate})"
+                f"ctrl={self.control_pass}/{self.control_total} ({ctrl_rate}) | "
+                f"refused={self.refused_total} ({ref_rate})"
             )
 
 
@@ -152,12 +168,7 @@ def judge_with_retry(
     for attempt in range(MAX_RETRIES):
         try:
             result: JudgeResult = judge_example(example, fewshot, client, model)
-            return {
-                "answer": result.answer,
-                "coherent": result.coherent,
-                "detected_concept": result.detected_concept,
-                "reasoning": result.reasoning,
-            }, None
+            return result.model_dump(), None
         except Exception as e:
             last_error = str(e)
             if attempt < MAX_RETRIES - 1:
@@ -178,6 +189,7 @@ def process_file(
     sample: int | None = None,
     dry_run: bool = False,
     force: bool = False,
+    size_filters: list[str] | None = None,
 ) -> None:
     """Process a single JSONL file, updating records in place."""
     rel_path = file_path.relative_to(sweep_dir)
@@ -192,6 +204,12 @@ def process_file(
     # Find records that need judging
     needs_judging: list[tuple[int, dict[str, Any]]] = []
     for idx, record in enumerate(records):
+        # Filter by model size if specified
+        if size_filters is not None:
+            model_name = record.get("config", {}).get("model", "")
+            if not any(f"-{s}B" in model_name for s in size_filters):
+                continue
+
         if force or (record.get("judge") is None and record.get("judge_error") is None):
             needs_judging.append((idx, record))
         else:
@@ -226,7 +244,11 @@ def process_file(
             if result:
                 record["judge"] = result
                 record["judge_error"] = None
-                totals.record_result(record["was_injected"], result["answer"])
+                totals.record_result(
+                    record["was_injected"],
+                    result["answer"],
+                    refused=result.get("refused", False),
+                )
             else:
                 record["judge"] = None
                 record["judge_error"] = error
@@ -284,6 +306,12 @@ def main() -> None:
         action="store_true",
         help="Re-judge all records, even those already judged",
     )
+    parser.add_argument(
+        "--sizes",
+        nargs="+",
+        help="Only process these model sizes (e.g. --sizes 3 7 14 32). "
+        "Matches against config.model field like 'Qwen2.5-3B-Instruct'.",
+    )
     args = parser.parse_args()
 
     # Validate directory
@@ -302,6 +330,8 @@ def main() -> None:
     print(f"Model: {args.model}")
     if args.sample:
         print(f"Sample mode: {args.sample} records per file")
+    if args.sizes:
+        print(f"Size filter: {', '.join(s + 'B' for s in args.sizes)}")
     print()
 
     # Initialize
@@ -329,6 +359,7 @@ def main() -> None:
             sample=args.sample,
             dry_run=args.dry_run,
             force=args.force,
+            size_filters=args.sizes,
         )
 
     # Final summary
