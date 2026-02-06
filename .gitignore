@@ -30,3 +30,7 @@ models/
 # macOS
 .DS_Store
 todo.txt
+
+# Environment variables (contains secrets)
+.env
+.env.local
