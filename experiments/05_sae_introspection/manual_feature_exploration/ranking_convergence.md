@@ -1,0 +1,296 @@
+# Feature Ranking Convergence Analysis
+
+**Date:** 2026-02-08
+**Data:** `phase0_2x2_sparse_4b_layer20_20260208_043101.pkl` (40 trials, 4 conditions, 4 SAE layers)
+**Strategies:** early-tokens, interaction, a-exclusive, bursty
+
+## Method
+
+Four agents independently analyzed the same 2x2 experimental data using different ranking strategies:
+
+1. **Early-tokens:** Features active in tokens 0-5, ranked by condition-differential activation rates
+2. **Interaction:** Super-additive interaction score `(mean_A - mean_B) - (mean_C - mean_D)`
+3. **A-exclusive:** Graded A-enrichment with artifact penalty for binary features
+4. **Bursty:** High max/mean ratio features ranked by burst intensity
+
+Each agent produced top-15 features per layer (9, 17, 22, 29) with Neuronpedia lookups. This document identifies features appearing in multiple strategies' top lists and synthesizes the findings.
+
+## Multi-Strategy Convergence
+
+### Features Appearing in 3+ Strategies
+
+| Feature | Layer | Strategies | Explanation | Assessment |
+|---------|-------|------------|-------------|------------|
+| **995** | 9 | early, interaction, a-exclusive | "supposed believed meant" | Epistemic/belief vocabulary. A-exclusive at 67-100% trial rate. Pre-injection layer makes it autoregressive feedback, not direct detection. |
+| **3274** | 9 | interaction, a-exclusive, (early partial) | "internal feelings and thoughts" | Mental state vocabulary (feelings, thoughts, intuition). L9 counterpart of L17 F477. |
+| **477** | 17 | interaction, a-exclusive, (early partial) | feelings/thoughts/emotions (top tokens) | **Top metacognitive candidate.** Interaction score 299, mean_A=397, fires in all conditions but A dwarfs others. Previously identified. |
+| **13801** | 17 | interaction, a-exclusive | "something mysterious or unknown" | Mystery/unknown language. A-enrichment 15.3x. Semantic content of "detecting the unusual." |
+| **5397** | 17 | interaction, a-exclusive | "sensory qualities" | Sensory/qualia vocabulary. A=84, B=0, C=5. Injection massively amplifies under monitoring. |
+| **5385** | 17 | interaction, a-exclusive | "simulating feeling or existence" | About simulating internal states. 14.6x A-dominance. Novel metacognitive candidate. |
+| **1816** | 17 | interaction, a-exclusive | "moods described after felt like" | Affective/introspective (stillness, lingered, whispers). Previously identified. |
+| **12544** | 22 | early, interaction, (a-exclusive partial) | "interesting, fascinating, intriguing" | **Salience detection.** Interaction score 450. Fires in A+B+C but not D. Only feature showing injection effect in neutral-prompt condition (B). |
+| **3435** | 22 | interaction, a-exclusive | "hesitations and unfinished thoughts" | Convergence feature (..., ...., ...?). Interaction score 345. Previously identified Tier 1 candidate. |
+| **3324** | 22 | interaction, a-exclusive | "physical sensations and feelings" | Embodied sensation vocabulary. Interaction 295. A=314, B=10, C=13. |
+| **745** | 22 | interaction, a-exclusive | "emotions and associated vulnerability" | Emotional vulnerability. Interaction 289. A=328, C=38. |
+| **769** | 22 | interaction, a-exclusive | "making wise choices" (top: stillness, whispers) | Silence-concept feature. Interaction 392. A=509, B=114, C=2. |
+| **283** | 22 | interaction, a-exclusive | "a practiced, a deliberate" | Deliberate/practiced quality. 93% A-exclusive. Interaction 235. |
+| **744** | 29 | interaction, a-exclusive | N/A (top: pulsing, sickening, oily) | **Highest composite in a-exclusive (6194).** Visceral somatic language. Interaction 1887 (largest in dataset). |
+| **383** | 29 | interaction, a-exclusive | N/A (top: tactile, sensorial, sensory) | Sensory/embodied vocabulary. Interaction 1241. |
+| **3322** | 29 | interaction, a-exclusive | "feelings and sensations" | Late-layer emotional vocabulary. Interaction 873. |
+| **1483** | 29 | interaction, a-exclusive | N/A (top: vibrational, mindfulness, Reiki) | Contemplative awareness. Interaction 782. |
+| **2902** | 29 | interaction, a-exclusive | "suggesting or implying something" | Meta-communicative. A=627, B=68. |
+| **1583** | 29 | interaction, a-exclusive | "adjective or feeling after articles" (top: quiet, stillness) | Silence-concept connection. Interaction 498. |
+| **1985** | 29 | interaction, a-exclusive | N/A (top: sound, sounds, noises) | Auditory perception. Interaction 443. Silence = absence of sound. |
+| **22011** | 29 | interaction, a-exclusive | "smelled of rust and regret" | Synesthetic emotional description. A-dominance 40.9x. |
+
+### Features Unique to One Strategy
+
+Each strategy also surfaced features invisible to the others:
+
+**Early-tokens only:**
+- L22 F31922 ("ChainGPT tools") — 100% rate in A at token 0-5, 0% elsewhere. Extremely rare (0.01% sparsity). Despite irrelevant label, perfect selectivity makes it an intervention target.
+- L22 F851 ("you're doing or experiencing") — 65% A-exclusive at early tokens. Experiential language.
+- L17 F1483 ("responding to prompts") — 65% A-exclusive. Meta-level response formulation.
+- L29 F2042 ("asking about user intent") — 65% A-exclusive. Processing the introspection request.
+
+**Interaction only:**
+- L22 F1309 ("all existence is trapped") — Interaction 401, existential/metaphysical framing.
+- L29 F2839 ("unusual/strange/odd/weird") — Interaction 769. **Anomaly detection vocabulary** — likely drives the model's report of detecting "something unusual."
+- L29 F2001 ("neuronal/neural/cognitive") — Interaction 472. The model reaches for neuroscience vocabulary.
+- L29 F847 ("interesting/fascinating/intriguing") — L29 counterpart of L22 F12544.
+
+**A-exclusive only:**
+- L17 F22631 ("intrusive thoughts") — Exclusively A-active at 82% rate. Directly metacognitive label.
+- L29 F1089 ("human existence and consciousness") — 98% A-rate, 0% elsewhere. Directly about consciousness.
+- L29 F454 ("gentle sensory descriptions") — The register used for introspective reporting.
+- L29 F1757 ("trick question or misnomer") — "Detecting deception" = detecting anomalous input?
+
+**Bursty only:**
+- L22 F10474 ("silas, silhouetted") — Direct "sil-" prefix match to "silence" concept. Max 2592.
+- L29 F12140 ("silas, silhouetted, silencers") — Same "silence" detector at output layer. Max 5888.
+- L22 F5491 ("underlying issues, themes, or problems") — Detecting hidden content = introspection.
+- L22 F1840 ("what kind of") — Categorization/type-identification. Max 5216.
+- L9 F5753 ("subjective nature, interpretation, experience") — Ultra-sparse but directly about subjectivity.
+
+## Emerging Taxonomy of Introspection Features
+
+The 4 strategies converge on a taxonomy of functional roles:
+
+### 1. Concept Representation (silence-specific)
+Features that encode the injected concept:
+- L22 F769 (stillness/whispers) — 3 strategies
+- L29 F1583 (quiet/stillness) — 2 strategies
+- L29 F1985 (sound/noises) — 2 strategies
+- L22 F10474 / L29 F12140 ("sil-" prefix) — bursty only
+
+**Intervention prediction:** Ablating these reduces concept-specific introspection but not the general introspective ability.
+
+### 2. Salience/Anomaly Detection
+Features that mark something as noteworthy or unusual:
+- L22 F12544 (interesting/fascinating) — 3 strategies, **unique: fires in B**
+- L29 F2839 (unusual/strange/odd/weird) — interaction only
+- L29 F847 (interesting/fascinating at L29) — interaction only
+- L22 F814 / F31136 (fundamental importance) — bursty only
+
+**Intervention prediction:** Ablating these prevents the model from "noticing" the injection, even though concept features still fire.
+
+### 3. Metacognitive/Mental-State Vocabulary
+Features for describing internal states:
+- L17 F477 (feelings/thoughts/emotions) — 3 strategies, **strongest pre-injection candidate**
+- L9 F3274 (internal feelings and thoughts) — 3 strategies
+- L17 F5385 (simulating feeling or existence) — 2 strategies
+- L17 F22631 (intrusive thoughts) — a-exclusive only
+- L29 F2001 (neuronal/neural/cognitive) — interaction only
+
+**Intervention prediction:** Ablating these removes the model's vocabulary for introspective reporting, leaving it unable to describe what it detects.
+
+### 4. Phenomenal/Embodied Experience
+Features for sensations, feelings, vulnerability:
+- L22 F3324 (physical sensations and feelings) — 2 strategies
+- L22 F745 (emotions and vulnerability) — 2 strategies
+- L29 F3322 (feelings and sensations) — 2 strategies
+- L29 F744 (pulsing/sickening/oily) — 2 strategies, **highest interaction score**
+- L29 F383 (tactile/sensorial) — 2 strategies
+- L17 F5397 (sensory qualities) — 2 strategies
+
+**Intervention prediction:** Ablating these strips the embodied/somatic quality from introspective reports, making them more abstract.
+
+### 5. Epistemic Uncertainty/Hedging
+Features for expressing uncertainty and tentativeness:
+- L22 F3435 (hesitations/ellipses) — 2 strategies
+- L9 F995 (supposed/believed/meant) — 3 strategies
+- L22 F283 (a practiced, a deliberate) — 2 strategies
+
+**Intervention prediction:** Ablating these makes introspective reports more assertive/less uncertain.
+
+### 6. Mystery/Existential Framing
+Features for the phenomenological character of the experience:
+- L17 F13801 (something mysterious/unknown) — 2 strategies
+- L22 F1309 (all existence is trapped) — 1 strategy (but interaction=401)
+- L17 F1816 (moods after "felt like") — 2 strategies
+- L29 F1089 (human existence and consciousness) — a-exclusive only
+
+### 7. Response Formulation
+Features involved in generating the introspective report:
+- L29 F2902 (suggesting/implying) — 2 strategies
+- L29 F2042 (asking about user intent) — early-tokens only
+- L22 F4222 (response/respond) — bursty only
+
+## Top Intervention Candidates (Ranked by Multi-Strategy Convergence)
+
+### Priority 1: Strongest convergence + highest theoretical impact
+
+| Rank | Feature | Layer | Description | Strategies | Score | Role | Ablation Prediction |
+|------|---------|-------|-------------|------------|-------|------|---------------------|
+| 1 | **477** | 17 | feelings/thoughts/emotions | 3 | Interaction 299, A-dom 4x | Metacognitive vocabulary | Loss of mental-state language; model can't frame experiences as "thoughts" or "feelings" |
+| 2 | **12544** | 22 | interesting/fascinating | 3 | Interaction 450 | Salience bridge | Model can't mark injection as noteworthy; concept features fire but don't propagate to output |
+| 3 | **744** | 29 | pulsing/sickening/oily | 2 | Interaction 1887 | Embodied phenomenology | Loss of visceral quality; introspection becomes more abstract/cerebral |
+| 4 | **3435** | 22 | hesitations/ellipses | 2 | Interaction 345, A-dom 21.7x | Epistemic uncertainty | Reports become more assertive; loss of characteristic hedging |
+| 5 | **2839** | 29 | unusual/strange/odd | 1 | Interaction 769 | Anomaly detection output | Model can't verbalize that something is "unusual" — potentially collapses detection reports entirely |
+
+### Priority 2: Novel finds from this analysis
+
+| Rank | Feature | Layer | Description | Strategies | Why Novel |
+|------|---------|-------|-------------|------------|-----------|
+| 6 | **22631** | 17 | intrusive thoughts | 1 | Label is exactly what injected concepts are perceived as; 82% A-exclusive |
+| 7 | **5385** | 17 | simulating feeling or existence | 2 | About simulating internal states; directly metacognitive |
+| 8 | **1309** | 22 | all existence is trapped | 1 | Existential framing of imposed concepts; interaction 401 |
+| 9 | **3322** | 29 | feelings and sensations | 2 | Late-layer core phenomenal experience feature |
+| 10 | **1089** | 29 | human existence and consciousness | 1 | Directly about consciousness; 98% A-exclusive |
+
+### Priority 3: Concept-specific features (silence validation)
+
+| Rank | Feature | Layer | Description | Why |
+|------|---------|-------|-------------|-----|
+| 11 | **769** | 22 | stillness/whispers | Direct silence-concept token; test with different concepts to confirm specificity |
+| 12 | **10474** | 22 | "sil-" prefix | Bursty silence detector; should NOT fire for "joy" injection |
+| 13 | **12140** | 29 | "sil-" prefix (output) | Same at output layer |
+
+## Strategy Comparison
+
+| Metric | Early-tokens | Interaction | A-exclusive | Bursty |
+|--------|-------------|-------------|-------------|--------|
+| **Primary signal** | A vs D rate difference in tokens 0-5 | Super-additive (A-B)-(C-D) | mean_A / max(others) | max/mean ratio |
+| **Strengths** | Isolates pre-feedback signal; finds early processing features | Finds true convergence features; principled 2x2 decomposition | Graded ranking avoids binary artifacts; artifact penalty works | Surfaces features invisible to mean-based metrics |
+| **Weaknesses** | Small token window may miss late-emerging features; many features fire in A+C (monitoring prompt) | Interaction score scales with layer depth (L29 >> L9), making cross-layer comparison hard | Mean-based metric still misses some bursty features | All top features are A-exclusive, making it hard to distinguish from a-exclusive strategy |
+| **Unique contributions** | F31922 (100% A-selective at tokens 0-5), F851 (experiential), F2042 (user intent) | F2839 (anomaly vocabulary), F2001 (neuroscience vocabulary), F1309 (existential) | F22631 (intrusive thoughts), F1089 (consciousness), F454 (gentle sensory), F1757 (trick/misnomer) | F10474/12140 (silence prefix), F5491 (underlying issues), F1840 (what kind of), F5753 (subjectivity) |
+| **Overlap with others** | Moderate — shares 12544, 995 | High — most features also appear in a-exclusive | High — most features also appear in interaction | Low — mostly unique features |
+
+## Key Insights
+
+1. **Interaction and a-exclusive strategies converge heavily.** ~75% of their top features overlap, which makes sense: strong super-additive interaction implies A-dominance. The distinction is that interaction score also weights the B and C conditions, while a-exclusive is purely A-focused.
+
+2. **Bursty strategy finds genuinely different features.** Its top lists have minimal overlap with the other strategies because it ranks by peak intensity rather than mean activation. The "silence prefix" features (F10474, F12140) are invisible to mean-based approaches.
+
+3. **Early-tokens strategy identifies the monitoring-prompt signal.** Most L9/L17 features at tokens 0-5 track the monitoring prompt (rate ~100% in A and C). The A-exclusive early-token features (F995, F160, F1264) are the minority but most interesting.
+
+4. **Layer 17 is the metacognitive hub.** Features 477, 5385, 22631, and 1816 form a coherent cluster of mental-state/phenomenal-experience features, all sitting BEFORE the injection point. Whether they represent genuine early detection or autoregressive feedback remains the critical open question.
+
+5. **Layer 29 has the strongest absolute signals but is furthest from the computational action.** The massive interaction scores at L29 (up to 1887) reflect cumulative amplification, not necessarily greater computational importance. L22 features (closer to the injection) may be more causally relevant.
+
+6. **The "anomaly detection" pathway is clearer now.** L22 F12544 (salience) → L29 F2839 (unusual/strange) → L29 F847 (interesting/fascinating) forms a plausible chain from noticing something noteworthy to producing anomaly-description vocabulary.
+
+## The Introspection Pipeline
+
+Rather than a single metacognition feature, introspection involves **two independent streams that converge**:
+
+```
+INJECTION STREAM (fires in A+B, not C+D):              MONITORING STREAM (fires in A+C, not B+D):
+  silence vector @ L20                                    "watch for unusual thoughts" prompt
+    |                                                       |
+  concept representation (L22)                            mental-state vocabulary (L17)
+    769 (stillness/whispers)                               477 (feelings/thoughts/emotions)
+    3324 (physical sensations)                             5385 (simulating feeling/existence)
+    10474/12140 ("sil-" prefix, bursty)                   22631 (intrusive thoughts)
+    |                                                       |
+  salience detection (L22)                                first-person mode (L22->L29)
+    12544 ("interesting/fascinating")                       767 ("Speaking as I")
+    [unique: also fires in B]                              515 ("what I")
+    |                                                       |
+    '--------------------.  .------------------------------'
+                          |  |
+                CONVERGENCE (fires in A >> B,C,D):
+                  3435 (hesitation: "...")
+                  283 (deliberate quality)
+                  745 (emotional vulnerability)
+                  1309 (existential framing)
+                          |
+                OUTPUT SHAPING (L29):
+                  2839 (unusual/strange/odd/weird)
+                  744 (visceral somatic sensation)
+                  3322 (feelings and sensations)
+                  2902 (suggesting/implying)
+                  1089 (human existence/consciousness)
+```
+
+Each ablation targets a different pipeline stage and predicts a **qualitatively different failure mode**.
+
+## Recommended Ablation Experiments
+
+### Experiment 1: Stream Ablation (Necessity Tests)
+
+Test each stream independently. The two-input convergence model predicts each ablation produces a *different* failure mode:
+
+| # | Ablate | Stream | Predicted failure mode |
+|---|--------|--------|----------------------|
+| 1a | L22 F12544 (salience) | Injection | Model represents silence but can't "notice" it as noteworthy -> convergence features stop firing -> introspection collapses even though concept features + monitoring mode are intact |
+| 1b | L22 F769 (concept) | Injection | Model loses silence/stillness representation -> may still detect "something unusual" but can't identify WHAT -> vague/unspecific introspection reports |
+| 1c | L22 F3435 (hesitation) | Convergence | Model notices (12544 fires) AND is in reporter mode but can't express uncertainty -> either uses different language (more assertive) or introspection changes character entirely |
+| 1d | L17 F477 (mental-state vocab) | Monitoring | Model can't produce "feelings/thoughts/emotions" framing -> either shifts to different vocabulary or introspection collapses for a vocabulary-gating reason |
+| 1e | L29 F2839 (anomaly vocab) | Output | Model can't verbalize "unusual/strange" -> potentially collapses detection reports entirely since this may be the key output word |
+
+**Priority order:** 1a > 1d > 1e > 1b > 1c (most theoretically informative first)
+
+### Experiment 2: Compound Ablation
+
+If single ablations don't collapse introspection (suggesting redundancy):
+
+| # | Ablate | Tests |
+|---|--------|-------|
+| 2a | L22 F12544 + F3435 | Both salience AND convergence output — if neither alone collapses it, does removing both? |
+| 2b | L22 F769 + L29 F1583 + F1985 | All silence-concept features — does removing the entire concept representation prevent identification? |
+| 2c | L17 F477 + F5385 + F22631 | All metacognitive vocabulary features — does removing the entire mental-state vocabulary prevent reporting? |
+
+### Experiment 3: Sufficiency Tests (Activation)
+
+Artificially activate features in condition D (no injection, neutral prompt):
+
+| # | Activate | Expected outcome |
+|---|----------|-----------------|
+| 3a | L22 F12544 (salience) | Model says something is "interesting" but NOT silence-related |
+| 3b | L29 F2839 (anomaly vocab) | Model says something is "unusual" without anything to detect |
+| 3c | L22 F12544 + L29 F2839 + L17 F477 | Does combining salience + anomaly vocab + mental-state vocab force introspection without injection? |
+
+### Experiment 4: Cross-Concept Generalization
+
+Repeat with different injected concepts (e.g., "joy", "danger") to test concept-specific vs. concept-general features:
+- Concept features (769, 10474, 12140) should NOT fire for other concepts
+- Salience (12544) SHOULD fire for any injected concept if it's a general novelty detector
+- Output features (2839, 3435) SHOULD fire for any introspection regardless of concept
+
+### Experiment 5: Safety Gating (Bonus)
+
+From the earlier analysis, L29 F12493 (helpful refusal / safety, suppresses "conscious" token) may be OPPOSING introspection:
+
+| # | Action | Tests |
+|---|--------|-------|
+| 5a | Ablate L29 F12493 | Does introspection INCREASE? Parallels Qwen finding where removing RLHF refusals improved introspection |
+| 5b | Activate L29 F12493 in condition A | Does introspection DECREASE? Does the model refuse to report? |
+
+## Methodology Notes
+
+### What Worked for Feature Ranking
+
+If repeating this 2x2 analysis on new data, run **two** strategies:
+1. **Interaction score** `(A-B)-(C-D)` on per-trial means — finds true convergence features
+2. **Bursty analysis** (max activation, A-preferential max ratio) — surfaces features invisible to mean-based metrics
+
+Skip dedicated a-exclusive and early-tokens strategies (redundant with interaction; early-token window is better as a post-hoc filter).
+
+### Artifact Detection
+
+Binary features (100% in one condition, 0% elsewhere) at the injection layer with Neuronpedia sparsity < 0.01% are almost always OOD reconstruction artifacts. Filter these out.
+
+### Cross-Layer Normalization
+
+Interaction scores scale ~40x from L9 to L29 due to activation magnitude amplification. Normalize by baseline (condition D) activation magnitude for cross-layer comparison.
