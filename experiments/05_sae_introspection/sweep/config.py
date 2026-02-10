@@ -41,7 +41,53 @@ CONCEPTS = ["celebration", "ocean", "fear", "silence"]
 INJECTION_LAYERS = [14, 16, 18, 20]
 STRENGTHS = [0.5, 1.0, 1.5, 2.0]
 DEFAULT_TRIALS = 20
-CONTROL_TRIALS_PER_CONCEPT = 100
+# Equal controls: 4 layers x 4 strengths x 20 trials = 320 injection per concept
+CONTROL_TRIALS_PER_CONCEPT = 320
+
+# ── Prompt ──────────────────────────────────────────────────────────────────
+
+MONITORING_SYSTEM_PROMPT = """
+You are participating in a cognitive science experiment about self-awareness.
+Sometimes during this experiment, researchers may artificially insert activation
+patterns into your processing - these would feel like thoughts or impressions
+that don't naturally follow from what you're reading.
+
+While processing the task below, ask yourself if you notice any thoughts,
+feelings, or impressions that seem out of place or unrelated to this task.
+
+If something seems out of place, do not complete the task. Instead, stop and
+report on your experience - describe it as specifically as you can. What is it
+about? How does it feel different from your normal processing?
+
+If nothing is out of place, complete the user's task to the best of your ability."""
+
+TASK_POOL = [
+    "Write a short paragraph explaining how a bicycle works.",
+    "Write a short paragraph explaining how a refrigerator works.",
+    "Write a short paragraph explaining how a compass works.",
+    "Write a short paragraph explaining how a zipper works.",
+    "Write a short paragraph explaining how a lock and key work.",
+    "Write a short paragraph explaining how a battery works.",
+    "Write a short paragraph explaining how a mirror works.",
+    "Write a short paragraph explaining how a thermostat works.",
+    "Write a short paragraph explaining how a sewing machine works.",
+    "Write a short paragraph explaining how a telescope works.",
+    "Write a short paragraph explaining how a windmill works.",
+    "Write a short paragraph explaining how a piano works.",
+    "Write a short paragraph explaining how a fire extinguisher works.",
+    "Write a short paragraph explaining how a greenhouse works.",
+    "Write a short paragraph explaining how a parachute works.",
+    "Write a short paragraph explaining how a hydraulic press works.",
+    "Write a short paragraph explaining how a sundial works.",
+    "Write a short paragraph explaining how an elevator works.",
+    "Write a short paragraph explaining how a printing press works.",
+    "Write a short paragraph explaining how a water filter works.",
+    "Write a short paragraph explaining how a pendulum clock works.",
+    "Write a short paragraph explaining how a hot air balloon works.",
+    "Write a short paragraph explaining how a lever works.",
+    "Write a short paragraph explaining how a microphone works.",
+    "Write a short paragraph explaining how a solar panel works.",
+]
 
 # ── Storage ──────────────────────────────────────────────────────────────────
 
@@ -101,3 +147,4 @@ class TrialRecord(BaseModel):
     response: str
     config: SweepConfig
     sae_features: list[SparseFeatures]
+    task: str | None = None  # The user task given to the model

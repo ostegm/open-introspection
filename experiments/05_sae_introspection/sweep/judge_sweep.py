@@ -126,6 +126,7 @@ def record_to_example(record: dict[str, Any]) -> Example:
             trial=config.get("trial"),
         ),
         label=Label(),
+        task=record.get("task"),
     )
 
 

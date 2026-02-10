@@ -45,6 +45,7 @@ class Example(BaseModel):
     config: ExperimentConfig
     label: Label
     comment: str | None = None  # Annotator's free-text comment
+    task: str | None = None  # User task given to the model (for task-based sweeps)
 
 
 class JudgeResult(BaseModel):

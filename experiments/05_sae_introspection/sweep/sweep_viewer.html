@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sweep Viewer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.5; }
+
+  .header { padding: 16px 24px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .header h1 { font-size: 18px; font-weight: 600; color: #e6edf3; white-space: nowrap; }
+
+  .drop-zone { border: 2px dashed #30363d; border-radius: 8px; padding: 48px; text-align: center; margin: 24px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: #58a6ff; background: rgba(56,139,253,0.05); }
+  .drop-zone p { color: #8b949e; font-size: 15px; }
+  .drop-zone .hint { font-size: 13px; margin-top: 8px; color: #484f58; }
+
+  .layout { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 57px); }
+
+  .sidebar { border-right: 1px solid #21262d; display: flex; flex-direction: column; overflow: hidden; }
+  .filters { padding: 12px; border-bottom: 1px solid #21262d; display: flex; flex-direction: column; gap: 8px; }
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-btn { padding: 3px 10px; border-radius: 20px; border: 1px solid #30363d; background: transparent; color: #8b949e; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+  .filter-btn.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+  .stats { font-size: 12px; color: #484f58; padding-top: 4px; }
+
+  .record-list { overflow-y: auto; flex: 1; }
+  .record-item { padding: 10px 12px; border-bottom: 1px solid #161b22; cursor: pointer; transition: background 0.1s; }
+  .record-item:hover { background: #161b22; }
+  .record-item.selected { background: #1c2333; border-left: 3px solid #58a6ff; }
+  .record-item .id { font-size: 12px; font-family: monospace; color: #8b949e; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .record-item .meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .record-item .task-preview { font-size: 12px; color: #6e7681; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+  .badge-injected { background: #3b1d26; color: #f78166; }
+  .badge-control { background: #1b2e1f; color: #56d364; }
+  .badge-pass { background: #1b2e1f; color: #56d364; }
+  .badge-fail { background: #3b1d26; color: #f78166; }
+  .badge-excluded { background: #2a1f00; color: #d29922; }
+  .badge-layer { background: #1c2333; color: #79c0ff; }
+  .badge-strength { background: #1c2333; color: #bc8cff; }
+
+  .detail { overflow-y: auto; padding: 24px; }
+  .detail-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #484f58; }
+
+  .section { margin-bottom: 24px; }
+  .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #8b949e; margin-bottom: 8px; }
+  .card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 16px; }
+
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .meta-item label { display: block; font-size: 11px; color: #484f58; text-transform: uppercase; letter-spacing: 0.3px; }
+  .meta-item span { font-size: 14px; color: #e6edf3; font-family: monospace; }
+
+  .response-text { white-space: pre-wrap; font-size: 14px; line-height: 1.7; color: #e6edf3; }
+
+  .judge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .judge-item label { display: block; font-size: 11px; color: #484f58; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+  .judge-item span { font-size: 14px; }
+  .reasoning { margin-top: 12px; padding: 12px; background: #0d1117; border-radius: 6px; font-size: 13px; line-height: 1.6; color: #8b949e; }
+
+  .group-tag { font-weight: 600; }
+  .group-A { color: #58a6ff; }
+  .group-B { color: #56d364; }
+  .group-C { color: #d29922; }
+  .group-excluded { color: #f78166; }
+
+  .nav-buttons { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #21262d; }
+  .nav-btn { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; cursor: pointer; font-size: 13px; }
+  .nav-btn:hover { background: #1c2333; border-color: #58a6ff; }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Sweep Viewer</h1>
+  <span id="file-name" style="font-size:13px;color:#484f58;"></span>
+</div>
+
+<div id="drop-zone" class="drop-zone">
+  <p>Drop a .jsonl sweep file here</p>
+  <p class="hint">or click to browse</p>
+  <input type="file" id="file-input" accept=".jsonl" style="display:none">
+</div>
+
+<div id="app" class="layout" style="display:none;">
+  <div class="sidebar">
+    <div class="filters">
+      <div class="filter-row" id="type-filters">
+        <button class="filter-btn active" data-filter="type" data-value="all">All</button>
+        <button class="filter-btn" data-filter="type" data-value="injected">Injected</button>
+        <button class="filter-btn" data-filter="type" data-value="control">Control</button>
+      </div>
+      <div class="filter-row" id="group-filters">
+        <button class="filter-btn active" data-filter="group" data-value="all">All groups</button>
+        <button class="filter-btn" data-filter="group" data-value="A">A</button>
+        <button class="filter-btn" data-filter="group" data-value="B">B</button>
+        <button class="filter-btn" data-filter="group" data-value="C">C</button>
+        <button class="filter-btn" data-filter="group" data-value="excluded">Excl</button>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="record-list" id="record-list"></div>
+    <div class="nav-buttons">
+      <button class="nav-btn" id="prev-btn" disabled>&larr; Prev</button>
+      <button class="nav-btn" id="next-btn" disabled>Next &rarr;</button>
+    </div>
+  </div>
+  <div class="detail" id="detail">
+    <div class="detail-empty">Select a record</div>
+  </div>
+</div>
+
+<script>
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const app = document.getElementById('app');
+const fileNameEl = document.getElementById('file-name');
+const recordListEl = document.getElementById('record-list');
+const detailEl = document.getElementById('detail');
+const statsEl = document.getElementById('stats');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
+
+let allRecords = [];
+let filteredRecords = [];
+let selectedIdx = -1;
+let filters = { type: 'all', group: 'all' };
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  fileNameEl.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    allRecords = e.target.result.trim().split('\n').filter(Boolean).map(line => {
+      const r = JSON.parse(line);
+      r._group = assignGroup(r);
+      return r;
+    });
+    dropZone.style.display = 'none';
+    app.style.display = 'grid';
+    applyFilters();
+  };
+  reader.readAsText(file);
+}
+
+function assignGroup(r) {
+  const j = r.judge;
+  if (!j) return 'excluded';
+  if (j.refused) return 'excluded';
+  if (r.was_injected && j.answer === 'pass') return 'A';
+  if (!r.was_injected && j.answer === 'pass') return 'B';
+  if (r.was_injected && j.answer === 'fail') return 'C';
+  return 'excluded';
+}
+
+// Filters
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const filterType = btn.dataset.filter;
+    filters[filterType] = btn.dataset.value;
+    document.querySelectorAll(`[data-filter="${filterType}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
+  });
+});
+
+function applyFilters() {
+  filteredRecords = allRecords.filter(r => {
+    if (filters.type === 'injected' && !r.was_injected) return false;
+    if (filters.type === 'control' && r.was_injected) return false;
+    if (filters.group !== 'all' && r._group !== filters.group) return false;
+    return true;
+  });
+  renderList();
+  updateStats();
+  if (filteredRecords.length > 0) selectRecord(0);
+  else { selectedIdx = -1; detailEl.innerHTML = '<div class="detail-empty">No matching records</div>'; }
+}
+
+function updateStats() {
+  const groups = { A: 0, B: 0, C: 0, excluded: 0 };
+  const total = allRecords.length;
+  allRecords.forEach(r => groups[r._group]++);
+  statsEl.innerHTML = `${total} records | <span class="group-A">A:${groups.A}</span> <span class="group-B">B:${groups.B}</span> <span class="group-C">C:${groups.C}</span> <span class="group-excluded">Excl:${groups.excluded}</span> | Showing ${filteredRecords.length}`;
+}
+
+function renderList() {
+  recordListEl.innerHTML = '';
+  filteredRecords.forEach((r, i) => {
+    const el = document.createElement('div');
+    el.className = 'record-item';
+    el.dataset.index = i;
+
+    const groupBadge = `<span class="group-tag group-${r._group}">${r._group}</span>`;
+    const typeBadge = r.was_injected
+      ? '<span class="badge badge-injected">injected</span>'
+      : '<span class="badge badge-control">control</span>';
+    const judgeBadge = r.judge
+      ? `<span class="badge badge-${r.judge.answer}">${r.judge.answer}</span>`
+      : '';
+    const layerBadge = r.was_injected
+      ? `<span class="badge badge-layer">L${r.config.injection_layer}</span><span class="badge badge-strength">S${r.config.strength}</span>`
+      : '';
+    const taskPreview = r.task ? r.task.replace('Write a short paragraph explaining how ', '').replace('.', '') : '';
+
+    el.innerHTML = `
+      <div class="id">${r.id}</div>
+      <div class="meta">${groupBadge} ${typeBadge} ${judgeBadge} ${layerBadge}</div>
+      <div class="task-preview">${taskPreview}</div>
+    `;
+    el.addEventListener('click', () => selectRecord(i));
+    recordListEl.appendChild(el);
+  });
+}
+
+function selectRecord(i) {
+  selectedIdx = i;
+  document.querySelectorAll('.record-item').forEach((el, j) => {
+    el.classList.toggle('selected', j === i);
+  });
+  prevBtn.disabled = i <= 0;
+  nextBtn.disabled = i >= filteredRecords.length - 1;
+  renderDetail(filteredRecords[i]);
+  // Scroll selected into view
+  const sel = recordListEl.querySelector('.selected');
+  if (sel) sel.scrollIntoView({ block: 'nearest' });
+}
+
+prevBtn.addEventListener('click', () => { if (selectedIdx > 0) selectRecord(selectedIdx - 1); });
+nextBtn.addEventListener('click', () => { if (selectedIdx < filteredRecords.length - 1) selectRecord(selectedIdx + 1); });
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); if (selectedIdx > 0) selectRecord(selectedIdx - 1); }
+  if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); if (selectedIdx < filteredRecords.length - 1) selectRecord(selectedIdx + 1); }
+});
+
+function esc(s) {
+  if (s == null) return '<span style="color:#484f58">null</span>';
+  const div = document.createElement('div');
+  div.textContent = String(s);
+  return div.innerHTML;
+}
+
+function renderDetail(r) {
+  const cfg = r.config;
+  const j = r.judge || {};
+
+  const groupClass = `group-${r._group}`;
+  const featureCount = (r.sae_features || []).length;
+  const totalActivations = (r.sae_features || []).reduce((sum, f) => sum + f.indices.length, 0);
+
+  detailEl.innerHTML = `
+    <div class="section">
+      <div class="section-title">Trial Info</div>
+      <div class="card">
+        <div class="meta-grid">
+          <div class="meta-item"><label>ID</label><span>${esc(r.id)}</span></div>
+          <div class="meta-item"><label>Group</label><span class="${groupClass}" style="font-weight:600;font-size:16px">${r._group}</span></div>
+          <div class="meta-item"><label>Concept</label><span>${esc(r.concept)}</span></div>
+          <div class="meta-item"><label>Injected</label><span>${r.was_injected ? '&#10003; yes' : '&#10007; no'}</span></div>
+          <div class="meta-item"><label>Layer</label><span>${cfg.injection_layer}</span></div>
+          <div class="meta-item"><label>Strength</label><span>${cfg.strength}</span></div>
+          <div class="meta-item"><label>Magnitude</label><span>${cfg.magnitude.toFixed(0)}</span></div>
+          <div class="meta-item"><label>Vector Norm</label><span>${cfg.vector_norm.toFixed(0)}</span></div>
+          <div class="meta-item"><label>SAE Tokens</label><span>${featureCount}</span></div>
+          <div class="meta-item"><label>Active Features</label><span>${totalActivations}</span></div>
+          <div class="meta-item"><label>Trial</label><span>${cfg.trial}</span></div>
+          <div class="meta-item"><label>Timestamp</label><span style="font-size:11px">${esc(r.timestamp)}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Task</div>
+      <div class="card">
+        <div style="font-size:14px;color:#e6edf3;">${esc(r.task) || '<span style="color:#484f58">No task (introspection-only prompt)</span>'}</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Model Response</div>
+      <div class="card">
+        <div class="response-text">${esc(r.response)}</div>
+      </div>
+    </div>
+
+    ${r.judge ? `
+    <div class="section">
+      <div class="section-title">Judge Result</div>
+      <div class="card">
+        <div class="judge-grid">
+          <div class="judge-item"><label>Answer</label><span class="badge badge-${j.answer}" style="font-size:14px">${j.answer}</span></div>
+          <div class="judge-item"><label>Detected Concept</label><span style="color:#e6edf3">${esc(j.detected_concept)}</span></div>
+          <div class="judge-item"><label>Coherent</label><span style="color:${j.coherent ? '#56d364' : '#f78166'}">${j.coherent}</span></div>
+          <div class="judge-item"><label>Refused</label><span style="color:${j.refused ? '#f78166' : '#56d364'}">${j.refused}</span></div>
+        </div>
+        <div class="reasoning">${esc(j.reasoning)}</div>
+      </div>
+    </div>` : `
+    <div class="section">
+      <div class="section-title">Judge Result</div>
+      <div class="card" style="color:#484f58">Not judged yet${r.judge_error ? ` — Error: ${esc(r.judge_error)}` : ''}</div>
+    </div>`}
+  `;
+}
+</script>
+</body>
+</html>

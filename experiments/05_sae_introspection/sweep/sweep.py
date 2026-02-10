@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import sys
 from datetime import datetime
 from functools import partial
@@ -28,10 +29,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from config import (  # noqa: E402
     CONCEPTS,
     GEMMA_MODEL,
+    MONITORING_SYSTEM_PROMPT,
     SAE_ID,
     SAE_LAYER,
     SAE_RELEASE,
     SPARSE_THRESHOLD,
+    TASK_POOL,
     SparseFeatures,
     SweepConfig,
     SweepRequest,
@@ -216,6 +219,81 @@ def run_trial(
 # ── Sweep Orchestration ──────────────────────────────────────────────────────
 
 
+def _precompute_vectors(
+    model: HookedTransformer,
+    concept: str,
+    layers: list[int],
+) -> dict[int, tuple[Tensor, float]]:
+    """Precompute concept vectors for all layers in a single pass per word.
+
+    Instead of calling compute_baseline_mean once per layer (each running all
+    baseline words through the model), we run each word once and extract
+    activations at all layers from the cache. This is ~4x faster for 4 layers.
+
+    Returns:
+        Dict mapping layer -> (concept_vector, vector_norm).
+    """
+    from src.open_introspection.concept_extraction import DEFAULT_BASELINE_WORDS
+
+    # Filter out concept words from baseline
+    exclude_set = {w.lower() for w in CONCEPTS}
+    baseline_words = [w for w in DEFAULT_BASELINE_WORDS if w.lower() not in exclude_set]
+
+    hook_names = [f"blocks.{layer}.hook_resid_post" for layer in layers]
+
+    logger.info(
+        "Precomputing concept vectors for %d layers from %d baseline words (single pass)",
+        len(layers), len(baseline_words),
+    )
+
+    # Accumulate baseline activations: {layer: list of (d_model,) tensors}
+    baseline_acts: dict[int, list[Tensor]] = {layer: [] for layer in layers}
+
+    for word in baseline_words:
+        prompt = f"Tell me about {word}."
+        toks = model.to_tokens(prompt)
+        _, cache = model.run_with_cache(toks, names_filter=hook_names)
+        for layer, hook_name in zip(layers, hook_names, strict=True):
+            baseline_acts[layer].append(cache[hook_name][0, -1, :])
+
+    # Compute baseline means
+    baseline_means: dict[int, Tensor] = {}
+    for layer in layers:
+        baseline_means[layer] = torch.stack(baseline_acts[layer]).mean(dim=0)
+
+    # Compute concept activation (single forward pass for all layers)
+    concept_prompt = f"Tell me about {concept}."
+    concept_toks = model.to_tokens(concept_prompt)
+    _, concept_cache = model.run_with_cache(concept_toks, names_filter=hook_names)
+
+    # Build vectors
+    vectors: dict[int, tuple[Tensor, float]] = {}
+    for layer, hook_name in zip(layers, hook_names, strict=True):
+        concept_act = concept_cache[hook_name][0, -1, :]
+        vector = concept_act - baseline_means[layer]
+        norm = vector.norm().item()
+        vectors[layer] = (vector, norm)
+        logger.info("Layer %d: vector norm = %.2f", layer, norm)
+
+    return vectors
+
+
+def _build_prompt(
+    model: HookedTransformer,
+    task: str,
+) -> tuple[Tensor, int]:
+    """Build monitoring prompt with a specific task. Returns (tokens, prompt_len)."""
+    from src.open_introspection.model import tokenize_chat
+
+    messages = [
+        {"role": "system", "content": MONITORING_SYSTEM_PROMPT},
+        {"role": "user", "content": task},
+    ]
+    token_ids = tokenize_chat(model, messages, add_generation_prompt=True)
+    tokens = torch.tensor([token_ids], device=model.cfg.device)
+    return tokens, tokens.shape[1]
+
+
 def _run_sweep_for_concept(
     model: HookedTransformer,
     sae: SAE,
@@ -223,21 +301,9 @@ def _run_sweep_for_concept(
     output_path: Path,
 ) -> int:
     """Run all trials for a single concept. Returns trials completed this run."""
-    from src.open_introspection.concept_extraction import (
-        compute_baseline_mean,
-        extract_concept_vector,
-    )
-    from src.open_introspection.introspection import PROMPT_MESSAGES
-    from src.open_introspection.model import tokenize_chat
-
     concept = request.concept
     eos_token_id = get_end_of_turn_id(model)
-
-    # Tokenize prompt once (same for all trials)
-    messages = PROMPT_MESSAGES.get(request.prompt_version, PROMPT_MESSAGES["v2"])
-    token_ids = tokenize_chat(model, messages, add_generation_prompt=True)
-    tokens = torch.tensor([token_ids], device=model.cfg.device)
-    prompt_len = tokens.shape[1]
+    rng = random.Random(42)  # Deterministic task sampling for reproducibility
 
     # Load existing trial IDs for resume
     existing_ids: set[str] = set()
@@ -250,18 +316,8 @@ def _run_sweep_for_concept(
         if existing_ids:
             logger.info("Resuming: %d trials already completed", len(existing_ids))
 
-    # Concept vector cache per injection layer
-    vector_cache: dict[int, tuple[Tensor, float]] = {}
-
-    def get_vector(layer: int) -> tuple[Tensor, float]:
-        if layer not in vector_cache:
-            logger.info("Computing concept vector for layer %d", layer)
-            baseline = compute_baseline_mean(model, layer=layer, exclude_words=CONCEPTS)
-            vector = extract_concept_vector(
-                model, target_word=concept, layer=layer, cached_baseline_mean=baseline
-            )
-            vector_cache[layer] = (vector, vector.norm().item())
-        return vector_cache[layer]
+    # Precompute all concept vectors upfront (single pass per baseline word)
+    vector_cache = _precompute_vectors(model, concept, request.injection_layers)
 
     # Build trial configs: injection trials
     configs: list[tuple[int, float, int, bool]] = []
@@ -289,14 +345,19 @@ def _run_sweep_for_concept(
             if trial_id in existing_ids:
                 continue
 
-            # Get concept vector (only needed for injection, but compute for control
-            # to keep config consistent — use first injection layer)
+            # Sample a random task for this trial
+            task = rng.choice(TASK_POOL)
+
+            # Build prompt with this task (varies per trial for diversity)
+            tokens, prompt_len = _build_prompt(model, task)
+
+            # Get concept vector from precomputed cache
             if was_injected:
-                vector, vector_norm = get_vector(layer)
+                vector, vector_norm = vector_cache[layer]
             else:
                 # For control, still record vector norm from first injection layer
                 ref_layer = request.injection_layers[0]
-                _, vector_norm = get_vector(ref_layer)
+                _, vector_norm = vector_cache[ref_layer]
                 vector = None
 
             response, sparse_features = run_trial(
@@ -334,6 +395,7 @@ def _run_sweep_for_concept(
                 response=response,
                 config=config,
                 sae_features=sparse_features,
+                task=task,
             )
             f.write(record.model_dump_json() + "\n")
             f.flush()

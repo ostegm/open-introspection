@@ -122,7 +122,7 @@ class TestConfigModels:
         )
         assert req.inject_style == "generation"
         assert req.prompt_version == "v2"
-        assert req.control_trials == 100
+        assert req.control_trials == 320
 
 
 # ── Sparse Encoding Tests ────────────────────────────────────────────────────
