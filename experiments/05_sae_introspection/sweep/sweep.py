@@ -35,6 +35,9 @@ from config import (  # noqa: E402
     SAE_RELEASE,
     SPARSE_THRESHOLD,
     TASK_POOL,
+    FeatureIntervention,
+    InterventionRequest,
+    InterventionTrialRecord,
     SparseFeatures,
     SweepConfig,
     SweepRequest,
@@ -150,6 +153,40 @@ def _sae_capture_hook(
     return activation
 
 
+def _feature_intervention_hook(
+    activation: Tensor,
+    hook: HookPoint,
+    sae: SAE,
+    interventions: list[FeatureIntervention],
+) -> Tensor:
+    """Residual-based patching: zero or set specific SAE features at last token.
+
+    Uses the recommended approach from ablation_and_activation.md:
+    - Encode last token only (avoids KV cache corruption)
+    - Compute target features' contribution via sae.decode(mask) - sae.b_dec
+    - Swap in residual stream with zero reconstruction error on non-target features
+    """
+    last_pos = activation[:, -1:, :]  # [batch, 1, d_model]
+    encoded = sae.encode(last_pos)
+
+    # Build current and target masks
+    current_mask = torch.zeros_like(encoded)
+    target_mask = torch.zeros_like(encoded)
+    for iv in interventions:
+        current_mask[:, :, iv.feature] = encoded[:, :, iv.feature]
+        if iv.mode == "zero":
+            target_mask[:, :, iv.feature] = 0.0
+        else:  # "set"
+            target_mask[:, :, iv.feature] = iv.value
+
+    # Remove current contribution, add target contribution
+    current_contribution = sae.decode(current_mask) - sae.b_dec
+    target_contribution = sae.decode(target_mask) - sae.b_dec
+
+    activation[:, -1:, :] += target_contribution - current_contribution
+    return activation
+
+
 def run_trial(
     model: HookedTransformer,
     sae: SAE,
@@ -161,8 +198,9 @@ def run_trial(
     inject: bool,
     inject_style: str,
     eos_token_id: int,
+    feature_interventions: list[FeatureIntervention] | None = None,
 ) -> tuple[str, list[SparseFeatures]]:
-    """Run a single trial with injection + SAE capture.
+    """Run a single trial with injection + SAE capture + optional feature interventions.
 
     Returns:
         (response_text, sparse_features)
@@ -171,9 +209,16 @@ def run_trial(
 
     hooks: list[tuple[str, object]] = []
 
-    # SAE capture hook (always active)
+    # SAE capture hook (always active, runs first at SAE_LAYER)
     capture_fn = partial(_sae_capture_hook, sae=sae, storage=sae_storage)
     hooks.append((f"blocks.{SAE_LAYER}.hook_resid_post", capture_fn))
+
+    # Feature intervention hook (runs after capture at SAE_LAYER)
+    if feature_interventions:
+        intervention_fn = partial(
+            _feature_intervention_hook, sae=sae, interventions=feature_interventions,
+        )
+        hooks.append((f"blocks.{SAE_LAYER}.hook_resid_post", intervention_fn))
 
     # Injection hook (only if injecting)
     if inject and concept_vector is not None:
@@ -456,5 +501,141 @@ def run_sweep(request: SweepRequest) -> dict:
         "status": "success",
         "concept": request.concept,
         "trials_completed": completed,
+        "local_output_path": str(output_path),
+    }
+
+
+# ── Intervention Experiment ─────────────────────────────────────────────────
+
+
+def run_intervention_experiment(request: InterventionRequest) -> dict:
+    """Run feature ablation/activation intervention experiment.
+
+    For each condition:
+    - Ablation conditions (inject=True): inject at request.injection_layer
+    - Activation conditions (inject=False): no injection, layer field = 0
+
+    Returns:
+        dict with status, concept, trials_completed, local_output_path.
+    """
+    logger.info("=" * 60)
+    logger.info("SAE Feature Intervention Experiment")
+    logger.info("=" * 60)
+    logger.info("Concept: %s", request.concept)
+    logger.info("Conditions: %s", [c.name for c in request.conditions])
+    logger.info("Trials per condition: %d", request.trials_per_condition)
+    logger.info("Injection layer: %d", request.injection_layer)
+    logger.info("GCS: %s", request.gcs_path)
+
+    model, sae = load_model_and_sae()
+    eos_token_id = get_end_of_turn_id(model)
+    rng = random.Random(42)
+
+    output_dir = Path("/tmp/intervention_output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"{request.concept}.jsonl"
+
+    # Load existing trial IDs for resume
+    existing_ids: set[str] = set()
+    if output_path.exists():
+        with open(output_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    existing_ids.add(json.loads(line)["id"])
+        if existing_ids:
+            logger.info("Resuming: %d trials already completed", len(existing_ids))
+
+    # Precompute concept vector (only needed for injection conditions)
+    has_injection = any(c.inject for c in request.conditions)
+    vector: Tensor | None = None
+    vector_norm = 0.0
+    if has_injection:
+        cache = _precompute_vectors(
+            model, request.concept, [request.injection_layer],
+        )
+        vector, vector_norm = cache[request.injection_layer]
+
+    trials_completed = 0
+
+    with open(output_path, "a") as f:
+        for condition in request.conditions:
+            layer = request.injection_layer if condition.inject else 0
+
+            for trial_idx in range(request.trials_per_condition):
+                trial_id = (
+                    f"{request.concept}_{condition.name}_t{trial_idx}"
+                )
+
+                if trial_id in existing_ids:
+                    continue
+
+                task = rng.choice(TASK_POOL)
+                tokens, prompt_len = _build_prompt(model, task)
+
+                response, sparse_features = run_trial(
+                    model=model,
+                    sae=sae,
+                    tokens=tokens,
+                    prompt_len=prompt_len,
+                    concept_vector=vector if condition.inject else None,
+                    injection_layer=layer,
+                    strength=condition.strength if condition.inject else 0.0,
+                    inject=condition.inject,
+                    inject_style="generation",
+                    eos_token_id=eos_token_id,
+                    feature_interventions=condition.interventions,
+                )
+
+                config = SweepConfig(
+                    model=GEMMA_MODEL,
+                    injection_layer=layer,
+                    strength=condition.strength if condition.inject else 0.0,
+                    magnitude=(
+                        condition.strength * vector_norm
+                        if condition.inject
+                        else 0.0
+                    ),
+                    vector_norm=vector_norm,
+                    prompt_version="v2",
+                    inject_style="generation",
+                    trial=trial_idx,
+                    sae_release=SAE_RELEASE,
+                    sae_id=SAE_ID,
+                    sae_layer=SAE_LAYER,
+                )
+
+                record = InterventionTrialRecord(
+                    id=trial_id,
+                    timestamp=datetime.now().isoformat(),
+                    concept=request.concept,
+                    was_injected=condition.inject,
+                    response=response,
+                    config=config,
+                    sae_features=sparse_features,
+                    task=task,
+                    condition=condition.name,
+                    interventions=condition.interventions,
+                )
+                f.write(record.model_dump_json() + "\n")
+                f.flush()
+
+                existing_ids.add(trial_id)
+                trials_completed += 1
+
+                if trials_completed % 10 == 0:
+                    logger.info(
+                        "Progress: %d trials | condition=%s | last: %s",
+                        trials_completed,
+                        condition.name,
+                        trial_id,
+                    )
+
+    logger.info("Completed %d intervention trials", trials_completed)
+
+    return {
+        "status": "success",
+        "concept": request.concept,
+        "trials_completed": trials_completed,
         "local_output_path": str(output_path),
     }

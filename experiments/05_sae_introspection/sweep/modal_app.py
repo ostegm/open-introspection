@@ -144,3 +144,60 @@ def get_code_hash() -> str:
 def run_sweep_l4(request: dict) -> dict:
     """Run sweep on L4 GPU (Gemma 3 4B-IT + SAE)."""
     return _run_sweep_impl(request)
+
+
+def _run_intervention_impl(request_dict: dict) -> dict:
+    """Run intervention experiment for a single concept."""
+    import os
+    import sys
+
+    hf_token = os.environ.get("HF_TOKEN")
+    if hf_token:
+        from huggingface_hub import login
+
+        login(token=hf_token)
+
+    sys.path.insert(0, "/app")
+    sys.path.insert(0, "/app/experiments/05_sae_introspection/sweep")
+
+    from config import InterventionRequest
+    from sweep import run_intervention_experiment
+
+    has_gcs = setup_gcs_credentials()
+    print(f"GCS credentials: {'available' if has_gcs else 'not available'}")
+
+    request = InterventionRequest.model_validate(request_dict)
+    result = run_intervention_experiment(request)
+
+    upload_ok = False
+    local_output = result.get("local_output_path")
+    if has_gcs and local_output:
+        from pathlib import Path
+
+        if Path(local_output).exists():
+            upload_ok = upload_to_gcs(local_output, request.gcs_path)
+            if upload_ok:
+                print(f"Uploaded to {request.gcs_path}")
+            else:
+                print("GCS upload failed")
+
+    return {
+        "status": result.get("status", "unknown"),
+        "concept": request.concept,
+        "trials_completed": result.get("trials_completed", 0),
+        "gcs_path": request.gcs_path if upload_ok else None,
+    }
+
+
+@app.function(
+    gpu="L4",
+    timeout=6 * 60 * 60,
+    secrets=[
+        modal.Secret.from_name("gcp-credentials"),
+        modal.Secret.from_name("huggingface-token"),
+    ],
+    volumes={"/root/.cache/huggingface": model_cache},
+)
+def run_intervention_l4(request: dict) -> dict:
+    """Run feature intervention experiment on L4 GPU."""
+    return _run_intervention_impl(request)

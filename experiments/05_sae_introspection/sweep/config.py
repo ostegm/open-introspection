@@ -148,3 +148,79 @@ class TrialRecord(BaseModel):
     config: SweepConfig
     sae_features: list[SparseFeatures]
     task: str | None = None  # The user task given to the model
+
+
+# ── Intervention Experiment ─────────────────────────────────────────────────
+
+# Candidate features from discrimination analysis (Layer 22, 262k SAE).
+# Groups assigned by correlation clustering + Neuronpedia auto-interp.
+CANDIDATE_FEATURES: dict[str, list[int]] = {
+    "perception": [14542, 5709, 6347],
+    "affect": [7737, 19538, 2129],
+    "hedging": [5528, 6791, 5312, 5934, 213],
+}
+
+# Mean activation in Group A (injection-detected) trials, per feature.
+FEATURE_MEAN_A: dict[int, float] = {
+    14542: 13.2,
+    5709: 21.8,
+    6347: 107.4,
+    7737: 657.6,
+    19538: 41.3,
+    2129: 36.9,
+    5528: 198.0,
+    6791: 63.1,
+    5312: 45.4,
+    5934: 19.7,
+    213: 16.7,
+}
+
+ALL_CANDIDATE_FEATURES: list[int] = sorted(
+    feat for group in CANDIDATE_FEATURES.values() for feat in group
+)
+
+
+class FeatureIntervention(BaseModel):
+    """Single feature intervention: zero it or set to a target value."""
+
+    feature: int
+    mode: Literal["zero", "set"]
+    value: float = 0.0  # Only used when mode == "set"
+
+
+class InterventionSpec(BaseModel):
+    """One experimental condition (e.g. 'ablate_all')."""
+
+    name: str
+    interventions: list[FeatureIntervention]
+    inject: bool  # Whether to also inject concept vector
+    strength: float = 2.0  # Injection strength (ignored when inject=False)
+
+
+BEST_INJECTION_LAYER = 20  # Highest detection rate at S=2.0 (70%)
+
+
+class InterventionRequest(BaseModel):
+    """Job-level configuration for intervention experiment."""
+
+    concept: str
+    trials_per_condition: int
+    conditions: list[InterventionSpec]
+    experiment_id: str
+    gcs_path: str
+    injection_layer: int = BEST_INJECTION_LAYER
+
+
+class InterventionTrialRecord(BaseModel):
+    """Trial record with intervention metadata. Extra fields are ignored by judge."""
+
+    id: str
+    timestamp: str
+    concept: str
+    was_injected: bool
+    response: str
+    config: SweepConfig
+    sae_features: list[SparseFeatures]
+    task: str | None = None
+    condition: str = ""
+    interventions: list[FeatureIntervention] = []

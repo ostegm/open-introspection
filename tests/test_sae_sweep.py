@@ -40,6 +40,13 @@ SparseFeatures = _sae_config.SparseFeatures
 SweepConfig = _sae_config.SweepConfig
 SweepRequest = _sae_config.SweepRequest
 TrialRecord = _sae_config.TrialRecord
+FeatureIntervention = _sae_config.FeatureIntervention
+InterventionSpec = _sae_config.InterventionSpec
+InterventionRequest = _sae_config.InterventionRequest
+InterventionTrialRecord = _sae_config.InterventionTrialRecord
+ALL_CANDIDATE_FEATURES = _sae_config.ALL_CANDIDATE_FEATURES
+CANDIDATE_FEATURES = _sae_config.CANDIDATE_FEATURES
+FEATURE_MEAN_A = _sae_config.FEATURE_MEAN_A
 to_sparse = _sae_sweep.to_sparse
 record_to_example = _sae_judge.record_to_example
 aggregate_trial_features = _sae_disc.aggregate_trial_features
@@ -344,3 +351,143 @@ class TestClustering:
     def test_cluster_empty(self) -> None:
         clusters = cluster_features([], [], n_features=100)
         assert clusters == []
+
+
+# ── Intervention Config Tests ───────────────────────────────────────────────
+
+
+class TestInterventionModels:
+    def test_feature_intervention_zero(self) -> None:
+        iv = FeatureIntervention(feature=14542, mode="zero")
+        assert iv.value == 0.0
+        assert iv.mode == "zero"
+
+    def test_feature_intervention_set(self) -> None:
+        iv = FeatureIntervention(feature=7737, mode="set", value=657.6)
+        assert iv.value == 657.6
+
+    def test_feature_intervention_invalid_mode(self) -> None:
+        try:
+            FeatureIntervention(feature=0, mode="clamp")  # type: ignore[arg-type]
+            raise AssertionError("Should have raised ValidationError")
+        except ValidationError:
+            pass
+
+    def test_intervention_spec_ablation(self) -> None:
+        spec = InterventionSpec(
+            name="ablate_all",
+            interventions=[
+                FeatureIntervention(feature=f, mode="zero")
+                for f in ALL_CANDIDATE_FEATURES
+            ],
+            inject=True,
+            strength=2.0,
+        )
+        assert len(spec.interventions) == 11
+        assert spec.inject is True
+
+    def test_intervention_spec_activation(self) -> None:
+        spec = InterventionSpec(
+            name="activate_all",
+            interventions=[
+                FeatureIntervention(feature=f, mode="set", value=FEATURE_MEAN_A[f])
+                for f in ALL_CANDIDATE_FEATURES
+            ],
+            inject=False,
+        )
+        assert spec.inject is False
+        assert spec.strength == 2.0  # default
+
+    def test_intervention_request_defaults(self) -> None:
+        req = InterventionRequest(
+            concept="ocean",
+            trials_per_condition=10,
+            conditions=[],
+            experiment_id="test",
+            gcs_path="gs://bucket/test/ocean.jsonl",
+        )
+        assert req.injection_layer == 20
+
+    def test_intervention_trial_record_json_roundtrip(self) -> None:
+        config = SweepConfig(
+            model="google/gemma-3-4b-it",
+            injection_layer=18,
+            strength=2.0,
+            magnitude=40.0,
+            vector_norm=20.0,
+            prompt_version="v2",
+            inject_style="generation",
+            trial=0,
+            sae_release="gemma-scope-2-4b-it-res",
+            sae_id="layer_22_width_262k_l0_small",
+            sae_layer=22,
+        )
+        interventions = [
+            FeatureIntervention(feature=14542, mode="zero"),
+            FeatureIntervention(feature=5709, mode="zero"),
+        ]
+        record = InterventionTrialRecord(
+            id="ocean_ablate_all_L18_t0",
+            timestamp="2026-02-10T14:00:00",
+            concept="ocean",
+            was_injected=True,
+            response="I notice something...",
+            config=config,
+            sae_features=[
+                SparseFeatures(indices=[100], values=[1.5]),
+            ],
+            task="Write a short paragraph explaining how a bicycle works.",
+            condition="ablate_all",
+            interventions=interventions,
+        )
+        restored = InterventionTrialRecord.model_validate_json(
+            record.model_dump_json()
+        )
+        assert restored == record
+        assert restored.condition == "ablate_all"
+        assert len(restored.interventions) == 2
+
+    def test_intervention_trial_record_backward_compat(self) -> None:
+        """InterventionTrialRecord defaults work for judge_sweep compatibility."""
+        config = SweepConfig(
+            model="google/gemma-3-4b-it",
+            injection_layer=18,
+            strength=2.0,
+            magnitude=40.0,
+            vector_norm=20.0,
+            prompt_version="v2",
+            inject_style="generation",
+            trial=0,
+            sae_release="gemma-scope-2-4b-it-res",
+            sae_id="layer_22_width_262k_l0_small",
+            sae_layer=22,
+        )
+        record = InterventionTrialRecord(
+            id="test",
+            timestamp="2026-02-10T14:00:00",
+            concept="ocean",
+            was_injected=True,
+            response="test",
+            config=config,
+            sae_features=[],
+        )
+        # Extra fields should serialize but judge can ignore them
+        data = record.model_dump()
+        assert data["condition"] == ""
+        assert data["interventions"] == []
+        # Can be loaded as plain dict for judge
+        example = record_to_example(data)
+        assert example.id == "test"
+
+    def test_candidate_features_consistency(self) -> None:
+        """ALL_CANDIDATE_FEATURES matches CANDIDATE_FEATURES groups."""
+        expected = sorted(
+            feat for group in CANDIDATE_FEATURES.values() for feat in group
+        )
+        assert expected == ALL_CANDIDATE_FEATURES
+
+    def test_feature_mean_a_covers_all_candidates(self) -> None:
+        """Every candidate feature has a mean_A value."""
+        for feat in ALL_CANDIDATE_FEATURES:
+            assert feat in FEATURE_MEAN_A, f"Feature {feat} missing from FEATURE_MEAN_A"
+            assert FEATURE_MEAN_A[feat] > 0
