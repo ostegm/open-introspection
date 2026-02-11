@@ -1,6 +1,63 @@
 # Experiments Log
 
-## Current Status (Exp 05: Full Scale Sweep, completed 2026-02-03)
+## Current Status (Exp 05: SAE Feature Intervention, completed 2026-02-10)
+
+**Model:** Gemma 3 4B-IT (google/gemma-3-4b-it)
+**SAE:** GemmaScope layer 22, 262k features (`layer_22_width_262k_l0_small`)
+**Method:** Residual-based feature patching at last token position
+**Data:** 160 intervention trials (80 ablation + 80 activation) across 4 concepts
+**Blog post:** `blog/posts/05-sae-features-arent-causal.html`
+
+### Pipeline
+
+1. **Sweep** (`sweep.py`): 1,600 trials on Gemma 3 4B-IT with full SAE captures. 4 concepts x 4 layers x 4 strengths x 20 trials + matched controls.
+2. **Judge** (`judge_sweep.py`): Scored all trials with calibrated LLM judge.
+3. **Discrimination** (`discriminate.py`): Cohen's d across 262k features comparing Group A (detected) vs Group C (missed). Clustered by correlation.
+4. **Intervention** (`spawn_intervention.py` / `analyze_intervention.py`): Ablation + activation causal tests on 11 candidate features.
+
+### Candidate Features (11 total, 3 clusters)
+
+| Group      | Features                       | Interpretation                     |
+|------------|--------------------------------|------------------------------------|
+| Perception | #14542, #5709, #6347           | Self-monitoring, awareness         |
+| Affect     | #7737, #19538, #2129           | Emotional/experiential language    |
+| Hedging    | #5528, #6791, #5312, #5934, #213 | Uncertainty, hedging expressions |
+
+### Key Findings
+
+1. **Correlating features exist.** Discrimination analysis reproducibly finds features that differ between detection and non-detection trials.
+2. **Those features are not causal.** Ablating all 11 features during injection: 75% detection vs 70% baseline (+5pp, p=0.66). No effect.
+3. **Feature activation doesn't produce hallucinated introspection.** Clamping features to Group A mean values without injection: 35% FP vs 49% control baseline (-14pp, p=0.024). If anything, reduced FP.
+4. **Features are epiphenomenal.** They are downstream readouts of introspection (part of formulating the response), not the mechanism itself.
+
+### Intervention Results
+
+| Condition    | Detection Rate | Baseline       | Difference | p-value |
+|--------------|---------------|----------------|------------|---------|
+| Ablation     | 75.0%         | 70.0% (inject) | +5.0pp     | 0.66    |
+| Activation   | 35.0%         | 48.9% (ctrl FP)| -13.9pp    | 0.024   |
+
+### Methodology Notes
+
+- Residual-based patching (not naive encode-decode) avoids reconstruction error on non-target features
+- Intervention at last token position only to preserve KV cache
+- Best injection layer: 20 (70% detection at strength 2.0)
+- Fisher's exact test with Bonferroni correction
+
+### Open Questions
+
+- [x] Can pretrained SAEs (Gemma Scope) identify metacognition features? -> Yes, but they're correlates, not causes
+- [x] What are the mechanistic circuits responsible for introspection? -> SAE features at layer 22 are epiphenomenal; circuit remains unknown
+- [ ] Would wider SAEs (1M features) capture finer-grained introspection features?
+- [ ] Is introspection distributed across layers rather than localizable at a single SAE layer?
+- [ ] Can Activation Oracles detect injected concepts from raw activations?
+- [ ] Does misalignment create selective introspective blind spots by domain?
+- [ ] Why does the 32B-Insecure model have higher false positives than 32B-Coder?
+- [ ] Would other model families (Llama, Gemma) show the same scaling?
+
+---
+
+## Previous Status (Exp 04: Full Scale Sweep, completed 2026-02-03)
 
 **Models:** Qwen2.5-Instruct 0.5B/1.5B/3B/7B/14B/32B + 32B-Coder + 32B-Insecure
 **Method:** Generation-only injection (matching Anthropic paper), concept vectors via mean subtraction
@@ -29,14 +86,6 @@
 | 32B          | 15.9%    | 64.6%  | -48.8%        | 43.9%     |
 | 32B-Coder    | 59.7%    | 1.2%   | +58.5%        | 0.0%      |
 | 32B-Insecure | 60.6%    | 5.6%   | +55.0%        | 0.1%      |
-
-### Open Questions
-
-- [ ] What are the mechanistic circuits responsible for introspection?
-- [ ] Can pretrained SAEs (Gemma Scope) identify metacognition features?
-- [ ] Does misalignment create selective introspective blind spots by domain?
-- [ ] Why does the 32B-Insecure model have higher false positives than 32B-Coder?
-- [ ] Would other model families (Llama, Gemma) show the same scaling?
 
 ---
 
