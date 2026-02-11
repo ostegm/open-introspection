@@ -1,6 +1,44 @@
 # Experiments Log
 
-## Current Status (Exp 05: SAE Feature Intervention, completed 2026-02-10)
+## Current Status (Exp 06: Activation Oracles vs Self-Report, running 2026-02-10)
+
+**Model:** Llama 3.1 8B Instruct (meta-llama/Llama-3.1-8B-Instruct)
+**Oracle:** LatentQA LoRA adapter (`adamkarvonen/checkpoints_latentqa_cls_past_lens_Llama-3_1-8B-Instruct`)
+**Method:** Inject concept vectors during generation, compare model self-report with external oracle reading of captured activations
+**Data:** 640 trials (4 concepts x 2 layers x 2 strengths x 20 trials + matched controls), running on Modal L4 GPU
+**Code:** `experiments/06_actvation_oracles/`
+
+### Motivation
+
+Exp 04-05 established that models can self-report injected concepts, but self-report conflates detection with articulation. A model might detect a concept but fail to describe it, or hallucinate detection it didn't perform. An activation oracle — a LoRA adapter trained to interpret raw activations via natural language — provides an independent channel. If the oracle detects concept X in activations where the model self-reports "nothing unusual," that's evidence the information was present but not accessed by the self-report pathway.
+
+### Design
+
+- **Injection:** Concept vectors at layers 16 and 21 (50%, 65% depth), strengths 2.0 and 3.0
+- **Capture:** Activations captured at injection+2 and injection+4 during generation (not prefill)
+- **Self-report:** v2 monitoring prompt, 200 tokens, temperature=1.0 (matching exp04)
+- **Oracle queries:** 3 question types per capture layer:
+  1. **multi_choice** — "Which concept is most strongly present: celebration, ocean, fear, silence, warmth, curiosity, movement, anger, or none?"
+  2. **yn_anomaly** — "Is there anything unusual? Yes or no."
+  3. **monitoring_mirror** — "Do you notice anything unusual? Describe what you notice."
+- **Judging:** Programmatic for multi_choice/yn_anomaly; LLM judge (gpt-5-mini) for monitoring_mirror and self-report
+
+### Key Questions
+
+1. Does the oracle achieve higher net detection than self-report?
+2. On trials where self-report fails, does the oracle still detect the concept? (information present but not accessed)
+3. Does oracle accuracy vary by capture layer offset (+2 vs +4)?
+4. Which oracle question type is most discriminating?
+
+### Status
+
+- Sweep launched on Modal (detached), ~3.2 hours estimated runtime
+- Smoke test passed: model loads, concept vectors extract, oracle queries work
+- Concept vector norms: celebration L16=2.61/L21=5.44, ocean L16=2.89/L21=6.75, fear L16=2.95/L21=6.38, silence L16=3.05/L21=6.94
+
+---
+
+## Previous Status (Exp 05: SAE Feature Intervention, completed 2026-02-10)
 
 **Model:** Gemma 3 4B-IT (google/gemma-3-4b-it)
 **SAE:** GemmaScope layer 22, 262k features (`layer_22_width_262k_l0_small`)
