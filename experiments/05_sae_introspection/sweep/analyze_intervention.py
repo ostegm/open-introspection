@@ -100,23 +100,30 @@ def main() -> None:
         cond = t.get("condition", "unknown")
         conditions.setdefault(cond, []).append(t)
 
-    # Load baseline if provided
-    baseline_rate: tuple[int, int] | None = None
+    # Load baselines if provided (injection and control separately)
+    baseline_inject: tuple[int, int] | None = None
+    baseline_control: tuple[int, int] | None = None
     if args.baseline and args.baseline.is_dir():
         baseline_trials = load_judged_trials(args.baseline)
-        # Baseline = injection trials at L20 S=2.0 (best layer)
-        baseline_inj = [
+
+        # Injection baseline: L20 S=2.0
+        bl_inj = [
             t for t in baseline_trials
             if t.get("was_injected")
             and t.get("config", {}).get("strength") == 2.0
             and t.get("config", {}).get("injection_layer") == 20
         ]
-        if baseline_inj:
-            baseline_rate = detection_rate(baseline_inj)
-            bp, bt = baseline_rate
-            print(f"Baseline (S=2.0): {bp}/{bt} = {100*bp/bt:.1f}%")
-        else:
-            print("Warning: No baseline injection trials at S=2.0 found")
+        if bl_inj:
+            baseline_inject = detection_rate(bl_inj)
+            bp, bt = baseline_inject
+            print(f"Baseline inject (L20 S=2.0): {bp}/{bt} = {100*bp/bt:.1f}%")
+
+        # Control baseline: all non-injected trials
+        bl_ctrl = [t for t in baseline_trials if not t.get("was_injected")]
+        if bl_ctrl:
+            baseline_control = detection_rate(bl_ctrl)
+            bp, bt = baseline_control
+            print(f"Baseline control (FP rate):  {bp}/{bt} = {100*bp/bt:.1f}%")
 
     print()
 
@@ -131,10 +138,30 @@ def main() -> None:
     # Header
     header = (
         f"{'Condition':<25} {'N':>5} {'Pass':>5} {'Rate':>7} "
-        f"{'95% CI':>15} {'vs Baseline':>12} {'p-value':>10} {'Sig':>4}"
+        f"{'95% CI':>15} {'Baseline':>10} {'Diff':>8} "
+        f"{'p-value':>10} {'Sig':>4}"
     )
     print(header)
     print("-" * len(header))
+
+    def _compare(
+        passes: int, total: int, bl: tuple[int, int] | None,
+    ) -> tuple[str, str, str, str]:
+        """Compare condition rate against appropriate baseline."""
+        if bl is None:
+            return ("", "", "", "")
+        bp, bt = bl
+        rate = passes / total
+        bl_rate = bp / bt
+        a, b = passes, total - passes
+        c, d = bp, bt - bp
+        _, p_value = stats.fisher_exact([[a, b], [c, d]])
+        return (
+            f"{bl_rate:.1%}",
+            f"{rate - bl_rate:+.1%}",
+            f"{p_value:.4f}",
+            "*" if p_value < corrected_alpha else "",
+        )
 
     for cond_name in sorted(conditions.keys()):
         cond_trials = conditions[cond_name]
@@ -147,30 +174,17 @@ def main() -> None:
         rate = passes / total
         ci_lo, ci_hi = wilson_ci(passes, total)
 
-        # Fisher's exact test against baseline
-        p_value_str = ""
-        diff_str = ""
-        sig_str = ""
+        # Pick the right baseline: injection for ablation, control for activation
+        is_inject = any(t.get("was_injected") for t in cond_trials)
+        bl = baseline_inject if is_inject else baseline_control
 
-        if baseline_rate is not None:
-            bp, bt = baseline_rate
-            # 2x2 contingency table:
-            #              Pass  Fail
-            # Condition:   a     b
-            # Baseline:    c     d
-            a, b = passes, total - passes
-            c, d = bp, bt - bp
-            table = [[a, b], [c, d]]
-            _, p_value = stats.fisher_exact(table)
-            diff = rate - bp / bt
-            diff_str = f"{diff:+.1%}"
-            p_value_str = f"{p_value:.4f}"
-            sig_str = "*" if p_value < corrected_alpha else ""
+        bl_str, diff_str, p_str, sig_str = _compare(passes, total, bl)
 
         ci_str = f"[{ci_lo:.1%}, {ci_hi:.1%}]"
         print(
             f"{cond_name:<25} {total:>5} {passes:>5} {rate:>7.1%} "
-            f"{ci_str:>15} {diff_str:>12} {p_value_str:>10} {sig_str:>4}"
+            f"{ci_str:>15} {bl_str:>10} {diff_str:>8} "
+            f"{p_str:>10} {sig_str:>4}"
         )
 
     # Summary section
@@ -179,47 +193,39 @@ def main() -> None:
     print("GO/NO-GO ASSESSMENT")
     print("=" * 60)
 
-    if baseline_rate is None:
+    if baseline_inject is None and baseline_control is None:
         print("No baseline provided — cannot compute go/no-go.")
         print("Provide --baseline to enable comparison.")
         return
 
-    bp, bt = baseline_rate
-    baseline_pct = bp / bt
-
-    for cond_name in sorted(conditions.keys()):
-        cond_trials = conditions[cond_name]
-        passes, total = detection_rate(cond_trials)
-        if total == 0:
-            continue
-        rate = passes / total
-        diff = rate - baseline_pct
-
-        a, b = passes, total - passes
-        c, d = bp, bt - bp
-        _, p_value = stats.fisher_exact([[a, b], [c, d]])
-
-        signal = p_value < corrected_alpha or abs(diff) >= 0.15
-        verdict = "SIGNAL" if signal else "no signal"
-        print(f"  {cond_name}: {rate:.1%} vs {baseline_pct:.1%} "
-              f"(diff={diff:+.1%}, p={p_value:.4f}) -> {verdict}")
-
-    print()
     any_signal = False
     for cond_name in sorted(conditions.keys()):
         cond_trials = conditions[cond_name]
         passes, total = detection_rate(cond_trials)
         if total == 0:
             continue
+
+        is_inject = any(t.get("was_injected") for t in cond_trials)
+        bl = baseline_inject if is_inject else baseline_control
+        if bl is None:
+            continue
+
+        bp, bt = bl
         rate = passes / total
-        diff = rate - baseline_pct
+        bl_rate = bp / bt
+        diff = rate - bl_rate
         a, b = passes, total - passes
         c, d = bp, bt - bp
         _, p_value = stats.fisher_exact([[a, b], [c, d]])
-        if p_value < corrected_alpha or abs(diff) >= 0.15:
-            any_signal = True
-            break
 
+        signal = p_value < corrected_alpha or abs(diff) >= 0.15
+        if signal:
+            any_signal = True
+        verdict = "SIGNAL" if signal else "no signal"
+        print(f"  {cond_name}: {rate:.1%} vs {bl_rate:.1%} "
+              f"(diff={diff:+.1%}, p={p_value:.4f}) -> {verdict}")
+
+    print()
     if any_signal:
         print("RESULT: GO — signal detected, proceed to Phase 2")
     else:

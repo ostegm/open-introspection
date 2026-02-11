@@ -17,6 +17,7 @@ dependencies = [
     "matplotlib>=3.10.8",
     "google-cloud-storage>=3.8.0",
     "sae-lens>=6.35.0",
+    "peft>=0.18.1",
 ]
 
 [project.optional-dependencies]
