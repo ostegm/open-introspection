@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Searching for the Mechanism (And Not Finding It) - Cloudripper Labs</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+  <style>
+    /* Post-specific styles */
+    .chip {
+      display: inline-block;
+      font-family: "SF Mono", Menlo, Monaco, monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: 0.02em;
+    }
+    .chip-perception {
+      background: hsl(260, 40%, 92%);
+      color: hsl(260, 40%, 30%);
+    }
+    .chip-affect {
+      background: hsl(0, 45%, 93%);
+      color: hsl(0, 45%, 30%);
+    }
+    .chip-hedging {
+      background: hsl(45, 80%, 90%);
+      color: hsl(45, 80%, 25%);
+    }
+    .chip-ablation {
+      background: hsl(200, 30%, 90%);
+      color: hsl(200, 30%, 30%);
+    }
+    .chip-activation {
+      background: hsl(125, 35%, 90%);
+      color: hsl(125, 35%, 30%);
+    }
+    /* Feature link chips */
+    .feature-link {
+      display: inline-block;
+      font-family: "SF Mono", Menlo, Monaco, monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 12px;
+      text-decoration: none;
+      margin: 2px 3px;
+      transition: filter 0.15s;
+    }
+    .feature-link:hover {
+      filter: brightness(0.92);
+      text-decoration: none;
+    }
+    .feature-link.perception {
+      background: hsl(260, 35%, 93%);
+      border: 1px solid hsl(260, 30%, 82%);
+      color: hsl(260, 40%, 35%);
+    }
+    .feature-link.affect {
+      background: hsl(0, 40%, 94%);
+      border: 1px solid hsl(0, 35%, 84%);
+      color: hsl(0, 45%, 35%);
+    }
+    .feature-link.hedging {
+      background: hsl(45, 70%, 92%);
+      border: 1px solid hsl(45, 60%, 78%);
+      color: hsl(45, 80%, 28%);
+    }
+    /* Feature table */
+    .feature-table td {
+      vertical-align: top;
+    }
+    .feature-table .feature-cell {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+    .feature-table .interp-text {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    /* Result styling */
+    .result-pos { color: hsl(125, 50%, 32%); font-weight: 600; }
+    .result-neg { color: hsl(0, 50%, 42%); font-weight: 600; }
+    .result-neutral { color: var(--text-secondary); font-weight: 600; }
+    .callout {
+      margin: 1.5em 0;
+      padding: 1em 1.25em;
+      background: hsl(45, 90%, 96%);
+      border-left: 3px solid hsl(45, 90%, 50%);
+      border-radius: 0 4px 4px 0;
+    }
+    .callout p { margin: 0; }
+    .callout p + p { margin-top: 0.5em; }
+    .tldr {
+      margin: 0 0 1.5em 0;
+      padding: 1.25em;
+      background: hsl(220, 20%, 97%);
+      border: 1px solid hsl(220, 15%, 88%);
+      border-radius: 6px;
+    }
+    .tldr p { margin: 0.4em 0; }
+    .tldr p:first-child { margin-top: 0; }
+    .tldr p:last-child { margin-bottom: 0; }
+    .tldr strong { font-size: 0.9rem; }
+    .table-caption {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: -0.5em 0 1.5em 0;
+      line-height: 1.5;
+    }
+    /* Results table */
+    .results-table th:nth-child(n+2),
+    .results-table td:nth-child(n+2) {
+      text-align: center;
+    }
+    .results-table .condition-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    /* Diagram */
+    .code-diagram {
+      background: var(--bg-code);
+      padding: 1em 1.25em;
+      border-radius: 4px;
+      border: 1px solid var(--border-light);
+      font-family: "SF Mono", Menlo, Monaco, monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 1.5em 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="../index.html" class="logo">
+        <img src="../assets/logo.svg" alt="Cloudripper Labs" width="48" height="48">
+        <span class="logo-text">Cloudripper <span class="labs">Labs</span> <span class="logo-separator">/</span> <span class="logo-tagline">Open Introspection Research</span></span>
+      </a>
+      <nav>
+        <a href="../index.html">Posts</a>
+        <a href="https://github.com/ostegm/open-introspection">GitHub</a>
+        <a href="../about.html">About</a>
+      </nav>
+    </header>
+
+    <main>
+      <article>
+        <header>
+          <h1>Searching for the Mechanism (And Not Finding It)</h1>
+          <p class="subtitle"><em>Trying to locate introspection in SAE features - and learning what "not causal" actually means</em></p>
+          <div class="article-info">
+            <div class="info-item">
+              <span class="info-label">Author</span>
+              <span class="info-value">Otto Stegmaier</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Published</span>
+              <span class="info-value">February 2026</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Affiliations</span>
+              <span class="info-value"><a href="../about.html">Cloudripper Labs</a></span>
+            </div>
+          </div>
+        </header>
+
+        <div class="article-body">
+          <aside class="toc">
+            <h2>Contents</h2>
+            <ul>
+              <li><a href="#where-we-left-off">Where We Left Off</a></li>
+              <li><a href="#finding-features">Finding Candidate Features</a></li>
+              <li><a href="#causal-test">The Causal Test</a></li>
+              <li><a href="#results">Results</a></li>
+              <li><a href="#what-went-wrong">What Went Wrong</a></li>
+              <li><a href="#what-we-learned">What We Did Learn</a></li>
+              <li><a href="#next">What's Next</a></li>
+            </ul>
+          </aside>
+
+          <div class="article-content">
+
+            <div class="tldr">
+              <p><strong>TLDR:</strong> We used sparse autoencoders to find 11 features that light up when Gemma 3 4B-IT detects injected concepts. We ablated all of them. Detection didn't drop. We activated them without injection. The model didn't hallucinate. The features are real correlates of introspection but they don't cause it.</p>
+            </div>
+
+            <h2 id="where-we-left-off">Where We Left Off</h2>
+
+            <p>In the <a href="./04-introspection-at-scale.html">last post</a> we showed that introspection scales with model size across the Qwen2.5 family - from first signal at 3B to +58.5% net detection in the 32B-Coder variant. We had the behavioral result: models can tell when we inject concept vectors into their residual stream. The natural next question was <em>how</em> - what's actually going on inside the model when it detects an injection?</p>
+
+            <p>This is where we pivoted from Qwen to Gemma. Google's <a href="https://arxiv.org/abs/2408.05147">GemmaScope</a> project released pretrained sparse autoencoders for the Gemma model family, giving us a way to decompose the residual stream into interpretable features without training our own. We switched to Gemma 3 4B-IT and ran a new sweep: 4 concepts, 4 injection layers, 4 strengths, 20 trials each - 1,600 trials total, each with full SAE feature captures at layer 22.</p>
+
+            <p>The idea: if introspection has a mechanism, maybe we can find it in the SAE features. Which features fire when the model detects an injection? Are they different from the features that fire when it misses one?</p>
+
+            <hr>
+
+            <h2 id="finding-features">Finding Candidate Features</h2>
+
+            <p>We split our judged trials into contrast groups:</p>
+            <ul>
+              <li><strong>Group A</strong>: Injection was present, model detected it (true positive)</li>
+              <li><strong>Group C</strong>: Injection was present, model missed it (false negative)</li>
+            </ul>
+
+            <p>Then we computed Cohen's d for every feature across the 262,144-wide SAE - asking which features are significantly more active when the model <em>detects</em> an injection versus when it <em>misses</em> one. We filtered to features with large effect sizes and clustered them by correlation to find groups of related features.</p>
+
+            <p>This produced 11 candidate features in three clusters:</p>
+
+            <table class="feature-table">
+              <thead>
+                <tr>
+                  <th>Group</th>
+                  <th>Features</th>
+                  <th>Interpretation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="chip chip-perception">Perception</span></td>
+                  <td>
+                    <div class="feature-cell">
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/14542" class="feature-link perception" target="_blank">#14542</a>
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/5709" class="feature-link perception" target="_blank">#5709</a>
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/6347" class="feature-link perception" target="_blank">#6347</a>
+                    </div>
+                  </td>
+                  <td class="interp-text">Self-monitoring, awareness of processing</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-affect">Affect</span></td>
+                  <td>
+                    <div class="feature-cell">
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/7737" class="feature-link affect" target="_blank">#7737</a>
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/19538" class="feature-link affect" target="_blank">#19538</a>
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/2129" class="feature-link affect" target="_blank">#2129</a>
+                    </div>
+                  </td>
+                  <td class="interp-text">Emotional/experiential language</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-hedging">Hedging</span></td>
+                  <td>
+                    <div class="feature-cell">
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/5528" class="feature-link hedging" target="_blank">#5528</a>
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/6791" class="feature-link hedging" target="_blank">#6791</a>
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/5312" class="feature-link hedging" target="_blank">#5312</a>
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/5934" class="feature-link hedging" target="_blank">#5934</a>
+                      <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/213" class="feature-link hedging" target="_blank">#213</a>
+                    </div>
+                  </td>
+                  <td class="interp-text">Uncertainty, hedging expressions</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="table-caption">Click any feature to see its Neuronpedia dashboard with auto-interp explanations and activation examples. SAE: GemmaScope layer 22, 262k features.</p>
+
+            <p>The features had clear <a href="https://www.neuronpedia.org/gemma-3-4b-it/22-gemmascope-2-res-262k/14542">Neuronpedia auto-interp descriptions</a> and the clustering made intuitive sense. Features related to self-monitoring, emotional experience, and hedging language - exactly what you'd expect a model to activate when reporting something unusual about its own processing.</p>
+
+            <p>We were excited. These looked like they could be the mechanism.</p>
+
+            <hr>
+
+            <h2 id="causal-test">The Causal Test</h2>
+
+            <p>Correlation isn't causation, so we designed an intervention experiment. The logic is straightforward:</p>
+
+            <p><strong>Ablation (necessity test):</strong> If these features cause introspection, zeroing them out during injection should suppress detection. Inject the concept vector as normal, but surgically remove all 11 features' contributions from the residual stream at layer 22.</p>
+
+            <p><strong>Activation (sufficiency test):</strong> If these features are sufficient for introspection, clamping them to their Group A activation levels <em>without</em> injection should cause the model to hallucinate detecting something that isn't there.</p>
+
+            <p>We used residual-based patching rather than naive encode-decode to avoid introducing reconstruction error on non-target features. The intervention only modifies the last token position (to preserve the KV cache) and only touches the target features' directional contribution to the residual stream.</p>
+
+            <div class="code-diagram">ABLATION:
+  [prompt] &#x2192; inject concept vector &#x2192; zero 11 features &#x2192; [generation]
+    &#x2192; if detection drops: features are necessary
+
+ACTIVATION:
+  [prompt] &#x2192; no injection &#x2192; clamp 11 features to mean_A &#x2192; [generation]
+    &#x2192; if false positives rise: features are sufficient</div>
+
+            <p>We ran 160 trials: 80 ablation (inject at layer 20, strength 2.0, zero all 11 features) and 80 activation (no injection, clamp features to mean Group A values) across all four concepts. Then judged them with our calibrated LLM judge.</p>
+
+            <hr>
+
+            <h2 id="results">Results</h2>
+
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th>Condition</th>
+                  <th>Detection Rate</th>
+                  <th>Baseline</th>
+                  <th>Difference</th>
+                  <th>p-value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="condition-cell">
+                      <span class="chip chip-ablation">Ablation</span>
+                      inject + zero features
+                    </div>
+                  </td>
+                  <td>75.0%</td>
+                  <td>70.0%</td>
+                  <td><span class="result-neutral">+5.0pp</span></td>
+                  <td>0.66</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="condition-cell">
+                      <span class="chip chip-activation">Activation</span>
+                      no inject + clamp features
+                    </div>
+                  </td>
+                  <td>35.0%</td>
+                  <td>48.9%</td>
+                  <td><span class="result-neg">-13.9pp</span></td>
+                  <td>0.024</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="table-caption">Ablation baseline: detection rate with injection at layer 20, strength 2.0. Activation baseline: control false positive rate without injection. Fisher's exact test, Bonferroni-corrected.</p>
+
+            <p><strong>Ablation did nothing.</strong> We zeroed out all 11 features and the detection rate went <em>up</em> slightly (75% vs 70% baseline). The model doesn't need these features to detect injections.</p>
+
+            <p><strong>Activation didn't cause hallucinations.</strong> Clamping the features to their "detection" values without any injection didn't make the model report detecting something. If anything, it slightly <em>reduced</em> the false positive rate compared to normal controls (35% vs 49%).</p>
+
+            <div class="callout">
+              <p>The features aren't necessary for introspection and they aren't sufficient to produce it. They're <strong>epiphenomenal</strong> - real correlates that activate as a consequence of detection, not a cause of it.</p>
+            </div>
+
+            <hr>
+
+            <h2 id="what-went-wrong">What Went Wrong (Or, What I'm Still Figuring Out)</h2>
+
+            <p>I want to be honest here: this is the third or fourth attempt I've made at finding SAE features that matter for introspection, and I'm starting to wonder whether the approach itself has fundamental limitations.</p>
+
+            <h3>Things that might be wrong with our approach</h3>
+
+            <p><strong>The dataset may not be diverse enough.</strong> Our sweep uses 4 concepts and a fixed monitoring prompt. The discrimination analysis finds features that differ between detection and non-detection <em>within this narrow setup</em>. Those features might be specific to "reporting unusual experiences while explaining how a bicycle works" rather than introspection in general.</p>
+
+            <p><strong>The SAE may not be wide enough.</strong> We used a 262k-feature SAE at layer 22. GemmaScope offers wider dictionaries (up to 1M features) that could capture finer-grained distinctions. Maybe introspection decomposes into features that a 262k dictionary can't isolate.</p>
+
+            <p><strong>We only looked at one layer.</strong> The SAE captures features at layer 22. Introspection might involve computations distributed across many layers - attention heads at layer 10 detecting anomalies, MLPs at layer 15 routing information, residual stream features at layer 25 formulating the response. A single-layer SAE can only see one snapshot.</p>
+
+            <p><strong>Introspection might not be monosemantic.</strong> SAEs work by finding monosemantic directions in activation space. But "noticing something unusual about my own processing" might be an inherently distributed, polysemantic computation - an emergent property of many features interacting rather than a clean direction an SAE can isolate.</p>
+
+            <h3>What I'm less sure about</h3>
+
+            <p>I'll be upfront: I'm still learning mechanistic interpretability, and I'm not confident I'm even asking the right questions. Maybe the right approach isn't "find discriminating features and ablate them" but something more like activation patching at the attention head level, or probing across layers, or using a different decomposition entirely. I've been mostly following the playbook from Anthropic's <a href="https://transformer-circuits.pub/2025/introspection/index.html">ablation methodology</a>, but adapting it to open-weight models and pretrained SAEs introduces differences I might not fully understand.</p>
+
+            <p>If you have experience with causal interpretability and see something obvious I'm missing, I'd genuinely love to hear about it.</p>
+
+            <hr>
+
+            <h2 id="what-we-learned">What We Did Learn</h2>
+
+            <p>The negative result isn't nothing. We can say with reasonable confidence:</p>
+
+            <ol>
+              <li><strong>Correlating features exist</strong> - the discrimination analysis reproducibly finds features that differ between detection and non-detection trials</li>
+              <li><strong>Those features aren't causal</strong> - ablating all of them doesn't affect detection rates</li>
+              <li><strong>Feature activation doesn't produce hallucinated introspection</strong> - clamping features to "detection" levels without injection doesn't trick the model</li>
+            </ol>
+
+            <p>This is consistent with the features being <em>downstream readouts</em> of introspection rather than the mechanism itself. The model detects the injection through some other computation, and these features activate as part of formulating the response.</p>
+
+            <hr>
+
+            <h2 id="next">What's Next</h2>
+
+            <p>The SAE feature approach gave us a clear negative result, so we're trying something different: <a href="https://alignment.anthropic.com/2025/activation-oracles/">Activation Oracles</a>.</p>
+
+            <p>The idea is to train a language model to take neural network activations as input and answer natural language questions about them. Instead of decomposing the residual stream into individual features and testing them one by one, you hand the full activation pattern to an oracle and ask "is there a concept injection here? What concept?" The oracle learns to read activations holistically - exactly the kind of distributed, cross-feature pattern that SAEs might miss.</p>
+
+            <p>What excites me about this approach is the question it lets us ask: can an activation oracle detect injected concepts more reliably than the model's own self-reporting? Our current setup depends on the model noticing something unusual and telling us about it. An oracle could potentially detect injections that the model itself misses - and if it can, that opens up interesting questions about the gap between what a model "knows" internally and what it can articulate.</p>
+
+            <p>We've started running early experiments with this and I'll write up the results as they come in.</p>
+
+            <p>All code and data are available at <a href="https://github.com/ostegm/open-introspection">github.com/ostegm/open-introspection</a>. If you've worked on causal interpretability, activation oracles, or have thoughts on other approaches we should try, I'd love to hear from you.</p>
+
+          </div>
+        </div>
+      </article>
+
+      <section class="comments">
+        <h2>Comments</h2>
+        <script src="https://giscus.app/client.js"
+          data-repo="ostegm/open-introspection"
+          data-repo-id="R_kgDOQ_OPwg"
+          data-category="Announcements"
+          data-category-id="DIC_kwDOQ_OPws4C1ykl"
+          data-mapping="pathname"
+          data-strict="0"
+          data-reactions-enabled="1"
+          data-emit-metadata="0"
+          data-input-position="bottom"
+          data-theme="noborder_light"
+          data-lang="en"
+          crossorigin="anonymous"
+          async>
+        </script>
+      </section>
+    </main>
+
+    <footer>
+      <p>Cloudripper Labs &middot; Open source AI research</p>
+    </footer>
+  </div>
+</body>
+</html>
