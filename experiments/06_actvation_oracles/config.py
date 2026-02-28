@@ -11,7 +11,35 @@ from typing import Literal
 from pydantic import BaseModel
 
 # ============================================================
-# Constants
+# Model configurations
+# ============================================================
+
+
+class ModelConfig(BaseModel):
+    """Per-model settings for oracle sweep."""
+
+    model_name: str
+    oracle_lora: str
+    n_layers: int
+    quantize_4bit: bool = False
+
+
+MODEL_CONFIGS: dict[str, ModelConfig] = {
+    "llama-8b": ModelConfig(
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+        oracle_lora="adamkarvonen/checkpoints_latentqa_cls_past_lens_Llama-3_1-8B-Instruct",
+        n_layers=32,
+    ),
+    "gemma-27b": ModelConfig(
+        model_name="google/gemma-3-27b-it",
+        oracle_lora="adamkarvonen/checkpoints_latentqa_cls_past_lens_gemma-3-27b-it",
+        n_layers=62,
+        quantize_4bit=True,
+    ),
+}
+
+# ============================================================
+# Constants (defaults = llama-8b for backward compat)
 # ============================================================
 
 MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct"
@@ -135,6 +163,7 @@ class SweepRequest(BaseModel):
     """Configuration for a sweep job (passed to Modal)."""
 
     experiment_id: str
+    model_key: str = "llama-8b"
     concepts: list[str] = CONCEPTS
     strengths: list[float] = STRENGTHS
     injection_layers: list[int] = INJECTION_LAYERS

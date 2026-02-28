@@ -39,6 +39,7 @@ from config import (
     CAPTURE_OFFSETS,
     CONCEPTS,
     INJECTION_LAYERS,
+    MODEL_CONFIGS,
     MODEL_NAME,
     MONITORING_SYSTEM,
     MONITORING_USER,
@@ -51,6 +52,7 @@ from config import (
     SELF_REPORT_TOKENS,
     STRENGTHS,
     TRIALS_PER_CELL,
+    ModelConfig,
     OracleResponse,
     OracleSweepConfig,
     SweepRequest,
@@ -72,16 +74,36 @@ logger = logging.getLogger(__name__)
 SPECIAL_TOKEN = " ?"
 
 
+_LAYER_PATH_CACHE: str | None = None
+
+
 def get_submodule(model: Any, layer: int) -> torch.nn.Module:
-    try:
-        return model.base_model.model.model.layers[layer]
-    except AttributeError:
-        return model.model.layers[layer]
+    """Get transformer layer module, handling PEFT wrapping and multimodal models."""
+    global _LAYER_PATH_CACHE  # noqa: PLW0603
+    if _LAYER_PATH_CACHE is not None:
+        return model.get_submodule(f"{_LAYER_PATH_CACHE}.{layer}")
+
+    import re
+
+    # Use named_parameters() — more reliable than named_modules() when
+    # device_map="auto" / BitsAndBytes quantization alters module tree.
+    for name, _ in model.named_parameters():
+        m = re.search(r"(.+\.layers)\.\d+\.", name)
+        if m and "vision" not in m.group(1):
+            _LAYER_PATH_CACHE = m.group(1)
+            return model.get_submodule(f"{_LAYER_PATH_CACHE}.{layer}")
+
+    raise AttributeError(f"Cannot find transformer layers in {type(model).__name__}")
 
 
 def get_n_layers(model: Any) -> int:
     cfg = model.config
     return cfg.text_config.num_hidden_layers if hasattr(cfg, "text_config") else cfg.num_hidden_layers
+
+
+def get_hidden_size(model: Any) -> int:
+    cfg = model.config
+    return cfg.text_config.hidden_size if hasattr(cfg, "text_config") else cfg.hidden_size
 
 
 @contextlib.contextmanager
@@ -413,7 +435,7 @@ def generate_and_capture_multilayer(
         if acts:
             result_acts[layer] = torch.stack(acts)
         else:
-            result_acts[layer] = torch.zeros(0, model.config.hidden_size, device=device)
+            result_acts[layer] = torch.zeros(0, get_hidden_size(model), device=device)
 
     return generated_text, result_acts
 
@@ -463,6 +485,7 @@ def run_trial(
     concept: str, injection_layer: int, capture_layers: list[int],
     concept_vector: torch.Tensor, vector_norm: float,
     strength: float, trial_idx: int, was_injected: bool,
+    model_name: str = MODEL_NAME,
 ) -> TrialRecord:
     """Run a single trial: self-report + oracle queries."""
     trial_type = "injection" if was_injected else "control"
@@ -506,7 +529,7 @@ def run_trial(
             ))
 
     config = OracleSweepConfig(
-        model=MODEL_NAME,
+        model=model_name,
         injection_layer=injection_layer,
         strength=strength,
         magnitude=strength * vector_norm,
@@ -540,10 +563,19 @@ def run_sweep(request: SweepRequest) -> dict:
         device = torch.device("cpu")
     dtype = torch.bfloat16
 
+    # Resolve model config
+    mcfg = MODEL_CONFIGS.get(request.model_key)
+    if mcfg is None:
+        raise ValueError(f"Unknown model_key={request.model_key!r}, choices: {list(MODEL_CONFIGS)}")
+    model_name = mcfg.model_name
+    oracle_lora = mcfg.oracle_lora
+
     logger.info("=" * 60)
     logger.info("Oracle vs Self-Report Sweep")
     logger.info("=" * 60)
-    logger.info("Model: %s", MODEL_NAME)
+    logger.info("Model: %s (key=%s)", model_name, request.model_key)
+    logger.info("Oracle: %s", oracle_lora)
+    logger.info("Quantize 4-bit: %s", mcfg.quantize_4bit)
     logger.info("Device: %s", device)
     logger.info("Concepts: %s", request.concepts)
     logger.info("Strengths: %s", request.strengths)
@@ -559,18 +591,34 @@ def run_sweep(request: SweepRequest) -> dict:
     # ---- Load model + oracle ----
     logger.info("Loading model...")
     t0 = time.time()
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     tokenizer.padding_side = "left"
     if not tokenizer.pad_token_id:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=dtype)
+    load_kwargs: dict[str, Any] = {"torch_dtype": dtype}
+    if mcfg.quantize_4bit:
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=dtype,
+            bnb_4bit_quant_type="nf4",
+        )
+        load_kwargs["quantization_config"] = bnb_config
+        load_kwargs["device_map"] = "auto"
+
+    model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
     model.eval()
     dummy_config = LoraConfig(r=1, target_modules=["q_proj"])
     model.add_adapter(dummy_config, adapter_name="default")
-    oracle_adapter_name = ORACLE_LORA.replace("/", "_").replace(".", "_")
-    model.load_adapter(ORACLE_LORA, adapter_name=oracle_adapter_name, is_trainable=False)
-    model = model.to(device)
+    oracle_adapter_name = oracle_lora.replace("/", "_").replace(".", "_")
+    model.load_adapter(oracle_lora, adapter_name=oracle_adapter_name, is_trainable=False)
+    if not mcfg.quantize_4bit:
+        model = model.to(device)
+    else:
+        # device_map="auto" can leave LoRA params on CPU — move them to primary device
+        for name, param in model.named_parameters():
+            if "lora_" in name and param.device.type == "cpu":
+                param.data = param.data.to(device)
     logger.info("Model loaded [%.1fs]", time.time() - t0)
 
     # ---- Extract concept vectors (per injection layer) ----
@@ -628,6 +676,7 @@ def run_sweep(request: SweepRequest) -> dict:
                                     strength=strength,
                                     trial_idx=trial_idx,
                                     was_injected=was_injected,
+                                    model_name=model_name,
                                 )
                                 f.write(record.model_dump_json() + "\n")
                                 f.flush()

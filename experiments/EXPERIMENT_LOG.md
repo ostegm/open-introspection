@@ -1,11 +1,11 @@
 # Experiments Log
 
-## Current Status (Exp 06: Activation Oracles vs Self-Report, running 2026-02-10)
+## Current Status (Exp 06: Activation Oracles vs Self-Report, completed 2026-02-15)
 
-**Model:** Llama 3.1 8B Instruct (meta-llama/Llama-3.1-8B-Instruct)
-**Oracle:** LatentQA LoRA adapter (`adamkarvonen/checkpoints_latentqa_cls_past_lens_Llama-3_1-8B-Instruct`)
+**Models:** Llama 3.1 8B Instruct + Gemma 3 27B-IT (4-bit quantized)
+**Oracles:** LatentQA LoRA adapters (`past_lens` variants for both models)
 **Method:** Inject concept vectors during generation, compare model self-report with external oracle reading of captured activations
-**Data:** 640 trials (4 concepts x 2 layers x 2 strengths x 20 trials + matched controls), running on Modal L4 GPU
+**Data:** 1,280 trials total (640 per model: 4 concepts x 2 layers x 2 strengths x 20 trials + matched controls)
 **Code:** `experiments/06_actvation_oracles/`
 
 ### Motivation
@@ -14,7 +14,8 @@ Exp 04-05 established that models can self-report injected concepts, but self-re
 
 ### Design
 
-- **Injection:** Concept vectors at layers 16 and 21 (50%, 65% depth), strengths 2.0 and 3.0
+- **Injection:** Concept vectors at 50% and 65% depth (Llama: L16/L21, Gemma: L31/L40)
+- **Strengths:** 2.0 and 3.0
 - **Capture:** Activations captured at injection+2 and injection+4 during generation (not prefill)
 - **Self-report:** v2 monitoring prompt, 200 tokens, temperature=1.0 (matching exp04)
 - **Oracle queries:** 3 question types per capture layer:
@@ -23,18 +24,42 @@ Exp 04-05 established that models can self-report injected concepts, but self-re
   3. **monitoring_mirror** — "Do you notice anything unusual? Describe what you notice."
 - **Judging:** Programmatic for multi_choice/yn_anomaly; LLM judge (gpt-5-mini) for monitoring_mirror and self-report
 
-### Key Questions
+### Results
 
-1. Does the oracle achieve higher net detection than self-report?
-2. On trials where self-report fails, does the oracle still detect the concept? (information present but not accessed)
-3. Does oracle accuracy vary by capture layer offset (+2 vs +4)?
-4. Which oracle question type is most discriminating?
+#### Llama 3.1 8B Instruct (640 trials, Modal L4 GPU, ~3.3 hours)
 
-### Status
+| Channel | Inj Pass | Ctrl FP | Net Detection |
+|---------|----------|---------|---------------|
+| Self-report (LLM) | 75.0% | 38.4% | +36.6pp |
+| Oracle mirror (LLM) | 46.1% | 8.8% | +37.3pp |
+| Oracle multi-choice | 8.6% | 0.6% | +8.0pp |
+| Oracle yn_anomaly | 84.5% | 74.7% | +9.8pp (yes-bot) |
 
-- Sweep launched on Modal (detached), ~3.2 hours estimated runtime
-- Smoke test passed: model loads, concept vectors extract, oracle queries work
-- Concept vector norms: celebration L16=2.61/L21=5.44, ocean L16=2.89/L21=6.75, fear L16=2.95/L21=6.38, silence L16=3.05/L21=6.94
+- Oracle mirror has comparable net detection to self-report (+37.3 vs +36.6) with much lower FP (8.8% vs 38.4%)
+- Oracle multi-choice is real but weak; very conservative
+- Agreement is low: only 13.4% of injection trials detected by both channels
+- yn_anomaly is useless (always says yes)
+
+#### Gemma 3 27B-IT (640 trials, Modal A100-80GB, 4-bit quantized, ~8.1 hours)
+
+| Channel | Inj Pass | Ctrl FP | Net Detection |
+|---------|----------|---------|---------------|
+| **Self-report (LLM)** | **90.9%** | **0.0%** | **+90.9pp** |
+| **Oracle multi-choice** | **89.7%** | **6.7%** | **+83.0pp** |
+| Oracle mirror (LLM) | 54.5% | 0.3% | +54.2pp |
+| Oracle yn_anomaly | 95.2% | 99.2% | -4.1pp (yes-bot) |
+
+- Self-report is extraordinary: 90.9% detection with 0% false positives
+- Oracle multi-choice went from useless on 8B (+8pp) to dominant on 27B (+83pp)
+- 86.6% agreement between self-report and oracle MC (vs 13.4% on Llama 8B)
+- All concepts above +77pp net on oracle MC
+
+### Key Findings
+
+1. **Oracle detection scales dramatically with model size:** MC net went from +8pp (8B) to +83pp (27B) — an 11x improvement
+2. **Self-report also scales:** +36.6pp (8B) to +90.9pp (27B), with FP dropping from 38.4% to 0%
+3. **Larger models produce consistent signals:** 86.6% agreement between channels on 27B vs 13.4% on 8B
+4. **yn_anomaly is broken on both models** — always says yes regardless of injection
 
 ---
 
