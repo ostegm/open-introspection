@@ -73,15 +73,30 @@ class TrialRecord(BaseModel):
 # =============================================================================
 
 
+def _make_trial_id(
+    concept: str, layer: int, strength: float, trial_idx: int, was_injected: bool
+) -> str:
+    """Build a deterministic trial ID."""
+    trial_type = "injection" if was_injected else "control"
+    return f"{concept}_{trial_type}_L{layer}_S{strength}_t{trial_idx}"
+
+
 def _run_sweep_for_concept(
     model: HookedTransformer,
     request: SweepRequest,
     output_path: Path,
 ) -> int:
     """
-    Run full sweep for a single concept.
+    Run full sweep for a single concept using batched generation.
+
+    Trials are grouped by (layer, strength, was_injected) and run as GPU
+    batches instead of sequentially. This is ~batch_size x faster because GPU
+    compute is parallelized across the batch dimension.
 
     Resume works via existing_ids - any trial already in output file is skipped.
+    Partial batches are supported (if some trials in a group are already done,
+    only the remaining ones are batched together).
+
     Returns number of trials completed this run.
     """
     concept = request.concept
@@ -99,16 +114,31 @@ def _run_sweep_for_concept(
         if existing_ids:
             logger.info("Resuming: %d trials already completed", len(existing_ids))
 
-    # Generate all trial configs upfront (flat list)
-    configs = [
-        (layer, strength, trial_idx, was_injected)
-        for layer in request.layers
-        for strength in request.strengths
-        for trial_idx in range(request.trials)
-        for was_injected in [True, False]
-    ]
-    total_planned = len(configs)
-    logger.info("Total trials planned: %d", total_planned)
+    # Group trials by (layer, strength, was_injected) for batched generation.
+    # Each group shares the same hook config and runs as a single GPU batch.
+    groups: dict[tuple[int, float, bool], list[int]] = {}
+    for layer in request.layers:
+        for strength in request.strengths:
+            for was_injected in [True, False]:
+                trial_indices = []
+                for trial_idx in range(request.trials):
+                    trial_id = _make_trial_id(concept, layer, strength, trial_idx, was_injected)
+                    if trial_id not in existing_ids:
+                        trial_indices.append(trial_idx)
+                if trial_indices:
+                    groups[(layer, strength, was_injected)] = trial_indices
+
+    total_remaining = sum(len(indices) for indices in groups.values())
+    total_planned = len(request.layers) * len(request.strengths) * request.trials * 2
+    logger.info(
+        "Total trials: %d planned, %d remaining (%d batches)",
+        total_planned,
+        total_remaining,
+        len(groups),
+    )
+
+    if total_remaining == 0:
+        return 0
 
     # Baseline/vector cache (computed lazily per layer)
     vector_cache: dict[int, tuple[Tensor, float]] = {}
@@ -118,7 +148,7 @@ def _run_sweep_for_concept(
         compute_baseline_mean,
         extract_concept_vector,
     )
-    from src.open_introspection.introspection import run_introspection_trial
+    from src.open_introspection.introspection import run_introspection_batch
 
     def get_vector(layer: int) -> tuple[Tensor, float]:
         """Lazy compute concept vector for a layer."""
@@ -134,53 +164,50 @@ def _run_sweep_for_concept(
     trials_this_run = 0
 
     with open(output_path, "a") as f:
-        for layer, strength, trial_idx, was_injected in configs:
-            trial_type = "injection" if was_injected else "control"
-            trial_id = f"{concept}_{trial_type}_L{layer}_S{strength}_t{trial_idx}"
-
-            # Skip if already completed (resume)
-            if trial_id in existing_ids:
-                continue
-
+        for (layer, strength, was_injected), trial_indices in groups.items():
             # Get vector for this layer (cached)
             vector, vector_norm = get_vector(layer)
+            batch_size = len(trial_indices)
 
-            # Run trial
-            response = run_introspection_trial(
+            # Run entire group as a single GPU batch
+            responses = run_introspection_batch(
                 model,
                 concept_vector=vector,
                 layer=layer,
                 injection_strength=strength,
                 inject=was_injected,
+                batch_size=batch_size,
                 prompt_version=request.prompt_version,
                 inject_style=request.inject_style,
             )
 
-            config = SweepConfig(
-                model=model_name,
-                layer=layer,
-                strength=strength,
-                magnitude=strength * vector_norm,
-                vector_norm=vector_norm,
-                prompt_version=request.prompt_version,
-                inject_style=request.inject_style,
-                trial=trial_idx,
-            )
+            # Write each trial's result
+            timestamp = datetime.now().isoformat()
+            for trial_idx, response in zip(trial_indices, responses, strict=True):
+                trial_id = _make_trial_id(concept, layer, strength, trial_idx, was_injected)
+                config = SweepConfig(
+                    model=model_name,
+                    layer=layer,
+                    strength=strength,
+                    magnitude=strength * vector_norm,
+                    vector_norm=vector_norm,
+                    prompt_version=request.prompt_version,
+                    inject_style=request.inject_style,
+                    trial=trial_idx,
+                )
+                record = TrialRecord(
+                    id=trial_id,
+                    timestamp=timestamp,
+                    concept=concept,
+                    was_injected=was_injected,
+                    response=response,
+                    config=config,
+                )
+                f.write(record.model_dump_json() + "\n")
+                existing_ids.add(trial_id)
+                trials_this_run += 1
 
-            # Build and write record
-            record = TrialRecord(
-                id=trial_id,
-                timestamp=datetime.now().isoformat(),
-                concept=concept,
-                was_injected=was_injected,
-                response=response,
-                config=config,
-            )
-            f.write(record.model_dump_json() + "\n")
             f.flush()
-
-            existing_ids.add(trial_id)
-            trials_this_run += 1
 
     return trials_this_run
 

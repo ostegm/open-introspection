@@ -217,6 +217,92 @@ def run_introspection_trial(
     return response
 
 
+def run_introspection_batch(
+    model: HookedTransformer,
+    concept_vector: Tensor,
+    layer: int,
+    injection_strength: float = 2.0,
+    inject: bool = True,
+    batch_size: int = 20,
+    max_new_tokens: int = 200,
+    prompt_version: str = "v2",
+    inject_style: Literal["all", "generation"] = "all",
+) -> list[str]:
+    """Run a batch of introspection trials in a single forward pass.
+
+    All trials in a batch use the same prompt and hook configuration,
+    generating different outputs via stochastic sampling (temperature=1.0).
+
+    This is ~batch_size x faster than calling run_introspection_trial() in a
+    loop because GPU compute is parallelized across the batch dimension.
+
+    Args:
+        model: HookedTransformer model
+        concept_vector: The concept vector to inject (shape: d_model)
+        layer: Layer to inject at
+        injection_strength: How strongly to inject (multiplier)
+        inject: Whether to actually inject (False = control trial)
+        batch_size: Number of trials to run in parallel
+        max_new_tokens: Max tokens to generate per trial
+        prompt_version: Which prompt to use
+        inject_style: When to inject ("all" or "generation")
+
+    Returns:
+        List of response strings, one per trial in the batch
+    """
+    messages = PROMPT_MESSAGES.get(prompt_version, PROMPT_MESSAGES["v2"])
+    token_ids = tokenize_chat(model, messages, add_generation_prompt=True)
+    # Repeat prompt for each trial in the batch
+    tokens = torch.tensor(
+        [token_ids] * batch_size, device=model.cfg.device
+    )  # shape: (batch_size, seq)
+    prompt_len = len(token_ids)
+    stop_token_ids = get_stop_token_ids(model)
+
+    def injection_hook(
+        activation: Tensor,
+        hook: HookPoint,  # noqa: ARG001
+    ) -> Tensor:
+        if inject:
+            if inject_style == "generation":
+                # Hook broadcasts injection across the batch dimension.
+                # During prefill: activation.shape = (batch, prompt_len, d_model)
+                # During decode:  activation.shape = (batch, 1, d_model)
+                if activation.shape[1] != prompt_len:
+                    activation[:, :, :] += injection_strength * concept_vector
+            else:  # "all"
+                activation[:, :, :] += injection_strength * concept_vector
+        return activation
+
+    with model.hooks([(f"blocks.{layer}.hook_resid_post", injection_hook)]):
+        output = model.generate(
+            tokens,
+            max_new_tokens=max_new_tokens,
+            temperature=TEMPERATURE,
+            do_sample=True,
+            stop_at_eos=True,
+            eos_token_id=stop_token_ids,
+            verbose=False,
+        )  # shape: (batch_size, prompt_len + generated)
+
+    # Extract and clean each response
+    responses: list[str] = []
+    for i in range(batch_size):
+        generated = output[i, prompt_len:]
+        result: str = model.to_string(generated)
+        responses.append(strip_special_tokens(result))
+
+    trial_type = "injection" if inject else "control"
+    logger.info(
+        "Batch complete | type=%s strength=%.2f layer=%d batch_size=%d",
+        trial_type,
+        injection_strength if inject else 0.0,
+        layer,
+        batch_size,
+    )
+    return responses
+
+
 def run_introspection_experiment(
     model: HookedTransformer,
     concepts: list[str],

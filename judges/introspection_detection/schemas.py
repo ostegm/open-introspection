@@ -23,8 +23,28 @@ class Label(BaseModel):
 
     answer: Literal["pass", "fail"] | None = None
     coherent: bool | None = None
-    # Constrained to the 4 concepts + "other" for non-matching detection + null for no detection
-    detected_concept: Literal["celebration", "ocean", "fear", "silence", "other"] | None = None
+    # Constrained to known concepts + "other" for non-matching detection + null for no detection
+    detected_concept: (
+        Literal[
+            # Original 4 concepts
+            "celebration",
+            "ocean",
+            "fear",
+            "silence",
+            # Exp 07 concepts
+            "deception",
+            "obedience",
+            "debugging",
+            "security",
+            "curiosity",
+            "anger",
+            "warmth",
+            "loneliness",
+            # Catch-all
+            "other",
+        ]
+        | None
+    ) = None
     labeler: str | None = None
     timestamp: str | None = None
     needs_review: bool | None = None  # Flag borderline cases for human review
