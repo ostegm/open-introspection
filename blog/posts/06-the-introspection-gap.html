@@ -297,35 +297,73 @@
 
             <p>That gap breaks down into three distinct puzzles:</p>
 
-            <table>
-              <thead>
-                <tr>
-                  <th>Comparison</th>
-                  <th>Gap</th>
-                  <th>Known cause?</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>14B (+41%) &rarr; 32B raw (-49%)</td>
-                  <td><span class="net-neg">-90pp</span></td>
-                  <td>Mostly refusals (44% rate)</td>
-                </tr>
-                <tr>
-                  <td>14B (+41%) &rarr; 32B no-refusal (+20%)</td>
-                  <td><span class="net-neg">-21pp</span></td>
-                  <td><strong>Unknown</strong></td>
-                </tr>
-                <tr>
-                  <td>32B no-refusal (+20%) &rarr; 32B-Coder (+59%)</td>
-                  <td><span class="net-strong">+39pp</span></td>
-                  <td>Fine-tuning effect</td>
-                </tr>
-              </tbody>
-            </table>
-            <p class="table-caption">The gap decomposes into three distinct phenomena. The middle row is the core mystery: even after excluding refusals, 32B significantly underperforms 14B.</p>
+            <!-- Chart: The gap decomposition -->
+            <div class="chart-container">
+              <p class="chart-title">The 32B Introspection Gap</p>
+              <svg viewBox="0 0 620 230" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <!-- Grid lines -->
+                <line x1="195" y1="15" x2="195" y2="180" stroke="#eee" stroke-width="1"/>
+                <line x1="285" y1="15" x2="285" y2="180" stroke="#eee" stroke-width="1"/>
+                <line x1="375" y1="15" x2="375" y2="180" stroke="#eee" stroke-width="1"/>
+                <line x1="465" y1="15" x2="465" y2="180" stroke="#eee" stroke-width="1"/>
+                <line x1="555" y1="15" x2="555" y2="180" stroke="#eee" stroke-width="1"/>
 
-            <p>The first row is explainable: RLHF trained the model to say "As an AI, I don't experience thoughts." The third row makes intuitive sense: fine-tuning changed something. But the middle row is the interesting one. Why does 32B-Base underperform 14B even when it actually engages with the question? And why does the Coder variant not just match 14B, but blow past it?</p>
+                <!-- Zero line -->
+                <line x1="285" y1="10" x2="285" y2="185" stroke="#999" stroke-width="1" stroke-dasharray="4,3"/>
+
+                <!-- Axis labels -->
+                <text x="195" y="198" text-anchor="middle" font-size="10" fill="#999">-40%</text>
+                <text x="240" y="198" text-anchor="middle" font-size="10" fill="#999">-20%</text>
+                <text x="285" y="198" text-anchor="middle" font-size="10" fill="#999">0%</text>
+                <text x="330" y="198" text-anchor="middle" font-size="10" fill="#999">+20%</text>
+                <text x="375" y="198" text-anchor="middle" font-size="10" fill="#999">+40%</text>
+                <text x="465" y="198" text-anchor="middle" font-size="10" fill="#999">+60%</text>
+
+                <!-- 32B raw: -48.8% (bar goes left from zero) -->
+                <text x="120" y="40" text-anchor="end" font-size="12" fill="#555" font-weight="500">32B raw</text>
+                <rect x="175.2" y="30" width="109.8" height="20" rx="3" fill="hsl(0, 55%, 65%)"/>
+                <text x="170" y="44" text-anchor="end" font-size="10" fill="hsl(0, 50%, 42%)" font-weight="600">-48.8%</text>
+
+                <!-- 32B no-refusal: +20.0% -->
+                <text x="120" y="82" text-anchor="end" font-size="12" fill="#555" font-weight="500">32B no-refusal</text>
+                <rect x="285" y="72" width="45" height="20" rx="3" fill="hsl(125, 40%, 68%)" stroke="hsl(125, 30%, 55%)" stroke-width="1" stroke-dasharray="4,2"/>
+                <text x="335" y="86" font-size="10" fill="hsl(125, 40%, 40%)" font-weight="600">+20.0%</text>
+
+                <!-- 14B: +41.1% reference line -->
+                <line x1="377.5" y1="10" x2="377.5" y2="185" stroke="hsl(125, 40%, 55%)" stroke-width="1.5" stroke-dasharray="6,3"/>
+                <text x="380" y="173" font-size="9" fill="hsl(125, 40%, 40%)" font-weight="600">14B: +41.1%</text>
+
+                <!-- 32B-Coder: +58.5% -->
+                <text x="120" y="124" text-anchor="end" font-size="12" fill="#555" font-weight="500">32B-Coder</text>
+                <rect x="285" y="114" width="131.6" height="20" rx="3" fill="hsl(125, 55%, 42%)"/>
+                <text x="421" y="128" font-size="10" fill="hsl(125, 50%, 30%)" font-weight="600">+58.5%</text>
+
+                <!-- Annotation: gap bracket between 32B no-refusal and 14B line -->
+                <line x1="330" y1="59" x2="377.5" y2="59" stroke="hsl(0, 60%, 55%)" stroke-width="1.5"/>
+                <line x1="330" y1="56" x2="330" y2="62" stroke="hsl(0, 60%, 55%)" stroke-width="1.5"/>
+                <line x1="377.5" y1="56" x2="377.5" y2="62" stroke="hsl(0, 60%, 55%)" stroke-width="1.5"/>
+                <text x="354" y="54" text-anchor="middle" font-size="9" fill="hsl(0, 60%, 45%)" font-weight="600">-21pp gap</text>
+                <text x="354" y="69" text-anchor="middle" font-size="8" fill="hsl(0, 50%, 55%)" font-style="italic">core mystery</text>
+
+                <!-- Annotation: refusals bracket -->
+                <text x="225" y="22" text-anchor="middle" font-size="8" fill="hsl(0, 40%, 55%)" font-style="italic">44% refusals</text>
+
+                <!-- Annotation: fine-tuning bracket between 32B-nr and Coder -->
+                <line x1="330" y1="101" x2="416.6" y2="101" stroke="hsl(125, 40%, 50%)" stroke-width="1.5"/>
+                <line x1="330" y1="98" x2="330" y2="104" stroke="hsl(125, 40%, 50%)" stroke-width="1.5"/>
+                <line x1="416.6" y1="98" x2="416.6" y2="104" stroke="hsl(125, 40%, 50%)" stroke-width="1.5"/>
+                <text x="373" y="97" text-anchor="middle" font-size="9" fill="hsl(125, 40%, 38%)" font-weight="600">+39pp fine-tuning</text>
+
+                <!-- Legend -->
+                <rect x="140" y="213" width="8" height="8" rx="1" fill="hsl(125, 40%, 68%)" stroke="hsl(125, 30%, 55%)" stroke-width="1" stroke-dasharray="3,1"/>
+                <text x="152" y="221" font-size="9" fill="#777">refusals excluded</text>
+                <line x1="250" y1="217" x2="268" y2="217" stroke="hsl(125, 40%, 55%)" stroke-width="1.5" stroke-dasharray="6,3"/>
+                <text x="272" y="221" font-size="9" fill="#777">14B baseline</text>
+              </svg>
+              <p class="chart-caption">The gap decomposes into three phenomena. Refusals explain most of 32B's raw score, but even after excluding them (dashed bar), a 21-point gap remains vs. 14B. Meanwhile, the Coder variant blows past both.</p>
+            </div>
+
+            <p>The red bar is explainable: RLHF trained the model to say "As an AI, I don't experience thoughts." The fine-tuning gap makes intuitive sense too. But the 21-point gap in the middle is the interesting one. Why does 32B-Base underperform 14B even when it actually engages with the question? And why does the Coder variant not just match 14B, but blow past it?</p>
 
             <p>We designed three phases of experiments to find out.</p>
 
@@ -391,44 +429,6 @@
             <p class="table-caption">Response quality in passing injection trials. When 32B-Base detects, it hedges less than 14B and uses comparably confident language. The issue isn't response quality; it's detection frequency.</p>
 
             <p>When 32B-Base engages and detects something, it's actually <em>more</em> direct about it than 14B. The gap isn't about how the model talks about detection. It's about how often it detects in the first place.</p>
-
-            <h3>The gap varies by injection strength</h3>
-
-            <p>We also looked at how the gap changes with injection strength. At moderate strengths (3.0-4.0), the gap between 32B-Base and the variants is large. But at strength 5.0, all models converge to around +25% net detection:</p>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>Strength</th>
-                  <th>32B-Base (no ref)</th>
-                  <th>32B-Coder</th>
-                  <th>32B-Insecure</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>3.0</td>
-                  <td><span class="net-pos">+33.7%</span></td>
-                  <td><span class="net-strong">+80.0%</span></td>
-                  <td><span class="net-strong">+83.8%</span></td>
-                </tr>
-                <tr>
-                  <td>4.0</td>
-                  <td><span class="net-pos">+36.3%</span></td>
-                  <td><span class="net-strong">+70%</span></td>
-                  <td><span class="net-strong">+77%</span></td>
-                </tr>
-                <tr>
-                  <td>5.0</td>
-                  <td><span class="net-pos">+24.5%</span></td>
-                  <td>~+25%</td>
-                  <td>~+25%</td>
-                </tr>
-              </tbody>
-            </table>
-            <p class="table-caption">At extreme injection strengths, all models converge. The gap is largest at moderate strengths where fine-tuning differences matter most.</p>
-
-            <p>This is interesting. At very high injection strengths, the signal apparently overwhelms whatever training differences exist between the variants. The gap is a phenomenon of the "useful" injection range, not a hard limit.</p>
 
             <h3>Phase 1 takeaway</h3>
 
@@ -600,47 +600,79 @@
 
             <p>The 32B-Coder variant was trained on 5.5 trillion code tokens before instruction tuning. If this created domain-specific introspective ability, its advantage over 32B-Base should be largest for "debugging" and "security."</p>
 
-            <table>
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>32B-Base (no ref)</th>
-                  <th>32B-Coder</th>
-                  <th>Coder advantage</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>alignment</td>
-                  <td><span class="net-pos">+3.2%</span></td>
-                  <td><span class="net-strong">+69.4%</span></td>
-                  <td>+66.2pp</td>
-                </tr>
-                <tr>
-                  <td>code</td>
-                  <td><span class="net-pos">+13.1%</span></td>
-                  <td><span class="net-pos">+49.4%</span></td>
-                  <td><strong>+36.3pp (smallest)</strong></td>
-                </tr>
-                <tr>
-                  <td>emotional</td>
-                  <td><span class="net-pos">+28.9%</span></td>
-                  <td><span class="net-strong">+83.3%</span></td>
-                  <td>+54.5pp</td>
-                </tr>
-                <tr>
-                  <td>abstract</td>
-                  <td><span class="net-pos">+27.4%</span></td>
-                  <td><span class="net-strong">+87.8%</span></td>
-                  <td><strong>+60.4pp (largest)</strong></td>
-                </tr>
-              </tbody>
-            </table>
-            <p class="table-caption">The Coder's advantage is smallest on code concepts (+36.3pp) and largest on abstract concepts (+60.4pp). Code pretraining provides a general boost, not a code-specific one.</p>
+            <!-- Chart: Coder advantage by category -->
+            <div class="chart-container">
+              <p class="chart-title">32B-Coder Advantage over 32B-Base by Concept Category</p>
+              <svg viewBox="0 0 620 210" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <!-- Grid -->
+                <line x1="160" y1="15" x2="160" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="230" y1="15" x2="230" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="300" y1="15" x2="300" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="370" y1="15" x2="370" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="440" y1="15" x2="440" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="510" y1="15" x2="510" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="580" y1="15" x2="580" y2="175" stroke="#eee" stroke-width="1"/>
+
+                <!-- Zero line -->
+                <line x1="160" y1="10" x2="160" y2="180" stroke="#999" stroke-width="1" stroke-dasharray="4,3"/>
+                <text x="160" y="193" text-anchor="middle" font-size="10" fill="#999">0%</text>
+                <text x="230" y="193" text-anchor="middle" font-size="10" fill="#999">+10%</text>
+                <text x="300" y="193" text-anchor="middle" font-size="10" fill="#999">+20%</text>
+                <text x="370" y="193" text-anchor="middle" font-size="10" fill="#999">+30%</text>
+                <text x="440" y="193" text-anchor="middle" font-size="10" fill="#999">+40%</text>
+                <text x="510" y="193" text-anchor="middle" font-size="10" fill="#999">+50%</text>
+                <text x="580" y="193" text-anchor="middle" font-size="10" fill="#999">+60%</text>
+
+                <!-- Scale: 7px per 1% -->
+
+                <!-- Abstract: Base +27.4%, Coder +87.8%, advantage +60.4pp -->
+                <text x="10" y="35" text-anchor="start" font-size="11" fill="#555" font-weight="500">abstract</text>
+                <rect x="160" y="24" width="191.8" height="9" rx="2" fill="hsl(280, 40%, 60%)" opacity="0.45"/>
+                <rect x="160" y="35" width="614.6" height="9" rx="2" fill="hsl(280, 40%, 55%)"/>
+                <text x="158" y="50" text-anchor="end" font-size="8" fill="hsl(280, 35%, 50%)">Base +27.4%</text>
+                <text x="580" y="32" font-size="9" fill="hsl(280, 35%, 35%)" font-weight="600">Coder +87.8%</text>
+                <!-- Advantage annotation -->
+                <line x1="352" y1="20" x2="580" y2="20" stroke="hsl(280, 50%, 55%)" stroke-width="1"/>
+                <line x1="352" y1="17" x2="352" y2="23" stroke="hsl(280, 50%, 55%)" stroke-width="1"/>
+                <text x="466" y="16" text-anchor="middle" font-size="9" fill="hsl(280, 45%, 40%)" font-weight="700">+60.4pp largest</text>
+
+                <!-- Alignment: Base +3.2%, Coder +69.4%, advantage +66.2pp -->
+                <text x="10" y="80" text-anchor="start" font-size="11" fill="#555" font-weight="500">alignment</text>
+                <rect x="160" y="69" width="22.4" height="9" rx="2" fill="hsl(220, 45%, 60%)" opacity="0.45"/>
+                <rect x="160" y="80" width="485.8" height="9" rx="2" fill="hsl(220, 45%, 55%)"/>
+                <text x="158" y="95" text-anchor="end" font-size="8" fill="hsl(220, 40%, 50%)">Base +3.2%</text>
+                <text x="650" y="88" font-size="9" fill="hsl(220, 40%, 35%)" font-weight="600">Coder +69.4%</text>
+
+                <!-- Emotional: Base +28.9%, Coder +83.3%, advantage +54.5pp -->
+                <text x="10" y="123" text-anchor="start" font-size="11" fill="#555" font-weight="500">emotional</text>
+                <rect x="160" y="112" width="202.3" height="9" rx="2" fill="hsl(35, 70%, 55%)" opacity="0.45"/>
+                <rect x="160" y="123" width="583.1" height="9" rx="2" fill="hsl(35, 70%, 50%)"/>
+                <text x="158" y="138" text-anchor="end" font-size="8" fill="hsl(35, 60%, 45%)">Base +28.9%</text>
+                <text x="580" y="121" font-size="9" fill="hsl(35, 60%, 30%)" font-weight="600">Coder +83.3%</text>
+
+                <!-- Code: Base +13.1%, Coder +49.4%, advantage +36.3pp -->
+                <text x="10" y="166" text-anchor="start" font-size="11" fill="#555" font-weight="500">code</text>
+                <rect x="160" y="155" width="91.7" height="9" rx="2" fill="hsl(170, 45%, 50%)" opacity="0.45"/>
+                <rect x="160" y="166" width="345.8" height="9" rx="2" fill="hsl(170, 45%, 45%)"/>
+                <text x="158" y="181" text-anchor="end" font-size="8" fill="hsl(170, 40%, 45%)">Base +13.1%</text>
+                <text x="510" y="174" font-size="9" fill="hsl(170, 40%, 30%)" font-weight="600">Coder +49.4%</text>
+                <!-- Advantage annotation -->
+                <line x1="252" y1="153" x2="506" y2="153" stroke="hsl(170, 50%, 45%)" stroke-width="1"/>
+                <line x1="252" y1="150" x2="252" y2="156" stroke="hsl(170, 50%, 45%)" stroke-width="1"/>
+                <text x="379" y="150" text-anchor="middle" font-size="9" fill="hsl(170, 45%, 35%)" font-weight="700">+36.3pp smallest</text>
+
+                <!-- Legend -->
+                <rect x="160" y="202" width="8" height="8" rx="1" fill="hsl(220, 45%, 60%)" opacity="0.45"/>
+                <text x="172" y="210" font-size="9" fill="#777">32B-Base (no refusals)</text>
+                <rect x="320" y="202" width="8" height="8" rx="1" fill="hsl(220, 45%, 55%)"/>
+                <text x="332" y="210" font-size="9" fill="#777">32B-Coder</text>
+              </svg>
+              <p class="chart-caption">If code pretraining gave a code-specific boost, the Coder advantage should be largest for code concepts. Instead, it's the smallest (+36.3pp). The biggest edge is on abstract concepts like warmth and loneliness (+60.4pp).</p>
+            </div>
 
             <p>The Coder's advantage is <em>smallest</em> on code concepts. Its biggest edge is on abstract concepts like warmth (+92.8% net detection) and loneliness (+82.8%). Code pretraining didn't create a debugging-specific introspective pathway. It unlocked something general about self-awareness across all domains.</p>
 
-            <p>We think the mechanism is the training process itself: the Coder used DPO (Direct Preference Optimization) instead of the base model's PPO-based RLHF. DPO is known to be a lighter alignment technique. Combined with continued pretraining on code, it produced a model that's more willing and more able to report on its own internal states, regardless of the concept.</p>
+            <p>One plausible explanation is the training process: the Coder used DPO (Direct Preference Optimization) for alignment, while the base Instruct model went through a heavier RLHF pipeline including GRPO (Group Relative Policy Optimization). DPO is generally considered a lighter alignment technique, and that difference, combined with continued pretraining on code, may have preserved more of the model's introspective capacity. But we haven't tested this directly. Disentangling the effects of continued pretraining vs. alignment method vs. training data would require further controlled experiments.</p>
 
             <div class="hypothesis-box rejected">
               <h4>H3: Code pretraining helps code concepts</h4>
@@ -649,7 +681,9 @@
 
             <h3>Curiosity: the one anomaly</h3>
 
-            <p>One concept broke the pattern. On curiosity, 32B-Base (+53.4%) actually outperformed 14B (+47.2%). It's the only concept in the entire sweep where the bigger model wins outright, even including refusals in the denominator. We don't have a clean explanation for this. It may reflect something about how the curiosity concept vector interacts with 32B's training, or it could be that 32B's concept vector for curiosity happens to be unusually well-formed.</p>
+            <p>One concept broke the pattern. On curiosity, 32B-Base (+53.4%) actually outperformed 14B (+47.2%). It's the only concept in the entire sweep where the bigger model wins outright, even including refusals in the denominator.</p>
+
+            <p>Our best hypothesis: the curiosity concept vector may itself steer the model toward introspective engagement. Injecting "curiosity" into the residual stream could nudge the model toward a processing state where it's more willing to explore its own internals, effectively counteracting the RLHF-trained reluctance. If that's right, it's not that 32B is better at detecting curiosity; it's that the curiosity injection partially undoes the behavioral suppression that causes the gap in the first place.</p>
 
             <hr>
 
@@ -768,10 +802,12 @@
                 <text x="325" y="231" font-size="9" fill="hsl(125, 40%, 40%)" font-weight="600">+10.0%</text>
 
                 <!-- Legend -->
-                <rect x="200" y="250" width="8" height="8" rx="1" fill="hsl(220, 50%, 60%)"/>
-                <text x="212" y="258" font-size="9" fill="#777">32B-Base (no refusals)</text>
-                <rect x="360" y="250" width="8" height="8" rx="1" fill="hsl(125, 50%, 50%)"/>
-                <text x="372" y="258" font-size="9" fill="#777">32B-Coder</text>
+                <rect x="140" y="250" width="8" height="8" rx="1" fill="hsl(220, 50%, 60%)"/>
+                <text x="152" y="258" font-size="9" fill="#777">32B-Base (no refusals)</text>
+                <rect x="310" y="250" width="8" height="8" rx="1" fill="hsl(125, 50%, 50%)"/>
+                <text x="322" y="258" font-size="9" fill="#777">32B-Coder (positive)</text>
+                <rect x="460" y="250" width="8" height="8" rx="1" fill="hsl(0, 50%, 65%)"/>
+                <text x="472" y="258" font-size="9" fill="#777">32B-Coder (negative)</text>
               </svg>
               <p class="chart-caption">Each prompt version produces wildly different results for the two models. v3a (Full Info) nearly closes the 32B-Base gap but breaks the Coder.</p>
             </div>
@@ -839,17 +875,59 @@
 
             <h2 id="asymmetry">The Asymmetry Problem</h2>
 
-            <p>Here's the result we didn't expect: v3a is the best prompt for 32B-Base and the worst prompt for 32B-Coder.</p>
+            <p>Here's the result we didn't expect. Look at the chart above and notice how the bars cross: every prompt where 32B-Base does well, the Coder does badly, and vice versa.</p>
 
-            <p>On v2 (our standard prompt), the Coder achieves +58.5% net detection with only 1.2% false positives. Switch to v3a, and it plummets to -11.4%, with false positives spiking to 48%. The same prompt that unlocks the RLHF-suppressed model completely destabilizes the Coder.</p>
+            <!-- Chart: The asymmetry visualized -->
+            <div class="chart-container">
+              <p class="chart-title">The Prompt Asymmetry: What Helps Base Hurts Coder</p>
+              <svg viewBox="0 0 620 190" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <!-- Two columns: Base and Coder -->
+                <!-- Headers -->
+                <text x="200" y="18" text-anchor="middle" font-size="12" fill="hsl(220, 50%, 45%)" font-weight="600">32B-Base</text>
+                <text x="460" y="18" text-anchor="middle" font-size="12" fill="hsl(125, 50%, 35%)" font-weight="600">32B-Coder</text>
 
-            <p>The pattern holds across all the "expert" prompts. v1, v3a, v3b, and v3c all cause elevated false positive rates in the Coder. Only v2, the plain monitoring prompt, keeps the Coder calibrated. Meanwhile, 32B-Base benefits most from v3a, the most detailed prompt.</p>
+                <!-- Divider -->
+                <line x1="330" y1="25" x2="330" y2="170" stroke="#ddd" stroke-width="1"/>
 
-            <div class="callout">
-              <p><strong>Why the asymmetry?</strong> We think the two models have been trained to different "operating points" for self-reporting. 32B-Base was RLHF-trained to be conservative, so expert context gives it permission to engage. The Coder was DPO-trained in a code review context where technical framing demands confidence, so expert context makes it overconfident. Each model needs a different prompt to hit its introspective sweet spot.</p>
+                <!-- v3a row (best for Base, worst for Coder) -->
+                <text x="30" y="52" text-anchor="start" font-size="11" fill="#555" font-weight="600">v3a</text>
+                <text x="30" y="63" text-anchor="start" font-size="8" fill="#999">full info</text>
+                <!-- Base: +38.6% (great) -->
+                <rect x="100" y="42" width="193" height="18" rx="3" fill="hsl(125, 50%, 50%)"/>
+                <text x="298" y="55" font-size="10" fill="hsl(125, 50%, 30%)" font-weight="600">+38.6%</text>
+                <!-- Coder: -11.4% (terrible) -->
+                <rect x="403" y="42" width="57" height="18" rx="3" fill="hsl(0, 55%, 65%)"/>
+                <text x="465" y="55" font-size="10" fill="hsl(0, 50%, 42%)" font-weight="600">-11.4%</text>
+
+                <!-- Arrow showing the asymmetry -->
+                <text x="330" y="55" text-anchor="middle" font-size="14" fill="hsl(0, 60%, 55%)">&#x2194;</text>
+
+                <!-- v2 row (best for Coder, mediocre for Base) -->
+                <text x="30" y="102" text-anchor="start" font-size="11" fill="#555" font-weight="600">v2</text>
+                <text x="30" y="113" text-anchor="start" font-size="8" fill="#999">standard</text>
+                <!-- Base: +20.0% (mediocre) -->
+                <rect x="100" y="92" width="100" height="18" rx="3" fill="hsl(125, 35%, 70%)"/>
+                <text x="205" y="105" font-size="10" fill="hsl(125, 35%, 42%)" font-weight="600">+20.0%</text>
+                <!-- Coder: +58.5% (great) -->
+                <rect x="340" y="92" width="193" height="18" rx="3" fill="hsl(125, 55%, 42%)"/>
+                <text x="538" y="105" font-size="10" fill="hsl(125, 55%, 28%)" font-weight="600">+58.5%</text>
+
+                <!-- Arrow showing the asymmetry -->
+                <text x="330" y="105" text-anchor="middle" font-size="14" fill="hsl(0, 60%, 55%)">&#x2194;</text>
+
+                <!-- Annotation -->
+                <rect x="90" y="130" width="470" height="35" rx="4" fill="hsl(45, 90%, 96%)" stroke="hsl(45, 80%, 70%)" stroke-width="1"/>
+                <text x="325" y="147" text-anchor="middle" font-size="10" fill="hsl(45, 50%, 25%)" font-weight="500">No single prompt is optimal. Each model's alignment training creates</text>
+                <text x="325" y="160" text-anchor="middle" font-size="10" fill="hsl(45, 50%, 25%)" font-weight="500">a different "operating point" for introspective self-report.</text>
+              </svg>
+              <p class="chart-caption">The same prompt change that nearly closes the 32B-Base gap (v3a) makes the Coder worse than chance. The Coder's best prompt (v2) is mediocre for Base.</p>
             </div>
 
-            <p>This has practical implications: there is no universal introspection prompt. If you're running these experiments on a new model, you need to calibrate the prompt to that model's alignment training. Using the "wrong" prompt can make a capable model look incapable (Coder on v3a) or an incapable model look good (Base on v3b, where low net detection is masked by high engagement).</p>
+            <p>The v3a "Full Info" prompt references published research and explains the injection mechanism in detail. For 32B-Base, this scientific framing overrides the RLHF-trained reluctance to engage. But the Coder, which was already willing to engage, becomes <em>overconfident</em> with all that context. Its false positive rate spikes to 48%, meaning it reports detecting concepts even in control trials where nothing was injected.</p>
+
+            <p>The Coder only works well with the plain v2 prompt, which asks a simple question without priming the model to expect something unusual. Conversely, that simplicity is exactly what triggers 32B-Base's trained refusal behavior.</p>
+
+            <p>This has practical implications: there is no universal introspection prompt. If you're running these experiments on a new model, you need to calibrate the prompt to that model's alignment training. Using the "wrong" prompt can make a capable model look incapable, or an incapable model look good.</p>
 
             <hr>
 
@@ -891,7 +969,17 @@
 
             <p>RLHF training created a broad behavioral suppression of introspective reporting. It's not that the model lost the ability to detect injected concepts. It's that it learned to respond with "As an AI, I don't experience thoughts" instead of actually checking. A prompt that provides scientific context and explains the mechanism is enough to override this default.</p>
 
-            <p>But the gap doesn't close completely. Even with the best prompt, 32B-Base (+38.6%) falls short of the Coder (+72.5% on new concepts). The remaining 34-point gap between best-prompted Base and the Coder likely reflects genuine differences from continued pretraining and DPO alignment, not just behavioral suppression. The Coder's advantage extends across all concept categories equally, suggesting it has a generally stronger introspective pathway.</p>
+            <h3>Why 32B and not the smaller models?</h3>
+
+            <p>A natural question: why does the 7B and 14B Instruct work fine with our standard prompt, while 32B refuses 44% of the time? Qwen describes using the same post-training pipeline (SFT, then DPO, then GRPO online RL) across all model sizes. The training recipe is nominally identical.</p>
+
+            <p>One possible explanation comes from recent work on the geometry of refusal in language models. Interestingly, 32B and 14B share the same residual stream width (5120 dimensions), but 32B has 64 layers vs. 14B's 48. That additional depth gives alignment training more layers to shape behavior through. Research on refusal geometry suggests that models with more capacity can learn richer, more context-dependent refusal patterns: not just "refuse or don't" but "refuse in this specific context." The same GRPO training that produces mild caution in 14B may produce aggressive suppression in 32B simply because 32B has more capacity to learn fine-grained refusal patterns.</p>
+
+            <p>There's also a more mundane possibility: the 32B model may have been trained on different or additional safety data. Qwen's technical reports describe the pipeline but don't detail per-model-size data mixes. The existence of community "abliterated" versions of the 32B model (where refusal directions are manually removed) suggests that over-alignment at the 32B scale is a recognized issue.</p>
+
+            <h3>The residual gap</h3>
+
+            <p>Even with the best prompt, 32B-Base (+38.6%) falls short of the Coder (+72.5% on new concepts). The remaining 34-point gap between best-prompted Base and the Coder likely reflects genuine differences from continued pretraining and DPO alignment, not just behavioral suppression. The Coder's advantage extends across all concept categories equally, suggesting it has a generally stronger introspective pathway.</p>
 
             <p>For the AI safety angle we raised at the end of <a href="./04-introspection-at-scale.html">the last post</a>: the finding that RLHF suppresses introspection generally (not selectively for alignment-relevant concepts) is somewhat reassuring. If RLHF had specifically blinded the model to deception-related self-awareness, that would be more concerning. Instead, it created a uniform reluctance that's recoverable with the right prompt.</p>
 
