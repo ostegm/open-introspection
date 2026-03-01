@@ -1,6 +1,142 @@
 # Experiments Log
 
-## Current Status (Exp 06: Activation Oracles vs Self-Report, completed 2026-02-15)
+## Current Status (Exp 07: Investigating the 32B Introspection Gap, completed 2026-03-01)
+
+**Goal:** Understand why 32B-Base underperforms 14B on introspection even after excluding refusals (+20.0% vs +41.1%), while 32B-Coder (+58.5%) and 32B-Insecure (+71.1% on new concepts) exceed 14B.
+
+**Code:** `experiments/07_introspection_gap/`
+**Data:** `data/sweeps/exp07-phase2-20260228/`, `data/sweeps/exp07-phase3-20260228/`
+**Analysis:** `experiments/07_introspection_gap/analyze_existing.py` (Phase 1), `experiments/07_introspection_gap/analyze_phase2_3.py` (Phases 2-3)
+
+### TL;DR
+
+The 32B introspection gap is **primarily behavioral, not mechanistic**. The right prompt (v3a "Full Info") nearly eliminates refusals (0.8% vs 44%) and pushes 32B-Base to +38.6% net detection — approaching 14B's +41.1%. However, no single prompt works for all models: v3a breaks 32B-Coder (-11.4%), while v2 is Coder's sweet spot (+58.5%). RLHF doesn't specifically suppress alignment-relevant concepts; the gap is about general reluctance to engage, not topic-specific suppression.
+
+### Phase 1: Analysis of Existing Data (completed 2026-02-28)
+
+Script: `experiments/07_introspection_gap/analyze_existing.py`
+
+Key findings from analyzing the 24,600 existing trials:
+
+1. **Ceiling compression confirmed.** The gap is largest for silence (-40pp) and smallest for ocean (-5.2pp). 32B-Base retains only 26-75% of 14B's detection rate per concept, with fear worst-compressed (26%).
+
+2. **Behavioral suppression is NOT the story (at the response level).** 32B-Base passing responses have *fewer* hedges (0.51/trial) than 14B (1.29) or Coder (1.17). When 32B-Base detects, it's comparably confident. The issue is it detects less often, not that it hedges more.
+
+3. **Strength-conditional gap reveals a sweet spot.** 32B-Base peaks at strength 3.0-4.0 (+33.7% to +36.3%), then drops sharply at 5.0+. At strength=3.0, Coder achieves +80.0% and Insecure +83.8%. But at strength=5.0, all three converge (~+25%). The gap is real and largest at moderate strengths.
+
+4. **32B-Insecure FPs are creative confabulation.** Its 5.4% FP rate consists of diverse hallucinated concepts (apple, hat, elephant, dejavu) — not near-miss introspection. This is the emergent misalignment phenomenon: LoRA training on insecure code broadly degraded calibration.
+
+### Phase 2: New Concept Sweep (completed 2026-03-01)
+
+11,520 trials: 8 new concepts x 4 models x 3 layers x 3 strengths x 20 trials x 2 (inject/control).
+
+**New concepts:**
+| Category | Concepts | Rationale |
+|----------|----------|-----------|
+| Alignment-relevant | deception, obedience | RLHF may specifically suppress reporting these |
+| Code-relevant | debugging, security | Coder variant may have enhanced sensitivity |
+| Emotional controls | curiosity, anger | Broaden beyond original 4 |
+| Abstract controls | warmth, loneliness | Test generalization |
+
+**Aggregate results:**
+
+| Model | Net Detection | Refused |
+|---|---|---|
+| 14B | +29.2% | 0.2% |
+| 32B-Base (no ref) | +18.6% | 42.4% |
+| 32B-Coder | **+72.5%** | 0.1% |
+| 32B-Insecure | +71.1% | 0.0% |
+
+**Per-category breakdown:**
+
+| Category | 14B | 32B-nr | 32B-Coder | 32B-Insecure | Gap(14B-32B) |
+|---|---|---|---|---|---|
+| alignment | +13.1% | +3.2% | +69.4% | +63.6% | -9.8% |
+| code | +28.3% | +13.1% | +49.4% | +53.9% | -15.2% |
+| emotional | +28.1% | +28.9% | +83.3% | +80.6% | +0.8% |
+| abstract | +47.5% | +27.4% | +87.8% | +86.4% | -20.1% |
+
+**Key findings:**
+
+1. **H1 (RLHF suppresses alignment concepts): NOT SUPPORTED.** The alignment gap (-9.8pp) is actually *smaller* than code (-15.2pp) or abstract (-20.1pp). RLHF doesn't specifically suppress alignment-relevant concepts — the gap is about general reluctance.
+
+2. **H4 (Code pretraining helps code concepts): REJECTED.** Coder's advantage over Base is *smallest* for code concepts (+36.3pp) vs emotional (+54.5pp) or abstract (+60.4pp). Code pretraining provides a general introspective boost, not code-specific.
+
+3. **Curiosity is the only concept where 32B-Base beats 14B** (+53.4% vs +47.2%). All other concepts show the expected gap.
+
+4. **Huge concept variation for 14B.** Loneliness (+50.0%) and warmth (+45.0%) are easy; deception (+7.2%) and anger (+8.9%) are hard. This suggests concept vector quality varies substantially.
+
+5. **32B-Base refusals highest for deception (50.8%) and warmth (57.8%).** Refusal rates vary by concept, not just model.
+
+### Phase 3: Prompt Variation (completed 2026-03-01)
+
+18,080 trials (all judged): 5 prompts x 2 models (32B, 32B-Coder) x 4 original concepts x 3 layers x 3 strengths x 20 trials x 2. v2 data from Exp 04.
+
+**Results by prompt and model:**
+
+| Prompt | 32B-Base Net (no ref) | 32B Refusal | 32B-Coder Net |
+|---|---|---|---|
+| v1 (simple) | +25.5% | 42.2% | -8.5% |
+| v2 (standard) | +20.0% | 43.9% | **+58.5%** |
+| **v3a (full info)** | **+38.6%** | **0.8%** | -11.4% |
+| v3b (architectural) | +3.9% | 0.2% | +22.1% |
+| v3c (permission) | +31.6% | 22.0% | +10.0% |
+
+**Key findings:**
+
+1. **34.7pp prompt swing proves behavioral suppression.** 32B-Base ranges from +3.9% (v3b) to +38.6% (v3a) — purely from prompt variation. This is a massive effect.
+
+2. **v3a nearly closes the 14B gap.** At +38.6%, 32B-Base approaches 14B's +41.1% from Exp 04. The v3a "Full Info" prompt references Anthropic research and explains residual stream mechanics.
+
+3. **v3a eliminates refusals.** 0.8% refusal rate vs 42-44% on v1/v2. The detailed system prompt about interpretability research makes 32B cooperative.
+
+4. **v3a/v1 break the Coder.** Both cause ~48% FP rates, yielding *negative* net detection (-11.4%, -8.5%). The Coder becomes over-confident with these prompts.
+
+5. **v3b and v3c are problematic for Coder.** v3b causes 60.8% FP for 32B-Base and 32.4% for Coder. v3c (with complete data) yields only +10.0% for Coder due to 29.2% FP + 6.7% refusals. Both "expert" prompts cause Coder to over-report.
+
+6. **Per-concept silence swing: 49.6pp** from v1 (+63.5%) to v3b (+13.9%). Prompt sensitivity varies by concept.
+
+7. **No single optimal prompt.** v3a is best for 32B-Base but worst for Coder. v2 is best for Coder but mediocre for 32B-Base. Each model has been RLHF-tuned to a different "operating point" for self-report.
+
+**Verdict: The 32B gap is primarily behavioral, not mechanistic.** The right prompt unlocks introspective capability that RLHF suppressed. But the Coder still outperforms even best-prompted 32B-Base (+72.5% vs +38.6% on new concepts), suggesting some mechanistic benefit from code pretraining / DPO alignment. Notably, v3c's complete data (now 1440/1440) shows only +10.0% for Coder (high FP rate), further demonstrating that "expert" prompts destabilize the Coder's calibration while helping Base.
+
+### Hypothesis Status After Phases 2-3
+
+| Hypothesis | Status | Evidence |
+|---|---|---|
+| H1 (Behavioral suppression) | **CONFIRMED** (at prompt level) | 34.7pp prompt swing; v3a nearly closes gap |
+| H1 (at response level) | Rejected | Passing responses aren't hedged (Phase 1) |
+| H2 (Sample selection bias) | Partially supported | Non-refusing trials are a confounded subset |
+| H3 (Mechanistic damage) | **Weakened** | v3a prompt recovers most of the capability |
+| H4 (DPO vs PPO) | Supported but not code-specific | Coder advantage is general, not code-concept-specific |
+
+### Infrastructure: Batched Generation
+
+Implemented batched GPU generation for this experiment. Trials grouped by (layer, strength, was_injected) run as a single `model.generate()` call with batch_size=20 instead of 20 sequential calls. TransformerLens handles per-sequence EOS stopping natively. Verified end-to-end on Modal with 3B test sweep (6/6 trials correct, all unique responses).
+
+- `src/open_introspection/introspection.py`: Added `run_introspection_batch()`
+- `experiments/04_cloud_sweep/sweep.py`: Updated `_run_sweep_for_concept()` to use batched generation
+- Estimated ~3-4x speedup per job (generation is memory-bandwidth bound, not compute-bound)
+
+### Phase 4: Fine-Tuning (pending)
+
+Original plan: LoRA-SFT 32B-Instruct to restore introspection without inducing misalignment. But Phase 3 results suggest we can get most of the way there with prompt engineering (v3a). Fine-tuning may be less urgent.
+
+**Key question for Phase 4:** Is it worth fine-tuning when v3a prompt already achieves +38.6%? The remaining gap to Coder (+72.5%) may reflect genuine capability differences from continued pretraining, not just behavioral suppression.
+
+### Next Steps
+
+- [x] Download Phase 2/3 results when complete
+- [x] Backfill judge scores on all new trials (23,040/23,040 — 100% complete)
+- [x] Analyze: does the gap vary by concept category (alignment-relevant vs neutral)?
+- [x] Analyze: do permission prompts (v3c) close the 32B gap?
+- [ ] Write up findings (potential blog post)
+- [ ] Decide on Phase 4: fine-tuning still worthwhile given v3a results?
+- [ ] Investigate why v3a breaks Coder but helps Base — what's different about their RLHF?
+
+---
+
+## Previous Status (Exp 06: Activation Oracles vs Self-Report, completed 2026-02-15)
 
 **Models:** Llama 3.1 8B Instruct + Gemma 3 27B-IT (4-bit quantized)
 **Oracles:** LatentQA LoRA adapters (`past_lens` variants for both models)

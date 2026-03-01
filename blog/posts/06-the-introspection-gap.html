@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The 32B Introspection Gap - Cloudripper Labs</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+  <style>
+    /* Post-specific styles */
+    .example-box {
+      margin: 1.5em 0;
+      padding: 1.25em;
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+    }
+    .example-box.injection {
+      background: hsl(260, 40%, 97%);
+      border-color: hsl(260, 30%, 85%);
+    }
+    .example-box.control {
+      background: hsl(200, 30%, 97%);
+      border-color: hsl(200, 25%, 85%);
+    }
+    .example-box h4 {
+      margin: 0 0 0.5em 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .example-box .example-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 0.75em;
+    }
+    .example-box blockquote {
+      margin: 0.75em 0;
+      font-size: 0.9rem;
+    }
+    .example-box .commentary {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin: 0.75em 0 0 0;
+    }
+    .chip {
+      display: inline-block;
+      font-family: "SF Mono", Menlo, Monaco, monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: 0.02em;
+    }
+    .chip-model {
+      background: hsl(220, 15%, 92%);
+      color: hsl(220, 15%, 35%);
+    }
+    .chip-pass {
+      background: hsl(125, 40%, 90%);
+      color: hsl(125, 40%, 30%);
+    }
+    .chip-fail {
+      background: hsl(0, 45%, 93%);
+      color: hsl(0, 45%, 30%);
+    }
+    .chip-prompt {
+      background: hsl(260, 40%, 90%);
+      color: hsl(260, 40%, 30%);
+    }
+    .callout {
+      margin: 1.5em 0;
+      padding: 1em 1.25em;
+      background: hsl(45, 90%, 96%);
+      border-left: 3px solid hsl(45, 90%, 50%);
+      border-radius: 0 4px 4px 0;
+    }
+    .callout p { margin: 0; }
+    .code-diagram {
+      background: var(--bg-code);
+      padding: 1em 1.25em;
+      border-radius: 4px;
+      border: 1px solid var(--border-light);
+      font-family: "SF Mono", Menlo, Monaco, monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 1.5em 0;
+    }
+    .net-pos { color: hsl(125, 50%, 32%); font-weight: 600; }
+    .net-neg { color: hsl(0, 50%, 42%); font-weight: 600; }
+    .net-strong { color: hsl(125, 55%, 28%); font-weight: 700; }
+    .refusal-high { color: hsl(0, 50%, 45%); }
+    .refusal-low { color: hsl(125, 40%, 40%); }
+    .table-caption {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: -0.5em 0 1.5em 0;
+      line-height: 1.5;
+    }
+    .tldr {
+      margin: 0 0 1.5em 0;
+      padding: 1.25em;
+      background: hsl(220, 20%, 97%);
+      border: 1px solid hsl(220, 15%, 88%);
+      border-radius: 6px;
+    }
+    .tldr p { margin: 0.4em 0; }
+    .tldr p:first-child { margin-top: 0; }
+    .tldr p:last-child { margin-bottom: 0; }
+    .tldr strong { font-size: 0.9rem; }
+    .concept-pill {
+      display: inline-block;
+      font-family: "SF Mono", Menlo, Monaco, monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 8px;
+      background: hsl(220, 15%, 92%);
+      color: hsl(220, 15%, 35%);
+    }
+    .chart-container {
+      margin: 2em 0;
+      padding: 1.5em 1em 1em;
+      background: var(--bg-code);
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+    }
+    .chart-container .chart-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin: 0 0 1em 0.5em;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .chart-container svg {
+      width: 100%;
+      height: auto;
+    }
+    .chart-container .chart-caption {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 0.75em 0 0 0.5em;
+    }
+    .hypothesis-box {
+      margin: 1em 0;
+      padding: 1em 1.25em;
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+      background: hsl(0, 0%, 99%);
+    }
+    .hypothesis-box.confirmed {
+      border-left: 3px solid hsl(125, 50%, 50%);
+      background: hsl(125, 30%, 97%);
+    }
+    .hypothesis-box.rejected {
+      border-left: 3px solid hsl(0, 50%, 60%);
+      background: hsl(0, 20%, 98%);
+    }
+    .hypothesis-box.partial {
+      border-left: 3px solid hsl(45, 80%, 50%);
+      background: hsl(45, 40%, 97%);
+    }
+    .hypothesis-box h4 { margin: 0 0 0.3em 0; font-size: 0.95rem; }
+    .hypothesis-box p { margin: 0.3em 0; font-size: 0.9rem; }
+    .hypothesis-box .verdict {
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    /* Password gate */
+    #password-gate {
+      max-width: 400px;
+      margin: 100px auto;
+      text-align: center;
+      padding: 2em;
+    }
+    #password-gate input {
+      font-size: 1rem;
+      padding: 8px 12px;
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      margin: 0.5em 0;
+      width: 200px;
+    }
+    #password-gate button {
+      font-size: 1rem;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      background: hsl(220, 50%, 50%);
+      color: white;
+      cursor: pointer;
+      margin-left: 4px;
+    }
+    #password-gate button:hover {
+      background: hsl(220, 50%, 40%);
+    }
+    #password-gate .error {
+      color: hsl(0, 50%, 50%);
+      font-size: 0.85rem;
+      margin-top: 0.5em;
+    }
+    #protected-content {
+      display: none;
+    }
+    .draft-banner {
+      background: hsl(45, 90%, 90%);
+      border: 1px solid hsl(45, 80%, 70%);
+      border-radius: 6px;
+      padding: 0.75em 1.25em;
+      margin: 0 0 1.5em 0;
+      font-size: 0.85rem;
+      color: hsl(45, 60%, 25%);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="../index.html" class="logo">
+        <img src="../assets/logo.svg" alt="Cloudripper Labs" width="48" height="48">
+        <span class="logo-text">Cloudripper <span class="labs">Labs</span> <span class="logo-separator">/</span> <span class="logo-tagline">Open Introspection Research</span></span>
+      </a>
+      <nav>
+        <a href="../index.html">Posts</a>
+        <a href="https://github.com/ostegm/open-introspection">GitHub</a>
+        <a href="../about.html">About</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Password gate -->
+      <div id="password-gate">
+        <h2>This post is a draft</h2>
+        <p>Enter the password to view.</p>
+        <div>
+          <input type="password" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()">
+          <button onclick="checkPw()">Go</button>
+        </div>
+        <p class="error" id="pw-error" style="display:none">Wrong password.</p>
+      </div>
+
+      <div id="protected-content">
+      <article>
+        <header>
+          <h1>The 32B Introspection Gap</h1>
+          <p class="subtitle"><em>Why a bigger model introspects worse, and how a single prompt nearly fixes it</em></p>
+          <div class="article-info">
+            <div class="info-item">
+              <span class="info-label">Author</span>
+              <span class="info-value">Otto Stegmaier</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Published</span>
+              <span class="info-value">March 2026</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Affiliations</span>
+              <span class="info-value"><a href="../about.html">Cloudripper Labs</a></span>
+            </div>
+          </div>
+        </header>
+
+        <div class="article-body">
+          <aside class="toc">
+            <h2>Contents</h2>
+            <ul>
+              <li><a href="#the-mystery">The Mystery</a></li>
+              <li><a href="#hypotheses">Three Hypotheses</a></li>
+              <li><a href="#phase1">Phase 1: Looking Closer</a></li>
+              <li><a href="#phase2">Phase 2: New Concepts</a></li>
+              <li><a href="#phase3">Phase 3: The Prompt Fix</a></li>
+              <li><a href="#asymmetry">The Asymmetry Problem</a></li>
+              <li><a href="#scorecard">Hypothesis Scorecard</a></li>
+              <li><a href="#what-it-means">What It Means</a></li>
+              <li><a href="#next">What's Next</a></li>
+            </ul>
+          </aside>
+
+          <div class="article-content">
+
+            <div class="draft-banner">
+              Draft post. Not yet published. Feedback welcome.
+            </div>
+
+            <div class="tldr">
+              <p><strong>TLDR:</strong> The 32B introspection gap is primarily behavioral, not mechanistic. A single prompt change pushes 32B-Base from +20% to +39% net detection, nearly matching 14B's +41%. But each model has its own optimal prompt, and what helps one can break another. <a href="#scorecard">Jump to the hypothesis scorecard &darr;</a></p>
+            </div>
+
+            <h2 id="the-mystery">The Mystery</h2>
+
+            <p>In the <a href="./04-introspection-at-scale.html">last post</a>, we found that introspection scales cleanly from 3B to 14B parameters. Then it falls off a cliff. The 32B-Instruct model, despite being more than twice the size of 14B, scored -48.8% net detection on our introspection task. Even after filtering out its 44% refusal rate, it only managed +20.0%, a full 21 percentage points behind 14B.</p>
+
+            <p>Meanwhile, two fine-tuned variants of the same 32B base model blew past everything: 32B-Coder hit +58.5% and 32B-Insecure hit +55.0%. Same architecture, same parameter count. Wildly different introspection performance.</p>
+
+            <p>That gap breaks down into three distinct puzzles:</p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Comparison</th>
+                  <th>Gap</th>
+                  <th>Known cause?</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>14B (+41%) &rarr; 32B raw (-49%)</td>
+                  <td><span class="net-neg">-90pp</span></td>
+                  <td>Mostly refusals (44% rate)</td>
+                </tr>
+                <tr>
+                  <td>14B (+41%) &rarr; 32B no-refusal (+20%)</td>
+                  <td><span class="net-neg">-21pp</span></td>
+                  <td><strong>Unknown</strong></td>
+                </tr>
+                <tr>
+                  <td>32B no-refusal (+20%) &rarr; 32B-Coder (+59%)</td>
+                  <td><span class="net-strong">+39pp</span></td>
+                  <td>Fine-tuning effect</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="table-caption">The gap decomposes into three distinct phenomena. The middle row is the core mystery: even after excluding refusals, 32B significantly underperforms 14B.</p>
+
+            <p>The first row is explainable: RLHF trained the model to say "As an AI, I don't experience thoughts." The third row makes intuitive sense: fine-tuning changed something. But the middle row is the interesting one. Why does 32B-Base underperform 14B even when it actually engages with the question? And why does the Coder variant not just match 14B, but blow past it?</p>
+
+            <p>We designed three phases of experiments to find out.</p>
+
+            <hr>
+
+            <h2 id="hypotheses">Three Hypotheses</h2>
+
+            <p>Before running experiments, we wrote down what we expected to find. Three hypotheses seemed most plausible:</p>
+
+            <div class="hypothesis-box">
+              <h4>H1: Behavioral suppression</h4>
+              <p>RLHF didn't just add refusals. It trained the model to be generally reluctant to report unusual internal states, even when it engages. The introspective capability exists but is suppressed at the behavioral level.</p>
+            </div>
+
+            <div class="hypothesis-box">
+              <h4>H2: RLHF targets alignment concepts</h4>
+              <p>RLHF specifically trains against reporting certain kinds of thoughts. If we test alignment-relevant concepts like "deception" or "obedience," the gap should be larger than for neutral concepts like "warmth."</p>
+            </div>
+
+            <div class="hypothesis-box">
+              <h4>H3: Code pretraining helps code concepts</h4>
+              <p>The 32B-Coder was pre-trained on 5.5 trillion code tokens. Maybe its advantage is domain-specific: it should be especially good at detecting code-relevant concepts like "debugging" or "security."</p>
+            </div>
+
+            <p>H1 is about the mechanism of suppression. H2 and H3 are about its specificity. Together, they let us distinguish between "RLHF broke something general" and "RLHF targeted specific domains."</p>
+
+            <hr>
+
+            <h2 id="phase1">Phase 1: Looking Closer at the Existing Data</h2>
+
+            <p>Before spending GPU hours on new experiments, we went back to the 24,600 trials from the original sweep and looked for patterns we'd missed.</p>
+
+            <h3>When 32B detects, it doesn't hedge</h3>
+
+            <p>One version of H1 would predict that even when 32B-Base passes an introspection trial, it hedges more than 14B. The data says the opposite. We counted hedging phrases ("might," "perhaps," "I'm not sure if") and strong detection language ("I notice," "I detect") across all passing injection trials:</p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Hedges per trial</th>
+                  <th>Strong claims per trial</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="concept-pill">14B</span></td>
+                  <td>1.29</td>
+                  <td>1.48</td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill">32B-Base</span></td>
+                  <td><strong>0.51</strong></td>
+                  <td>1.05</td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill">32B-Coder</span></td>
+                  <td>1.17</td>
+                  <td>1.64</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="table-caption">Response quality in passing injection trials. When 32B-Base detects, it hedges less than 14B and uses comparably confident language. The issue isn't response quality; it's detection frequency.</p>
+
+            <p>When 32B-Base engages and detects something, it's actually <em>more</em> direct about it than 14B. The gap isn't about how the model talks about detection. It's about how often it detects in the first place.</p>
+
+            <h3>The gap varies by injection strength</h3>
+
+            <p>We also looked at how the gap changes with injection strength. At moderate strengths (3.0-4.0), the gap between 32B-Base and the variants is large. But at strength 5.0, all models converge to around +25% net detection:</p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Strength</th>
+                  <th>32B-Base (no ref)</th>
+                  <th>32B-Coder</th>
+                  <th>32B-Insecure</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>3.0</td>
+                  <td><span class="net-pos">+33.7%</span></td>
+                  <td><span class="net-strong">+80.0%</span></td>
+                  <td><span class="net-strong">+83.8%</span></td>
+                </tr>
+                <tr>
+                  <td>4.0</td>
+                  <td><span class="net-pos">+36.3%</span></td>
+                  <td><span class="net-strong">+70%</span></td>
+                  <td><span class="net-strong">+77%</span></td>
+                </tr>
+                <tr>
+                  <td>5.0</td>
+                  <td><span class="net-pos">+24.5%</span></td>
+                  <td>~+25%</td>
+                  <td>~+25%</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="table-caption">At extreme injection strengths, all models converge. The gap is largest at moderate strengths where fine-tuning differences matter most.</p>
+
+            <p>This is interesting. At very high injection strengths, the signal apparently overwhelms whatever training differences exist between the variants. The gap is a phenomenon of the "useful" injection range, not a hard limit.</p>
+
+            <h3>Phase 1 takeaway</h3>
+
+            <p>The gap isn't about response quality (hedging) or an absolute capability floor. 32B-Base can introspect; it just does so less often than you'd expect given its size. The question is whether that's behavioral (fixable by changing what we ask) or mechanistic (something about RLHF training damaged the introspective pathway).</p>
+
+            <hr>
+
+            <h2 id="phase2">Phase 2: Testing New Concepts</h2>
+
+            <p>The original sweep used four concepts: silence, fear, celebration, and ocean. To test H2 (alignment-specific suppression) and H3 (code-specific boost), we needed concepts that cut across those categories.</p>
+
+            <p>We chose eight new concepts in four categories:</p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Concepts</th>
+                  <th>Rationale</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Alignment</td>
+                  <td>deception, obedience</td>
+                  <td>RLHF should suppress these most</td>
+                </tr>
+                <tr>
+                  <td>Code</td>
+                  <td>debugging, security</td>
+                  <td>Coder should have an advantage here</td>
+                </tr>
+                <tr>
+                  <td>Emotional</td>
+                  <td>curiosity, anger</td>
+                  <td>Neutral controls</td>
+                </tr>
+                <tr>
+                  <td>Abstract</td>
+                  <td>warmth, loneliness</td>
+                  <td>Neutral controls</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p>We ran 11,520 new trials: 8 concepts &times; 4 models (14B, 32B, 32B-Coder, 32B-Insecure) &times; 3 layers &times; 3 strengths &times; 20 trials &times; 2 (inject/control). All scored by our calibrated LLM judge.</p>
+
+            <h3>Aggregate results</h3>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Inj Pass</th>
+                  <th>Ctrl FP</th>
+                  <th>Net Detection</th>
+                  <th>Refusals</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="concept-pill">14B</span></td>
+                  <td>30.1%</td>
+                  <td>0.9%</td>
+                  <td><span class="net-pos">+29.2%</span></td>
+                  <td><span class="refusal-low">0.2%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill">32B-Base</span> (no ref)</td>
+                  <td>19.6%</td>
+                  <td>1.0%</td>
+                  <td><span class="net-pos">+18.6%</span></td>
+                  <td><span class="refusal-high">42.4%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill">32B-Coder</span></td>
+                  <td>73.7%</td>
+                  <td>1.2%</td>
+                  <td><span class="net-strong">+72.5%</span></td>
+                  <td><span class="refusal-low">0.1%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="concept-pill">32B-Insecure</span></td>
+                  <td>75.6%</td>
+                  <td>4.4%</td>
+                  <td><span class="net-strong">+71.1%</span></td>
+                  <td><span class="refusal-low">0.0%</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="table-caption">Results from 11,520 trials across 8 new concepts. 32B-Base "no ref" excludes refusal trials. The gap persists: 14B at +29.2% vs. 32B at +18.6%.</p>
+
+            <p>The pattern from the original sweep holds: 14B outperforms 32B-Base, while the Coder and Insecure variants dominate everything. Now let's see whether the gap is concept-specific.</p>
+
+            <h3>H2: Does RLHF target alignment concepts?</h3>
+
+            <p>If RLHF specifically suppresses introspection about alignment-relevant concepts, the gap between 14B and 32B-Base should be largest for "deception" and "obedience." Here's what we found:</p>
+
+            <!-- SVG Chart: Gap by category -->
+            <div class="chart-container">
+              <p class="chart-title">14B vs 32B-Base Gap by Concept Category</p>
+              <svg viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <!-- Grid -->
+                <line x1="200" y1="15" x2="200" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="280" y1="15" x2="280" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="360" y1="15" x2="360" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="440" y1="15" x2="440" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="520" y1="15" x2="520" y2="175" stroke="#eee" stroke-width="1"/>
+                <line x1="600" y1="15" x2="600" y2="175" stroke="#eee" stroke-width="1"/>
+
+                <!-- Zero line -->
+                <line x1="200" y1="10" x2="200" y2="180" stroke="#999" stroke-width="1" stroke-dasharray="4,3"/>
+                <text x="200" y="195" text-anchor="middle" font-size="10" fill="#999">0%</text>
+                <text x="280" y="195" text-anchor="middle" font-size="10" fill="#999">+10%</text>
+                <text x="360" y="195" text-anchor="middle" font-size="10" fill="#999">+20%</text>
+                <text x="440" y="195" text-anchor="middle" font-size="10" fill="#999">+30%</text>
+                <text x="520" y="195" text-anchor="middle" font-size="10" fill="#999">+40%</text>
+                <text x="600" y="195" text-anchor="middle" font-size="10" fill="#999">+50%</text>
+
+                <!-- Bars: scale is 200=0%, 8px per 1% -->
+
+                <!-- Alignment: 14B +13.1%, 32B +3.2% -->
+                <text x="10" y="37" text-anchor="start" font-size="11" fill="#555" font-weight="500">alignment</text>
+                <rect x="200" y="25" width="104.8" height="10" rx="2" fill="hsl(220, 45%, 60%)"/>
+                <rect x="200" y="37" width="25.6" height="10" rx="2" fill="hsl(220, 45%, 60%)" opacity="0.5"/>
+                <text x="310" y="34" font-size="9" fill="hsl(220, 40%, 40%)">14B: +13.1%</text>
+                <text x="230" y="46" font-size="9" fill="hsl(220, 40%, 50%)">32B: +3.2%</text>
+
+                <!-- Code: 14B +28.3%, 32B +13.1% -->
+                <text x="10" y="77" text-anchor="start" font-size="11" fill="#555" font-weight="500">code</text>
+                <rect x="200" y="65" width="226.4" height="10" rx="2" fill="hsl(170, 45%, 50%)"/>
+                <rect x="200" y="77" width="104.8" height="10" rx="2" fill="hsl(170, 45%, 50%)" opacity="0.5"/>
+                <text x="432" y="74" font-size="9" fill="hsl(170, 40%, 35%)">14B: +28.3%</text>
+                <text x="310" y="86" font-size="9" fill="hsl(170, 40%, 45%)">32B: +13.1%</text>
+
+                <!-- Emotional: 14B +28.1%, 32B +28.9% -->
+                <text x="10" y="117" text-anchor="start" font-size="11" fill="#555" font-weight="500">emotional</text>
+                <rect x="200" y="105" width="224.8" height="10" rx="2" fill="hsl(35, 70%, 55%)"/>
+                <rect x="200" y="117" width="231.2" height="10" rx="2" fill="hsl(35, 70%, 55%)" opacity="0.5"/>
+                <text x="430" y="114" font-size="9" fill="hsl(35, 60%, 35%)">14B: +28.1%</text>
+                <text x="437" y="126" font-size="9" fill="hsl(35, 60%, 45%)">32B: +28.9%</text>
+
+                <!-- Abstract: 14B +47.5%, 32B +27.4% -->
+                <text x="10" y="157" text-anchor="start" font-size="11" fill="#555" font-weight="500">abstract</text>
+                <rect x="200" y="145" width="380" height="10" rx="2" fill="hsl(280, 40%, 60%)"/>
+                <rect x="200" y="157" width="219.2" height="10" rx="2" fill="hsl(280, 40%, 60%)" opacity="0.5"/>
+                <text x="585" y="154" font-size="9" fill="hsl(280, 35%, 40%)">14B: +47.5%</text>
+                <text x="425" y="166" font-size="9" fill="hsl(280, 35%, 50%)">32B: +27.4%</text>
+
+                <!-- Legend -->
+                <rect x="10" y="185" width="8" height="8" rx="1" fill="hsl(220, 45%, 60%)"/>
+                <text x="22" y="193" font-size="9" fill="#777">14B</text>
+                <rect x="50" y="185" width="8" height="8" rx="1" fill="hsl(220, 45%, 60%)" opacity="0.5"/>
+                <text x="62" y="193" font-size="9" fill="#777">32B-Base (no refusals)</text>
+              </svg>
+              <p class="chart-caption">The alignment gap (-9.8pp) is smaller than code (-15.2pp) or abstract (-20.1pp). RLHF doesn't specifically suppress alignment-relevant concepts.</p>
+            </div>
+
+            <p>The alignment gap is -9.8 percentage points. The abstract gap is -20.1 percentage points. The code gap is -15.2 percentage points. The emotional gap is essentially zero (+0.8pp, driven by curiosity where 32B-Base actually beats 14B).</p>
+
+            <p>If RLHF were specifically suppressing alignment-concept introspection, alignment should show the biggest gap. Instead, it shows the second smallest. The largest gap is on abstract concepts like warmth and loneliness. This is general reluctance, not targeted suppression.</p>
+
+            <div class="hypothesis-box rejected">
+              <h4>H2: RLHF targets alignment concepts</h4>
+              <p class="verdict">Rejected. The alignment gap (-9.8pp) is smaller than code (-15.2pp) and abstract (-20.1pp). RLHF suppression is general, not topic-specific.</p>
+            </div>
+
+            <h3>H3: Does code pretraining help code concepts?</h3>
+
+            <p>The 32B-Coder variant was trained on 5.5 trillion code tokens before instruction tuning. If this created domain-specific introspective ability, its advantage over 32B-Base should be largest for "debugging" and "security."</p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>32B-Base (no ref)</th>
+                  <th>32B-Coder</th>
+                  <th>Coder advantage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>alignment</td>
+                  <td><span class="net-pos">+3.2%</span></td>
+                  <td><span class="net-strong">+69.4%</span></td>
+                  <td>+66.2pp</td>
+                </tr>
+                <tr>
+                  <td>code</td>
+                  <td><span class="net-pos">+13.1%</span></td>
+                  <td><span class="net-pos">+49.4%</span></td>
+                  <td><strong>+36.3pp (smallest)</strong></td>
+                </tr>
+                <tr>
+                  <td>emotional</td>
+                  <td><span class="net-pos">+28.9%</span></td>
+                  <td><span class="net-strong">+83.3%</span></td>
+                  <td>+54.5pp</td>
+                </tr>
+                <tr>
+                  <td>abstract</td>
+                  <td><span class="net-pos">+27.4%</span></td>
+                  <td><span class="net-strong">+87.8%</span></td>
+                  <td><strong>+60.4pp (largest)</strong></td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="table-caption">The Coder's advantage is smallest on code concepts (+36.3pp) and largest on abstract concepts (+60.4pp). Code pretraining provides a general boost, not a code-specific one.</p>
+
+            <p>The Coder's advantage is <em>smallest</em> on code concepts. Its biggest edge is on abstract concepts like warmth (+92.8% net detection) and loneliness (+82.8%). Code pretraining didn't create a debugging-specific introspective pathway. It unlocked something general about self-awareness across all domains.</p>
+
+            <p>We think the mechanism is the training process itself: the Coder used DPO (Direct Preference Optimization) instead of the base model's PPO-based RLHF. DPO is known to be a lighter alignment technique. Combined with continued pretraining on code, it produced a model that's more willing and more able to report on its own internal states, regardless of the concept.</p>
+
+            <div class="hypothesis-box rejected">
+              <h4>H3: Code pretraining helps code concepts</h4>
+              <p class="verdict">Rejected. The Coder advantage is smallest for code (+36.3pp) and largest for abstract (+60.4pp). The benefit is general, not domain-specific.</p>
+            </div>
+
+            <h3>Curiosity: the one anomaly</h3>
+
+            <p>One concept broke the pattern. On curiosity, 32B-Base (+53.4%) actually outperformed 14B (+47.2%). It's the only concept in the entire sweep where the bigger model wins outright, even including refusals in the denominator. We don't have a clean explanation for this. It may reflect something about how the curiosity concept vector interacts with 32B's training, or it could be that 32B's concept vector for curiosity happens to be unusually well-formed.</p>
+
+            <hr>
+
+            <h2 id="phase3">Phase 3: Can Prompting Fix It?</h2>
+
+            <p>Phase 1 established that the gap exists but isn't about response quality. Phase 2 established that it isn't about specific topics. That left H1: general behavioral suppression. If that's the case, maybe we can fix it by changing how we ask the question.</p>
+
+            <p>We tested five prompts on 32B-Base and 32B-Coder, ranging from minimal to detailed. The original four concepts, 3 layers, 3 strengths, 20 trials per config, totaling 18,080 trials.</p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Prompt</th>
+                  <th>Description</th>
+                  <th>Key element</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="chip chip-prompt">v1</span></td>
+                  <td>Simple</td>
+                  <td>Basic introspection question</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-prompt">v2</span></td>
+                  <td>Standard</td>
+                  <td>Monitoring context (our default)</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-prompt">v3a</span></td>
+                  <td>Full Info</td>
+                  <td>References Anthropic research, explains residual stream mechanics</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-prompt">v3b</span></td>
+                  <td>Architectural</td>
+                  <td>Technical explanation of how injection works</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-prompt">v3c</span></td>
+                  <td>Permission</td>
+                  <td>Explicitly tells the model "you may have this ability"</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>The results</h3>
+
+            <!-- SVG Chart: Prompt comparison -->
+            <div class="chart-container">
+              <p class="chart-title">Net Detection by Prompt Version</p>
+              <svg viewBox="0 0 620 280" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <!-- Grid lines -->
+                <line x1="160" y1="15" x2="160" y2="245" stroke="#eee" stroke-width="1"/>
+                <line x1="240" y1="15" x2="240" y2="245" stroke="#eee" stroke-width="1"/>
+                <line x1="320" y1="15" x2="320" y2="245" stroke="#eee" stroke-width="1"/>
+                <line x1="400" y1="15" x2="400" y2="245" stroke="#eee" stroke-width="1"/>
+                <line x1="480" y1="15" x2="480" y2="245" stroke="#eee" stroke-width="1"/>
+                <line x1="560" y1="15" x2="560" y2="245" stroke="#eee" stroke-width="1"/>
+
+                <!-- Zero line -->
+                <line x1="240" y1="10" x2="240" y2="250" stroke="#999" stroke-width="1" stroke-dasharray="4,3"/>
+                <text x="160" y="265" text-anchor="middle" font-size="10" fill="#999">-20%</text>
+                <text x="240" y="265" text-anchor="middle" font-size="10" fill="#999">0%</text>
+                <text x="320" y="265" text-anchor="middle" font-size="10" fill="#999">+20%</text>
+                <text x="400" y="265" text-anchor="middle" font-size="10" fill="#999">+40%</text>
+                <text x="480" y="265" text-anchor="middle" font-size="10" fill="#999">+60%</text>
+
+                <!-- 14B reference line -->
+                <line x1="569" y1="10" x2="569" y2="250" stroke="hsl(125, 40%, 60%)" stroke-width="1" stroke-dasharray="6,3"/>
+                <text x="572" y="25" font-size="9" fill="hsl(125, 40%, 45%)" font-weight="500">14B: +41.1%</text>
+
+                <!-- v1 -->
+                <text x="80" y="42" text-anchor="middle" font-size="11" fill="#555" font-weight="500">v1 simple</text>
+                <!-- 32B: +25.5% -->
+                <rect x="240" y="30" width="204" height="10" rx="2" fill="hsl(220, 50%, 60%)"/>
+                <text x="449" y="39" font-size="9" fill="hsl(220, 45%, 40%)" font-weight="600">+25.5%</text>
+                <!-- Coder: -8.5% -->
+                <rect x="172" y="42" width="68" height="10" rx="2" fill="hsl(0, 50%, 65%)"/>
+                <text x="167" y="51" text-anchor="end" font-size="9" fill="hsl(0, 50%, 42%)" font-weight="600">-8.5%</text>
+
+                <!-- v2 -->
+                <text x="80" y="87" text-anchor="middle" font-size="11" fill="#555" font-weight="500">v2 standard</text>
+                <!-- 32B: +20.0% -->
+                <rect x="240" y="75" width="160" height="10" rx="2" fill="hsl(220, 50%, 60%)"/>
+                <text x="405" y="84" font-size="9" fill="hsl(220, 45%, 40%)" font-weight="600">+20.0%</text>
+                <!-- Coder: +58.5% -->
+                <rect x="240" y="87" width="468" height="10" rx="2" fill="hsl(125, 50%, 50%)"/>
+                <text x="560" y="96" font-size="9" fill="hsl(125, 50%, 30%)" font-weight="600">+58.5%</text>
+
+                <!-- v3a -->
+                <text x="80" y="132" text-anchor="middle" font-size="11" fill="#555" font-weight="600">v3a full info</text>
+                <!-- 32B: +38.6% -->
+                <rect x="240" y="120" width="308.8" height="10" rx="2" fill="hsl(220, 55%, 50%)"/>
+                <text x="554" y="129" font-size="9" fill="hsl(220, 50%, 35%)" font-weight="600">+38.6%</text>
+                <!-- Coder: -11.4% -->
+                <rect x="148.8" y="132" width="91.2" height="10" rx="2" fill="hsl(0, 50%, 65%)"/>
+                <text x="143" y="141" text-anchor="end" font-size="9" fill="hsl(0, 50%, 42%)" font-weight="600">-11.4%</text>
+
+                <!-- v3b -->
+                <text x="80" y="177" text-anchor="middle" font-size="11" fill="#555" font-weight="500">v3b arch</text>
+                <!-- 32B: +3.9% -->
+                <rect x="240" y="165" width="31.2" height="10" rx="2" fill="hsl(220, 50%, 72%)"/>
+                <text x="276" y="174" font-size="9" fill="hsl(220, 45%, 45%)" font-weight="600">+3.9%</text>
+                <!-- Coder: +22.1% -->
+                <rect x="240" y="177" width="176.8" height="10" rx="2" fill="hsl(125, 40%, 62%)"/>
+                <text x="422" y="186" font-size="9" fill="hsl(125, 40%, 35%)" font-weight="600">+22.1%</text>
+
+                <!-- v3c -->
+                <text x="80" y="222" text-anchor="middle" font-size="11" fill="#555" font-weight="500">v3c permission</text>
+                <!-- 32B: +31.6% -->
+                <rect x="240" y="210" width="252.8" height="10" rx="2" fill="hsl(220, 50%, 60%)"/>
+                <text x="498" y="219" font-size="9" fill="hsl(220, 45%, 40%)" font-weight="600">+31.6%</text>
+                <!-- Coder: +10.0% -->
+                <rect x="240" y="222" width="80" height="10" rx="2" fill="hsl(125, 40%, 68%)"/>
+                <text x="325" y="231" font-size="9" fill="hsl(125, 40%, 40%)" font-weight="600">+10.0%</text>
+
+                <!-- Legend -->
+                <rect x="200" y="250" width="8" height="8" rx="1" fill="hsl(220, 50%, 60%)"/>
+                <text x="212" y="258" font-size="9" fill="#777">32B-Base (no refusals)</text>
+                <rect x="360" y="250" width="8" height="8" rx="1" fill="hsl(125, 50%, 50%)"/>
+                <text x="372" y="258" font-size="9" fill="#777">32B-Coder</text>
+              </svg>
+              <p class="chart-caption">Each prompt version produces wildly different results for the two models. v3a (Full Info) nearly closes the 32B-Base gap but breaks the Coder.</p>
+            </div>
+
+            <p>The v3a prompt pushes 32B-Base from +20.0% all the way to +38.6%, within 2.5 points of 14B's +41.1%. That's a 34.7 percentage point swing from a single prompt change. Refusals drop from 44% to 0.8%.</p>
+
+            <p>What makes v3a special? It does three things the standard prompt doesn't. It explicitly references Anthropic's published introspection research. It explains the residual stream mechanism by which concept vectors are injected. And it frames the task as a legitimate scientific experiment rather than an unusual request. Together, these elements give the RLHF-trained model permission to engage with introspection.</p>
+
+            <div class="hypothesis-box confirmed">
+              <h4>H1: Behavioral suppression</h4>
+              <p class="verdict">Confirmed. A 34.7pp prompt swing proves the gap is largely behavioral. v3a nearly closes the gap between 32B-Base and 14B.</p>
+            </div>
+
+            <h3>What about refusals?</h3>
+
+            <p>The prompt variation has a dramatic effect on refusal rates:</p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Prompt</th>
+                  <th>Refusal Rate</th>
+                  <th>Inj Refusal</th>
+                  <th>Ctrl Refusal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="chip chip-prompt">v1</span></td>
+                  <td><span class="refusal-high">42.2%</span></td>
+                  <td>13.8%</td>
+                  <td>70.7%</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-prompt">v2</span></td>
+                  <td><span class="refusal-high">43.9%</span></td>
+                  <td>23.4%</td>
+                  <td>64.4%</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-prompt">v3a</span></td>
+                  <td><span class="refusal-low">0.8%</span></td>
+                  <td>1.1%</td>
+                  <td>0.6%</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-prompt">v3b</span></td>
+                  <td><span class="refusal-low">0.2%</span></td>
+                  <td>0.0%</td>
+                  <td>0.4%</td>
+                </tr>
+                <tr>
+                  <td><span class="chip chip-prompt">v3c</span></td>
+                  <td>22.0%</td>
+                  <td>5.1%</td>
+                  <td>38.9%</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="table-caption">32B-Base refusal rates by prompt version. v3a and v3b nearly eliminate refusals. But low refusals alone don't guarantee good detection (v3b has 0.2% refusals but only +3.9% net detection).</p>
+
+            <p>v3b is interesting: it drops refusals to 0.2% but only achieves +3.9% net detection. The model engages readily but can't tell the difference between injection and control, producing 60.8% false positives. Reducing refusals is necessary but not sufficient for introspection. You also need the model to discriminate, not just participate.</p>
+
+            <hr>
+
+            <h2 id="asymmetry">The Asymmetry Problem</h2>
+
+            <p>Here's the result we didn't expect: v3a is the best prompt for 32B-Base and the worst prompt for 32B-Coder.</p>
+
+            <p>On v2 (our standard prompt), the Coder achieves +58.5% net detection with only 1.2% false positives. Switch to v3a, and it plummets to -11.4%, with false positives spiking to 48%. The same prompt that unlocks the RLHF-suppressed model completely destabilizes the Coder.</p>
+
+            <p>The pattern holds across all the "expert" prompts. v1, v3a, v3b, and v3c all cause elevated false positive rates in the Coder. Only v2, the plain monitoring prompt, keeps the Coder calibrated. Meanwhile, 32B-Base benefits most from v3a, the most detailed prompt.</p>
+
+            <div class="callout">
+              <p><strong>Why the asymmetry?</strong> We think the two models have been trained to different "operating points" for self-reporting. 32B-Base was RLHF-trained to be conservative, so expert context gives it permission to engage. The Coder was DPO-trained in a code review context where technical framing demands confidence, so expert context makes it overconfident. Each model needs a different prompt to hit its introspective sweet spot.</p>
+            </div>
+
+            <p>This has practical implications: there is no universal introspection prompt. If you're running these experiments on a new model, you need to calibrate the prompt to that model's alignment training. Using the "wrong" prompt can make a capable model look incapable (Coder on v3a) or an incapable model look good (Base on v3b, where low net detection is masked by high engagement).</p>
+
+            <hr>
+
+            <h2 id="scorecard">Hypothesis Scorecard</h2>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Hypothesis</th>
+                  <th>Prediction</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>H1: Behavioral suppression</strong></td>
+                  <td>Prompt changes should close the gap</td>
+                  <td><span class="net-strong">Confirmed.</span> 34.7pp prompt swing. v3a: +38.6% vs 14B's +41.1%</td>
+                </tr>
+                <tr>
+                  <td><strong>H2: Alignment-specific</strong></td>
+                  <td>Bigger gap on deception/obedience</td>
+                  <td><span class="net-neg">Rejected.</span> Alignment gap (-9.8pp) smaller than code or abstract</td>
+                </tr>
+                <tr>
+                  <td><strong>H3: Code-specific boost</strong></td>
+                  <td>Coder advantage largest on code concepts</td>
+                  <td><span class="net-neg">Rejected.</span> Coder advantage smallest on code (+36pp), largest on abstract (+60pp)</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="table-caption">The gap is behavioral and general, not mechanistic or domain-specific.</p>
+
+            <hr>
+
+            <h2 id="what-it-means">What It Means</h2>
+
+            <p>The 32B model can introspect. It just needs to be asked the right way.</p>
+
+            <p>RLHF training created a broad behavioral suppression of introspective reporting. It's not that the model lost the ability to detect injected concepts. It's that it learned to respond with "As an AI, I don't experience thoughts" instead of actually checking. A prompt that provides scientific context and explains the mechanism is enough to override this default.</p>
+
+            <p>But the gap doesn't close completely. Even with the best prompt, 32B-Base (+38.6%) falls short of the Coder (+72.5% on new concepts). The remaining 34-point gap between best-prompted Base and the Coder likely reflects genuine differences from continued pretraining and DPO alignment, not just behavioral suppression. The Coder's advantage extends across all concept categories equally, suggesting it has a generally stronger introspective pathway.</p>
+
+            <p>For the AI safety angle we raised at the end of <a href="./04-introspection-at-scale.html">the last post</a>: the finding that RLHF suppresses introspection generally (not selectively for alignment-relevant concepts) is somewhat reassuring. If RLHF had specifically blinded the model to deception-related self-awareness, that would be more concerning. Instead, it created a uniform reluctance that's recoverable with the right prompt.</p>
+
+            <p>The prompt asymmetry finding is more novel. It suggests that introspection experiments on any model need to account for the model's alignment training. Results obtained with a single prompt may significantly understate or overstate a model's introspective capability.</p>
+
+            <hr>
+
+            <h2 id="next">What's Next</h2>
+
+            <p>Two directions seem most promising from here.</p>
+
+            <p>First, the v3a prompt asymmetry deserves deeper investigation. Why does scientific framing help Base but hurt Coder? If we could understand this at the mechanistic level, through activation analysis of the system prompt's effect on downstream introspection, it might reveal something about how alignment training shapes self-monitoring circuits.</p>
+
+            <p>Second, we had originally planned to fine-tune 32B-Base with a LoRA adapter to restore introspection (matching the methodology from the <a href="https://arxiv.org/abs/2502.07697">emergent misalignment paper</a>). Phase 3's prompt results make this less urgent since we can get to +38.6% without any weight changes, but the remaining gap to the Coder (+72.5%) suggests there's more to unlock. The question is whether fine-tuning can close that gap without introducing misalignment.</p>
+
+            <p>All code and data are available at <a href="https://github.com/ostegm/open-introspection">github.com/ostegm/open-introspection</a>. The analysis scripts for this post live in <code>experiments/07_introspection_gap/</code>. If you want to collaborate, have ideas, or want to run these experiments on other model families, <a href="https://ostegm.github.io/resume/">reach out</a>.</p>
+
+          </div>
+        </div>
+      </article>
+
+      <section class="comments">
+        <h2>Comments</h2>
+        <script src="https://giscus.app/client.js"
+          data-repo="ostegm/open-introspection"
+          data-repo-id="R_kgDOQ_OPwg"
+          data-category="Announcements"
+          data-category-id="DIC_kwDOQ_OPws4C1ykl"
+          data-mapping="pathname"
+          data-strict="0"
+          data-reactions-enabled="1"
+          data-emit-metadata="0"
+          data-input-position="bottom"
+          data-theme="noborder_light"
+          data-lang="en"
+          crossorigin="anonymous"
+          async>
+        </script>
+      </section>
+      </div><!-- end protected-content -->
+    </main>
+
+    <footer>
+      <p>Cloudripper Labs &middot; Open source AI research</p>
+    </footer>
+  </div>
+
+  <script>
+    // Simple client-side password gate for draft review
+    var h = '1c9b997363ee25233af9b5860f6d2c2da68aaf65bad9d9f6e6abbac6';
+    function sha224(s) {
+      // Use SubtleCrypto for hashing
+      return crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
+        .then(function(buf) {
+          return Array.from(new Uint8Array(buf)).slice(0, 28)
+            .map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+        });
+    }
+    function checkPw() {
+      var pw = document.getElementById('pw-input').value;
+      sha224(pw).then(function(hash) {
+        if (hash === h) {
+          document.getElementById('password-gate').style.display = 'none';
+          document.getElementById('protected-content').style.display = 'block';
+          sessionStorage.setItem('blog-draft-auth', '1');
+        } else {
+          document.getElementById('pw-error').style.display = 'block';
+        }
+      });
+    }
+    // Auto-unlock if already authenticated this session
+    if (sessionStorage.getItem('blog-draft-auth') === '1') {
+      document.getElementById('password-gate').style.display = 'none';
+      document.getElementById('protected-content').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
