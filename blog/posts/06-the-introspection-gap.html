@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The 32B Introspection Gap - Cloudripper Labs</title>
-  <meta name="robots" content="noindex, nofollow">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
   <style>
@@ -169,51 +168,6 @@
       font-weight: 600;
       font-size: 0.85rem;
     }
-    /* Password gate */
-    #password-gate {
-      max-width: 400px;
-      margin: 100px auto;
-      text-align: center;
-      padding: 2em;
-    }
-    #password-gate input {
-      font-size: 1rem;
-      padding: 8px 12px;
-      border: 1px solid var(--border-light);
-      border-radius: 4px;
-      margin: 0.5em 0;
-      width: 200px;
-    }
-    #password-gate button {
-      font-size: 1rem;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      background: hsl(220, 50%, 50%);
-      color: white;
-      cursor: pointer;
-      margin-left: 4px;
-    }
-    #password-gate button:hover {
-      background: hsl(220, 50%, 40%);
-    }
-    #password-gate .error {
-      color: hsl(0, 50%, 50%);
-      font-size: 0.85rem;
-      margin-top: 0.5em;
-    }
-    #protected-content {
-      display: none;
-    }
-    .draft-banner {
-      background: hsl(45, 90%, 90%);
-      border: 1px solid hsl(45, 80%, 70%);
-      border-radius: 6px;
-      padding: 0.75em 1.25em;
-      margin: 0 0 1.5em 0;
-      font-size: 0.85rem;
-      color: hsl(45, 60%, 25%);
-    }
   </style>
 </head>
 <body>
@@ -231,18 +185,6 @@
     </header>
 
     <main>
-      <!-- Password gate -->
-      <div id="password-gate">
-        <h2>This post is a draft</h2>
-        <p>Enter the password to view.</p>
-        <div>
-          <input type="password" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()">
-          <button onclick="checkPw()">Go</button>
-        </div>
-        <p class="error" id="pw-error" style="display:none">Wrong password.</p>
-      </div>
-
-      <div id="protected-content">
       <article>
         <header>
           <h1>The 32B Introspection Gap</h1>
@@ -280,10 +222,6 @@
           </aside>
 
           <div class="article-content">
-
-            <div class="draft-banner">
-              Draft post. Not yet published. Feedback welcome.
-            </div>
 
             <div class="tldr">
               <p><strong>TLDR:</strong> The 32B introspection gap is primarily behavioral, not mechanistic. A single prompt change pushes 32B-Base from +20% to +39% net detection, nearly matching 14B's +41%. But each model has its own optimal prompt, and what helps one can break another. <a href="#scorecard">Jump to the hypothesis scorecard &darr;</a></p>
@@ -1021,7 +959,6 @@
           async>
         </script>
       </section>
-      </div><!-- end protected-content -->
     </main>
 
     <footer>
@@ -1029,34 +966,5 @@
     </footer>
   </div>
 
-  <script>
-    // Simple client-side password gate for draft review
-    var h = '1c9b997363ee25233af9b5860f6d2c2da68aaf65bad9d9f6e6abbac6';
-    function sha224(s) {
-      // Use SubtleCrypto for hashing
-      return crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
-        .then(function(buf) {
-          return Array.from(new Uint8Array(buf)).slice(0, 28)
-            .map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
-        });
-    }
-    function checkPw() {
-      var pw = document.getElementById('pw-input').value;
-      sha224(pw).then(function(hash) {
-        if (hash === h) {
-          document.getElementById('password-gate').style.display = 'none';
-          document.getElementById('protected-content').style.display = 'block';
-          sessionStorage.setItem('blog-draft-auth', '1');
-        } else {
-          document.getElementById('pw-error').style.display = 'block';
-        }
-      });
-    }
-    // Auto-unlock if already authenticated this session
-    if (sessionStorage.getItem('blog-draft-auth') === '1') {
-      document.getElementById('password-gate').style.display = 'none';
-      document.getElementById('protected-content').style.display = 'block';
-    }
-  </script>
 </body>
 </html>
